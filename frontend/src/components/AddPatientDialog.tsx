@@ -30,7 +30,7 @@ export default function AddPatientDialog({ open, onOpenChange, onAdd }: AddPatie
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
           style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
           onClick={(e) => e.target === e.currentTarget && onOpenChange(false)}
         >
@@ -38,7 +38,7 @@ export default function AddPatientDialog({ open, onOpenChange, onAdd }: AddPatie
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4"
+            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 pb-20"
             style={{ backgroundColor: "var(--background)" }}
           >
             <div className="flex items-center justify-between mb-4">

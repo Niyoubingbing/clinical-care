@@ -182,7 +182,7 @@ export default function TodoSummary() {
               ) : (
                 <div className="space-y-1.5">
                   {filteredMemos.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2.5 p-2 rounded-lg group" style={{ backgroundColor: "var(--muted)" }}>
+                    <div key={m.id} className="flex items-center gap-2.5 p-2 rounded-lg" style={{ backgroundColor: "var(--muted)" }}>
                       <button
                         onClick={() => toggleMemo(m.id)}
                         className="w-5 h-5 rounded-full border-2 flex-shrink-0"
@@ -191,7 +191,7 @@ export default function TodoSummary() {
                       <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
                         {m.content}
                       </span>
-                      <button onClick={() => deleteMemo(m.id)} className="opacity-0 group-hover:opacity-100 p-1">
+                      <button onClick={() => deleteMemo(m.id)} className="p-1">
                         <Trash2 size={12} style={{ color: "var(--muted-foreground)" }} />
                       </button>
                     </div>
@@ -229,7 +229,7 @@ export default function TodoSummary() {
                 </button>
                 <div className="space-y-1">
                   {group.todos.map((todo) => (
-                    <div key={todo.id} className="flex items-center gap-2.5 p-2 rounded-lg group" style={{ backgroundColor: "var(--muted)" }}>
+                    <div key={todo.id} className="flex items-center gap-2.5 p-2 rounded-lg" style={{ backgroundColor: "var(--muted)" }}>
                       <button
                         onClick={() => toggleTodo(group.patientId, todo.id)}
                         className="w-5 h-5 rounded-full border-2 flex-shrink-0"
@@ -238,7 +238,7 @@ export default function TodoSummary() {
                       <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
                         {todo.content}
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         {todo.type && todo.type !== "其他" && (
                           <span className="px-1.5 py-0.5 rounded text-xs"
                             style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-small)" }}>

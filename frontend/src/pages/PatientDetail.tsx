@@ -337,7 +337,7 @@ export default function PatientDetail() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2.5 p-2 rounded-lg group"
+                      className="flex items-center gap-2.5 p-2 rounded-lg"
                       style={{ backgroundColor: "var(--muted)" }}
                     >
                       <button
@@ -348,7 +348,7 @@ export default function PatientDetail() {
                       <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
                         {todo.content}
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         {todo.type && todo.type !== "其他" && (
                           <span className="px-1.5 py-0.5 rounded text-xs"
                             style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-small)" }}>
@@ -458,7 +458,7 @@ export default function PatientDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-[60] flex items-center justify-center"
             style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
             onClick={() => setShowDelete(false)}
           >

@@ -123,13 +123,13 @@ export default function DataManagement() {
           {showImportText && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+              className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
               style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
               onClick={(e) => e.target === e.currentTarget && setShowImportText(false)}
             >
               <motion.div
                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[80vh] overflow-y-auto"
+                className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 pb-20 max-h-[80vh] overflow-y-auto"
                 style={{ backgroundColor: "var(--background)" }}
               >
                 <h2 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-md)" }}>
@@ -170,7 +170,7 @@ export default function DataManagement() {
           {showDeleteConfirm && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center"
+              className="fixed inset-0 z-[60] flex items-center justify-center"
               style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
             >
               <motion.div
