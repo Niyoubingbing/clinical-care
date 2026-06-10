@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Database, Download, Upload, FileText, AlertTriangle } from "lucide-react";
+import { Download, Upload, FileText, AlertTriangle, Settings } from "lucide-react";
 import { useDataManagement } from "@/hooks/use-data-management";
 import { FadeIn } from "@/components/MotionPrimitives";
 import { toast } from "sonner";
@@ -23,11 +23,7 @@ export default function DataManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
     const result = await importJSON(file);
-    if (result.success) {
-      toast.success(result.message);
-    } else {
-      toast.error(result.message);
-    }
+    toast[result.success ? "success" : "error"](result.message);
     e.target.value = "";
   };
 
@@ -62,110 +58,62 @@ export default function DataManagement() {
     <div className="flex flex-col min-h-screen">
       <header
         className="sticky top-0 z-40 px-4 py-3"
-        style={{
-          backgroundColor: "var(--background)",
-          borderBottom: "1px solid var(--border)",
-        }}
+        style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2">
-          <Database size={22} style={{ color: "var(--primary)" }} />
+          <Settings size={22} style={{ color: "var(--primary)" }} />
           <h1 style={{ fontSize: "var(--font-size-title)", fontWeight: "var(--font-weight-bold)", color: "var(--foreground)" }}>
-            数据管理
+            设置
           </h1>
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-3 space-y-4">
-        {/* Export */}
+      <main className="flex-1 px-4 py-3 space-y-3">
         <FadeIn>
-          <div
-            className="rounded-lg p-4"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
-          >
-            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
+          <div className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "2px" }}>
               导出备份
             </h3>
-            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)" }}>
-              导出完整数据（病人信息、待办、查血记录）为 JSON 文件
+            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-sm)" }}>
+              导出所有数据为 JSON 文件保存到本地
             </p>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-3 rounded-md w-full"
-              style={{
-                backgroundColor: "var(--primary)",
-                color: "var(--primary-foreground)",
-                fontSize: "var(--font-size-label)",
-                minHeight: "48px",
-                justifyContent: "center",
-              }}
-            >
-              <Download size={18} />
-              导出 JSON
+            <button onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg w-full justify-center"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
+              <Download size={18} />导出 JSON
             </button>
           </div>
         </FadeIn>
 
-        {/* Import JSON */}
         <FadeIn>
-          <div
-            className="rounded-lg p-4"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
-          >
-            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
-              导入备份
+          <div className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "2px" }}>
+              恢复备份
             </h3>
-            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)" }}>
-              从 JSON 备份文件恢复数据（会覆盖当前数据）
+            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-sm)" }}>
+              从 JSON 备份文件恢复数据（覆盖当前数据）
             </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-3 rounded-md w-full"
-              style={{
-                backgroundColor: "var(--secondary)",
-                color: "var(--secondary-foreground)",
-                fontSize: "var(--font-size-label)",
-                minHeight: "48px",
-                justifyContent: "center",
-              }}
-            >
-              <Upload size={18} />
-              导入 JSON
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg w-full justify-center"
+              style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
+              <Upload size={18} />导入 JSON 文件
             </button>
           </div>
         </FadeIn>
 
-        {/* Import Text */}
         <FadeIn>
-          <div
-            className="rounded-lg p-4"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
-          >
-            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
-              文本批量导入
+          <div className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+            <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "2px" }}>
+              批量导入病人
             </h3>
-            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)" }}>
-              使用格式 "-床号 姓名" 每行一个病人
+            <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-sm)" }}>
+              粘贴文本，格式：<code style={{ backgroundColor: "var(--muted)", padding: "1px 4px", borderRadius: "3px" }}>-床号 姓名</code>
             </p>
-            <button
-              onClick={() => setShowImportText(true)}
-              className="flex items-center gap-2 px-4 py-3 rounded-md w-full"
-              style={{
-                backgroundColor: "var(--secondary)",
-                color: "var(--secondary-foreground)",
-                fontSize: "var(--font-size-label)",
-                minHeight: "48px",
-                justifyContent: "center",
-              }}
-            >
-              <FileText size={18} />
-              文本导入
+            <button onClick={() => setShowImportText(true)}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg w-full justify-center"
+              style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
+              <FileText size={18} />粘贴导入
             </button>
           </div>
         </FadeIn>
@@ -174,17 +122,13 @@ export default function DataManagement() {
         <AnimatePresence>
           {showImportText && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
               style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
               onClick={(e) => e.target === e.currentTarget && setShowImportText(false)}
             >
               <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[80vh] overflow-y-auto"
                 style={{ backgroundColor: "var(--background)" }}
               >
@@ -194,40 +138,25 @@ export default function DataManagement() {
                 <textarea
                   value={importTextContent}
                   onChange={(e) => setImportTextContent(e.target.value)}
-                  placeholder={"-309W11 程霞荣\n-309W12 张三\n-309W13 李四"}
-                  rows={8}
-                  className="w-full p-3 rounded-md outline-none resize-none mb-3"
+                  placeholder={"-309W11 程霞荣\n-309W12 张三"}
+                  rows={10}
+                  className="w-full p-3 rounded-lg outline-none resize-none mb-3 font-mono"
                   style={{
                     backgroundColor: "var(--muted)",
                     border: "1px solid var(--border)",
                     fontSize: "var(--font-size-label)",
                     color: "var(--foreground)",
-                    fontFamily: "monospace",
                   }}
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => { setShowImportText(false); setImportTextContent(""); }}
-                    className="flex-1 py-3 rounded-md"
-                    style={{
-                      backgroundColor: "var(--secondary)",
-                      color: "var(--secondary-foreground)",
-                      fontSize: "var(--font-size-label)",
-                      minHeight: "48px",
-                    }}
-                  >
+                  <button onClick={() => { setShowImportText(false); setImportTextContent(""); }}
+                    className="flex-1 py-3 rounded-lg"
+                    style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
                     取消
                   </button>
-                  <button
-                    onClick={handleImportText}
-                    className="flex-1 py-3 rounded-md"
-                    style={{
-                      backgroundColor: "var(--primary)",
-                      color: "var(--primary-foreground)",
-                      fontSize: "var(--font-size-label)",
-                      minHeight: "48px",
-                    }}
-                  >
+                  <button onClick={handleImportText}
+                    className="flex-1 py-3 rounded-lg"
+                    style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
                     导入
                   </button>
                 </div>
@@ -236,21 +165,17 @@ export default function DataManagement() {
           )}
         </AnimatePresence>
 
-        {/* Delete Confirm Dialog */}
+        {/* Delete Confirm */}
         <AnimatePresence>
           {showDeleteConfirm && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center"
               style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
             >
               <motion.div
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.95 }}
-                className="w-[90vw] max-w-sm rounded-xl p-4"
+                initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+                className="w-[85vw] max-w-sm rounded-xl p-4"
                 style={{ backgroundColor: "var(--background)" }}
               >
                 <div className="flex items-center gap-3 mb-3">
@@ -260,7 +185,7 @@ export default function DataManagement() {
                   </h3>
                 </div>
                 <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-sm)" }}>
-                  以下病人不在导入列表中，将被删除：
+                  以下病人不在导入列表中：
                 </p>
                 <div className="max-h-40 overflow-y-auto mb-3">
                   {toDelete.map((p) => (
@@ -270,28 +195,14 @@ export default function DataManagement() {
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 py-3 rounded-md"
-                    style={{
-                      backgroundColor: "var(--secondary)",
-                      color: "var(--secondary-foreground)",
-                      fontSize: "var(--font-size-label)",
-                      minHeight: "48px",
-                    }}
-                  >
+                  <button onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-3 rounded-lg"
+                    style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
                     取消
                   </button>
-                  <button
-                    onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-md"
-                    style={{
-                      backgroundColor: "var(--destructive)",
-                      color: "white",
-                      fontSize: "var(--font-size-label)",
-                      minHeight: "48px",
-                    }}
-                  >
+                  <button onClick={handleConfirmDelete}
+                    className="flex-1 py-3 rounded-lg"
+                    style={{ backgroundColor: "var(--destructive)", color: "white", fontSize: "var(--font-size-label)", minHeight: "48px" }}>
                     确认删除
                   </button>
                 </div>

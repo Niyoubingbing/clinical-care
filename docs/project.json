@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "临床病人管理助手",
   "app_slug": "clinical-care",
-  "version_description": "完成病人管理、智能提醒、待办系统、每日小结全部功能",
+  "version_description": "部署临床病人管理助手到 Vercel",
   "preview_type": "mobile"
 }

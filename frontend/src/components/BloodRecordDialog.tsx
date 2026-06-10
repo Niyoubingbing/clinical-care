@@ -9,15 +9,30 @@ interface BloodRecordDialogProps {
   onSave: (record: Omit<BloodRecord, "id">) => Promise<void>;
 }
 
-const FIELDS: { key: keyof Omit<BloodRecord, "id">; label: string }[] = [
-  { key: "hb", label: "HB" },
-  { key: "wbc", label: "WBC" },
-  { key: "plt", label: "PLT" },
-  { key: "k", label: "K" },
-  { key: "na", label: "Na" },
-  { key: "cr", label: "Cr" },
-  { key: "alb", label: "Alb" },
-  { key: "crp", label: "CRP" },
+const FIELD_GROUPS = [
+  {
+    label: "血常规",
+    fields: [
+      { key: "hb" as const, label: "HB", placeholder: "120", unit: "g/L" },
+      { key: "wbc" as const, label: "WBC", placeholder: "6.0", unit: "×10⁹/L" },
+      { key: "plt" as const, label: "PLT", placeholder: "200", unit: "×10⁹/L" },
+    ],
+  },
+  {
+    label: "电解质",
+    fields: [
+      { key: "k" as const, label: "K", placeholder: "4.0", unit: "mmol/L" },
+      { key: "na" as const, label: "Na", placeholder: "140", unit: "mmol/L" },
+    ],
+  },
+  {
+    label: "生化",
+    fields: [
+      { key: "cr" as const, label: "Cr", placeholder: "80", unit: "μmol/L" },
+      { key: "alb" as const, label: "Alb", placeholder: "40", unit: "g/L" },
+      { key: "crp" as const, label: "CRP", placeholder: "5", unit: "mg/L" },
+    ],
+  },
 ];
 
 export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodRecordDialogProps) {
@@ -25,11 +40,11 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
   const [values, setValues] = useState<Record<string, string>>({});
 
   const handleSave = async () => {
-    const record: Omit<BloodRecord, "id"> = { date };
-    for (const field of FIELDS) {
-      const v = parseFloat(values[field.key]);
-      if (!isNaN(v)) {
-        (record as any)[field.key] = v;
+    const record: any = { date };
+    for (const group of FIELD_GROUPS) {
+      for (const field of group.fields) {
+        const v = parseFloat(values[field.key]);
+        if (!isNaN(v)) record[field.key] = v;
       }
     }
     await onSave(record);
@@ -52,60 +67,80 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[80vh] overflow-y-auto"
+            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[85vh] overflow-y-auto"
             style={{ backgroundColor: "var(--background)" }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h2 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>
                 录入查血
               </h2>
-              <button onClick={() => onOpenChange(false)} style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <button onClick={() => onOpenChange(false)}
+                style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <X size={20} style={{ color: "var(--muted-foreground)" }} />
               </button>
             </div>
 
+            <div className="mb-3">
+              <label style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", display: "block", marginBottom: "2px" }}>
+                检验日期
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg outline-none"
+                style={{
+                  backgroundColor: "var(--muted)",
+                  border: "1px solid var(--border)",
+                  fontSize: "var(--font-size-label)",
+                  color: "var(--foreground)",
+                }}
+              />
+            </div>
+
             <div className="space-y-3">
-              <div>
-                <label style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}>日期</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-md outline-none"
-                  style={{
-                    backgroundColor: "var(--muted)",
-                    border: "1px solid var(--border)",
-                    fontSize: "var(--font-size-label)",
-                    color: "var(--foreground)",
-                  }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {FIELDS.map((field) => (
-                  <div key={field.key}>
-                    <label style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", display: "block", marginBottom: "2px" }}>{field.label}</label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={values[field.key] || ""}
-                      onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-                      placeholder={field.label}
-                      className="w-full px-3 py-2.5 rounded-md outline-none"
-                      style={{
-                        backgroundColor: "var(--muted)",
-                        border: "1px solid var(--border)",
-                        fontSize: "var(--font-size-label)",
-                        color: "var(--foreground)",
-                      }}
-                    />
+              {FIELD_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <label
+                    className="block mb-1.5"
+                    style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", fontWeight: "var(--font-weight-medium)", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                  >
+                    {group.label}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {group.fields.map((field) => (
+                      <div key={field.key}>
+                        <label
+                          className="block mb-1"
+                          style={{ fontSize: "11px", color: "var(--muted-foreground)" }}
+                        >
+                          {field.label}
+                          <span style={{ fontSize: "10px", opacity: 0.5, marginLeft: "2px" }}>{field.unit}</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={values[field.key] || ""}
+                          onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                          placeholder={field.placeholder}
+                          className="w-full px-2 py-2 rounded-lg outline-none text-center"
+                          style={{
+                            backgroundColor: "var(--muted)",
+                            border: "1px solid var(--border)",
+                            fontSize: "var(--font-size-label)",
+                            color: "var(--foreground)",
+                          }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
 
             <button
               onClick={handleSave}
-              className="w-full mt-4 py-3 rounded-md"
+              className="w-full mt-4 py-3 rounded-lg"
               style={{
                 backgroundColor: "var(--primary)",
                 color: "var(--primary-foreground)",

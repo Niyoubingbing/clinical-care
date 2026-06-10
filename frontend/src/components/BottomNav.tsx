@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Users, ClipboardList, FileText, Database } from "lucide-react";
+import { Users, ClipboardList, FileText, Settings } from "lucide-react";
 
 const tabs = [
-  { path: "/", label: "病人", icon: Users },
+  { path: "/", label: "查房", icon: Users },
   { path: "/todos", label: "待办", icon: ClipboardList },
   { path: "/summary", label: "小结", icon: FileText },
-  { path: "/data", label: "数据", icon: Database },
+  { path: "/data", label: "设置", icon: Settings },
 ];
 
 export default function BottomNav() {
@@ -40,7 +40,7 @@ export default function BottomNav() {
             {isActive && (
               <motion.div
                 layoutId="nav-indicator"
-                className="absolute -top-0.5 h-0.5 w-8 rounded-full"
+                className="absolute -top-0.5 h-0.5 w-7 rounded-full"
                 style={{ backgroundColor: "var(--primary)" }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               />
