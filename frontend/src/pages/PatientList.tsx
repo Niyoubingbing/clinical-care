@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Search, Plus, Stethoscope, Upload, ListFilter } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePatients } from "@/hooks/use-patients";

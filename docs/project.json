@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "临床病人管理助手",
   "app_slug": "clinical-care",
-  "version_description": "部署临床病人管理助手到 Vercel",
+  "version_description": "重构界面交互优化设计系统与布局",
   "preview_type": "mobile"
 }

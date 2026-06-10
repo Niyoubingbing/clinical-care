@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ClipboardList, Check, Trash2, StickyNote } from "lucide-react";
+import { motion } from "framer-motion";
+import { ClipboardList, Trash2, StickyNote } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePatients } from "@/hooks/use-patients";
 import { useMemos } from "@/hooks/use-memos";
