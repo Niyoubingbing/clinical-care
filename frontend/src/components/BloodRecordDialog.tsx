@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import type { BloodRecord } from "@/types/patient";
 
 interface BloodRecordDialogProps {
@@ -38,17 +39,31 @@ const FIELD_GROUPS = [
 export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodRecordDialogProps) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [values, setValues] = useState<Record<string, string>>({});
+  const dateRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setDate(new Date().toISOString().slice(0, 10));
+      setValues({});
+      setTimeout(() => dateRef.current?.focus(), 150);
+    }
+  }, [open]);
 
   const handleSave = async () => {
     const record: any = { date };
+    let hasValue = false;
     for (const group of FIELD_GROUPS) {
       for (const field of group.fields) {
         const v = parseFloat(values[field.key]);
-        if (!isNaN(v)) record[field.key] = v;
+        if (!isNaN(v)) { record[field.key] = v; hasValue = true; }
       }
     }
+    if (!hasValue) {
+      toast.error("请至少录入一项指标");
+      return;
+    }
     await onSave(record);
-    setValues({});
+    toast.success("查血记录已保存");
     onOpenChange(false);
   };
 
@@ -67,31 +82,35 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 pb-20 max-h-[85vh] overflow-y-auto"
+            className="w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto"
             style={{ backgroundColor: "var(--background)" }}
           >
             <div className="flex items-center justify-between mb-3">
               <h2 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>
                 录入查血
               </h2>
-              <button onClick={() => onOpenChange(false)}
-                style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="flex items-center justify-center rounded-lg active:bg-muted transition-colors"
+                style={{ width: "44px", height: "44px" }}
+              >
                 <X size={20} style={{ color: "var(--muted-foreground)" }} />
               </button>
             </div>
 
             <div className="mb-3">
-              <label style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", display: "block", marginBottom: "2px" }}>
+              <label className="block mb-1" style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)" }}>
                 检验日期
               </label>
               <input
+                ref={dateRef}
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg outline-none"
+                className="w-full px-3 py-2.5 rounded-lg outline-none transition-colors"
                 style={{
                   backgroundColor: "var(--muted)",
-                  border: "1px solid var(--border)",
+                  border: `1.5px solid ${date ? "var(--primary)" : "var(--border)"}`,
                   fontSize: "var(--font-size-label)",
                   color: "var(--foreground)",
                 }}
@@ -103,17 +122,20 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
                 <div key={group.label}>
                   <label
                     className="block mb-1.5"
-                    style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", fontWeight: "var(--font-weight-medium)", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                    style={{
+                      fontSize: "var(--font-size-small)",
+                      color: "var(--muted-foreground)",
+                      fontWeight: "var(--font-weight-medium)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
                   >
                     {group.label}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {group.fields.map((field) => (
                       <div key={field.key}>
-                        <label
-                          className="block mb-1"
-                          style={{ fontSize: "11px", color: "var(--muted-foreground)" }}
-                        >
+                        <label className="block mb-1" style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>
                           {field.label}
                           <span style={{ fontSize: "10px", opacity: 0.5, marginLeft: "2px" }}>{field.unit}</span>
                         </label>
@@ -123,10 +145,10 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
                           value={values[field.key] || ""}
                           onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
                           placeholder={field.placeholder}
-                          className="w-full px-2 py-2 rounded-lg outline-none text-center"
+                          className="w-full px-2 py-2 rounded-lg outline-none text-center transition-colors"
                           style={{
                             backgroundColor: "var(--muted)",
-                            border: "1px solid var(--border)",
+                            border: `1.5px solid ${values[field.key] ? "var(--primary)" : "var(--border)"}`,
                             fontSize: "var(--font-size-label)",
                             color: "var(--foreground)",
                           }}
@@ -140,11 +162,12 @@ export default function BloodRecordDialog({ open, onOpenChange, onSave }: BloodR
 
             <button
               onClick={handleSave}
-              className="w-full mt-4 py-3 rounded-lg"
+              className="w-full mt-4 py-3 rounded-lg transition-transform active:scale-[0.98]"
               style={{
                 backgroundColor: "var(--primary)",
                 color: "var(--primary-foreground)",
                 fontSize: "var(--font-size-label)",
+                fontWeight: "var(--font-weight-medium)",
                 minHeight: "48px",
               }}
             >

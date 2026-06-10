@@ -26,7 +26,7 @@ function AppContent() {
 
   return (
     <BrowserRouter>
-      <div className="flex flex-col min-h-screen pb-16">
+      <div className="flex flex-col min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <div className="flex-1">
           <AnimatedRoutes>
             <Route

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ClipboardList, Trash2, StickyNote } from "lucide-react";
+import { ClipboardList, Trash2, StickyNote, Check } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePatients } from "@/hooks/use-patients";
 import { useMemos } from "@/hooks/use-memos";
@@ -23,6 +23,7 @@ export default function TodoSummary() {
   const [filter, setFilter] = useState<TodoFilter>("全部");
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [customMemo, setCustomMemo] = useState("");
+  const [showCompletedMemos, setShowCompletedMemos] = useState(false);
 
   const groupedTodos = useMemo(() => {
     if (activeTab === "memo") return [];
@@ -43,7 +44,8 @@ export default function TodoSummary() {
     return result;
   }, [patients, filter, activeTab]);
 
-  const filteredMemos = useMemo(() => memos.filter((m) => !m.completed), [memos]);
+  const activeMemos = useMemo(() => memos.filter((m) => !m.completed), [memos]);
+  const completedMemos = useMemo(() => memos.filter((m) => m.completed), [memos]);
 
   const totalPending = useMemo(
     () => patients.reduce((sum, p) => sum + p.todos.filter((t) => !t.completed).length, 0),
@@ -64,7 +66,15 @@ export default function TodoSummary() {
             </h1>
           </div>
           {totalPending > 0 && (
-            <span className="px-2.5 py-1 rounded-full" style={{ backgroundColor: "var(--warning)", color: "var(--warning-foreground)", fontSize: "var(--font-size-small)", fontWeight: "var(--font-weight-semibold)" }}>
+            <span
+              className="px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: "var(--warning)",
+                color: "var(--warning-foreground)",
+                fontSize: "var(--font-size-small)",
+                fontWeight: "var(--font-weight-semibold)",
+              }}
+            >
               {totalPending} 项
             </span>
           )}
@@ -119,7 +129,7 @@ export default function TodoSummary() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0"
+                className="px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
                 style={{
                   backgroundColor: filter === f ? "var(--primary)" : "var(--secondary)",
                   color: filter === f ? "var(--primary-foreground)" : "var(--secondary-foreground)",
@@ -139,6 +149,7 @@ export default function TodoSummary() {
         {activeTab === "memo" && (
           <FadeIn>
             <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+              {/* Add memo input */}
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
@@ -151,52 +162,119 @@ export default function TodoSummary() {
                       setCustomMemo("");
                     }
                   }}
-                  className="flex-1 px-2.5 py-2 rounded-lg outline-none"
+                  className="flex-1 px-2.5 py-2 rounded-lg outline-none transition-colors"
                   style={{
                     backgroundColor: "var(--muted)",
-                    border: "1px solid var(--border)",
+                    border: `1.5px solid ${customMemo.trim() ? "var(--primary)" : "var(--border)"}`,
                     fontSize: "var(--font-size-label)",
                     color: "var(--foreground)",
                   }}
                 />
                 <button
                   onClick={async () => {
-                    if (customMemo.trim()) { await addMemo(customMemo.trim()); setCustomMemo(""); }
+                    if (customMemo.trim()) {
+                      await addMemo(customMemo.trim());
+                      setCustomMemo("");
+                    }
                   }}
-                  className="px-3 py-2 rounded-lg"
+                  className="px-3 py-2 rounded-lg transition-transform active:scale-[0.98]"
                   style={{
-                    backgroundColor: "var(--primary)",
-                    color: "var(--primary-foreground)",
+                    backgroundColor: customMemo.trim() ? "var(--primary)" : "var(--muted)",
+                    color: customMemo.trim() ? "var(--primary-foreground)" : "var(--muted-foreground)",
                     fontSize: "var(--font-size-label)",
+                    fontWeight: "var(--font-weight-medium)",
                     minHeight: "44px",
                   }}
                 >
                   添加
                 </button>
               </div>
-              {filteredMemos.length === 0 ? (
+
+              {/* Active memos */}
+              {activeMemos.length === 0 && completedMemos.length === 0 ? (
                 <div className="text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                   <StickyNote size={32} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
                   <p style={{ fontSize: "var(--font-size-label)" }}>暂无备忘录</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {filteredMemos.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2.5 p-2 rounded-lg" style={{ backgroundColor: "var(--muted)" }}>
+                <>
+                  <div className="space-y-1.5">
+                    {activeMemos.map((m) => (
+                      <div
+                        key={m.id}
+                        className="flex items-center gap-2.5 p-2 rounded-lg transition-colors"
+                        style={{ backgroundColor: "var(--muted)" }}
+                      >
+                        <button
+                          onClick={() => toggleMemo(m.id)}
+                          className="w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors active:bg-success/20"
+                          style={{ borderColor: "var(--border)" }}
+                        />
+                        <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
+                          {m.content}
+                        </span>
+                        <button
+                          onClick={() => deleteMemo(m.id)}
+                          className="p-1 rounded active:bg-destructive/10 transition-colors"
+                        >
+                          <Trash2 size={12} style={{ color: "var(--muted-foreground)" }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Completed memos */}
+                  {completedMemos.length > 0 && (
+                    <div className="mt-2">
                       <button
-                        onClick={() => toggleMemo(m.id)}
-                        className="w-5 h-5 rounded-full border-2 flex-shrink-0"
-                        style={{ borderColor: "var(--border)" }}
-                      />
-                      <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
-                        {m.content}
-                      </span>
-                      <button onClick={() => deleteMemo(m.id)} className="p-1">
-                        <Trash2 size={12} style={{ color: "var(--muted-foreground)" }} />
+                        onClick={() => setShowCompletedMemos(!showCompletedMemos)}
+                        className="flex items-center gap-1 w-full py-2"
+                        style={{
+                          fontSize: "var(--font-size-label)",
+                          color: "var(--muted-foreground)",
+                          minHeight: "44px",
+                        }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{
+                            transform: showCompletedMemos ? "rotate(180deg)" : "rotate(0deg)",
+                            transition: "transform var(--duration-fast) var(--ease-default)",
+                          }}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                        已完成的 ({completedMemos.length})
                       </button>
+                      {showCompletedMemos && (
+                        <div className="space-y-1 mt-1">
+                          {completedMemos.map((m) => (
+                            <div
+                              key={m.id}
+                              className="flex items-center gap-2.5 p-2 rounded-lg opacity-50"
+                              style={{ backgroundColor: "var(--muted)" }}
+                            >
+                              <Check size={14} style={{ color: "var(--success)" }} />
+                              <span
+                                className="flex-1 line-through"
+                                style={{ fontSize: "var(--font-size-label)" }}
+                              >
+                                {m.content}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </FadeIn>
@@ -206,21 +284,37 @@ export default function TodoSummary() {
         {activeTab === "all" && groupedTodos.length === 0 ? (
           <FadeIn>
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ClipboardList size={48} style={{ color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)" }} />
+              <ClipboardList
+                size={48}
+                style={{ color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)", opacity: 0.4 }}
+              />
+              <p style={{ fontSize: "var(--font-size-body)", color: "var(--foreground)", marginBottom: "4px" }}>
+                {totalPending === 0 ? "全部完成" : "没有匹配的待办"}
+              </p>
               <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)" }}>
-                {totalPending === 0 ? "所有待办已完成" : "该筛选下没有待办"}
+                {totalPending === 0 ? "今天太棒了！" : "尝试调整筛选条件"}
               </p>
             </div>
           </FadeIn>
         ) : (
-          activeTab === "all" && groupedTodos.map((group) => (
+          activeTab === "all" &&
+          groupedTodos.map((group) => (
             <FadeIn key={group.patientId}>
-              <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+              <div
+                className="rounded-lg p-3"
+                style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+              >
                 <button
                   onClick={() => navigate(`/patient/${group.patientId}`)}
                   className="flex items-center gap-2 mb-2"
                 >
-                  <span style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>
+                  <span
+                    style={{
+                      fontSize: "var(--font-size-body)",
+                      fontWeight: "var(--font-weight-semibold)",
+                      color: "var(--foreground)",
+                    }}
+                  >
                     {group.bedNumber}
                   </span>
                   <span style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)" }}>
@@ -229,23 +323,39 @@ export default function TodoSummary() {
                 </button>
                 <div className="space-y-1">
                   {group.todos.map((todo) => (
-                    <div key={todo.id} className="flex items-center gap-2.5 p-2 rounded-lg" style={{ backgroundColor: "var(--muted)" }}>
+                    <div
+                      key={todo.id}
+                      className="flex items-center gap-2.5 p-2 rounded-lg"
+                      style={{ backgroundColor: "var(--muted)" }}
+                    >
                       <button
                         onClick={() => toggleTodo(group.patientId, todo.id)}
-                        className="w-5 h-5 rounded-full border-2 flex-shrink-0"
+                        className="w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors active:bg-success/20"
                         style={{ borderColor: "var(--border)" }}
                       />
-                      <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
+                      <span
+                        className="flex-1"
+                        style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}
+                      >
                         {todo.content}
                       </span>
                       <div className="flex items-center gap-1">
                         {todo.type && todo.type !== "其他" && (
-                          <span className="px-1.5 py-0.5 rounded text-xs"
-                            style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-small)" }}>
+                          <span
+                            className="px-1.5 py-0.5 rounded text-xs"
+                            style={{
+                              backgroundColor: "var(--secondary)",
+                              color: "var(--secondary-foreground)",
+                              fontSize: "var(--font-size-small)",
+                            }}
+                          >
                             {todo.type}
                           </span>
                         )}
-                        <button onClick={() => deleteTodo(group.patientId, todo.id)} className="p-1">
+                        <button
+                          onClick={() => deleteTodo(group.patientId, todo.id)}
+                          className="p-1 rounded active:bg-destructive/10 transition-colors"
+                        >
                           <Trash2 size={12} style={{ color: "var(--muted-foreground)" }} />
                         </button>
                       </div>

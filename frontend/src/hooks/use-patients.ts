@@ -47,6 +47,14 @@ export function usePatients() {
     [loadAll]
   );
 
+  const restorePatient = useCallback(
+    async (patient: Patient) => {
+      await db.patients.add(patient);
+      await loadAll();
+    },
+    [loadAll]
+  );
+
   const addBloodRecord = useCallback(
     async (patientId: string, record: Omit<BloodRecord, "id">) => {
       const patient = await db.patients.get(patientId);
@@ -129,6 +137,7 @@ export function usePatients() {
     addPatient,
     updatePatient,
     deletePatient,
+    restorePatient,
     addBloodRecord,
     deleteBloodRecord,
     addTodo,

@@ -7,7 +7,7 @@ import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
 import { FadeIn } from "@/components/MotionPrimitives";
 import { toast } from "sonner";
-import type { Todo } from "@/types/patient";
+import type { Todo, Patient } from "@/types/patient";
 import BloodRecordDialog from "@/components/BloodRecordDialog";
 import EditPatientDialog from "@/components/EditPatientDialog";
 
@@ -44,7 +44,7 @@ export default function PatientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const patients = useAppStore((s) => s.patients);
-  const { updatePatient, deletePatient, addBloodRecord, addTodo, toggleTodo, deleteTodo } = usePatients();
+  const { updatePatient, deletePatient, restorePatient, addBloodRecord, addTodo, toggleTodo, deleteTodo } = usePatients();
   const { getBloodAlert } = useReminders();
   const [showBlood, setShowBlood] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -69,8 +69,21 @@ export default function PatientDetail() {
   const latestBlood = patient.bloodRecords.length > 0 ? patient.bloodRecords[patient.bloodRecords.length - 1] : null;
 
   const handleDelete = async () => {
+    const deletedPatient: Patient = { ...patient };
+    setShowDelete(false);
     await deletePatient(patient.id);
-    toast.success("已删除病人");
+
+    toast("已删除病人", {
+      description: `${patient.bedNumber} ${patient.name}`,
+      action: {
+        label: "撤销",
+        onClick: async () => {
+          await restorePatient(deletedPatient);
+          toast.success(`已恢复 ${deletedPatient.bedNumber} ${deletedPatient.name}`);
+        },
+      },
+      duration: 5000,
+    });
     navigate("/");
   };
 
@@ -81,11 +94,13 @@ export default function PatientDetail() {
       return;
     }
     await addTodo(patient.id, label, type);
+    toast.success(`已添加「${label}」`);
   };
 
   const handleCustomTodo = async () => {
     if (!customTodo.trim()) return;
     await addTodo(patient.id, customTodo.trim(), "其他");
+    toast.success(`已添加「${customTodo.trim()}」`);
     setCustomTodo("");
   };
 
@@ -105,20 +120,12 @@ export default function PatientDetail() {
       {/* Header */}
       <header
         className="sticky top-0 z-40 px-4 py-3 flex items-center gap-3"
-        style={{
-          backgroundColor: "var(--background)",
-          borderBottom: "1px solid var(--border)",
-        }}
+        style={{ backgroundColor: "var(--background)", borderBottom: "1px solid var(--border)" }}
       >
         <button
           onClick={() => navigate("/")}
-          style={{
-            minWidth: "44px",
-            minHeight: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className="flex items-center justify-center rounded-lg active:bg-muted transition-colors"
+          style={{ width: "44px", height: "44px" }}
         >
           <ArrowLeft size={20} style={{ color: "var(--foreground)" }} />
         </button>
@@ -141,13 +148,17 @@ export default function PatientDetail() {
             {patient.name}
           </p>
         </div>
-        <button onClick={() => setShowEdit(true)}
-          style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}
+        <button
+          onClick={() => setShowEdit(true)}
+          className="flex items-center justify-center rounded-lg active:bg-muted transition-colors"
+          style={{ width: "44px", height: "44px" }}
         >
           <Edit3 size={18} style={{ color: "var(--muted-foreground)" }} />
         </button>
-        <button onClick={() => setShowDelete(true)}
-          style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}
+        <button
+          onClick={() => setShowDelete(true)}
+          className="flex items-center justify-center rounded-lg active:bg-muted transition-colors"
+          style={{ width: "44px", height: "44px" }}
         >
           <Trash2 size={18} style={{ color: "var(--destructive)" }} />
         </button>
@@ -172,10 +183,9 @@ export default function PatientDetail() {
           </FadeIn>
         )}
 
-        {/* Quick Todo - moved to top as highest frequency */}
+        {/* Quick Todo */}
         <FadeIn>
-          <div className="rounded-lg p-3"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>
                 快捷待办
@@ -186,20 +196,18 @@ export default function PatientDetail() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_TODO_LABELS.map((item) => {
-                const exists = patient.todos.some(
-                  (t) => t.content === item.label && !t.completed
-                );
+                const exists = patient.todos.some((t) => t.content === item.label && !t.completed);
                 return (
                   <button
                     key={item.label}
                     onClick={() => handleQuickTodo(item.label, item.type)}
-                    className="px-2.5 py-1.5 rounded-full transition-colors"
+                    className="px-2.5 py-1.5 rounded-full transition-all active:scale-95"
                     style={{
                       backgroundColor: exists ? "var(--success)" : "var(--secondary)",
                       color: exists ? "var(--success-foreground)" : "var(--secondary-foreground)",
                       fontSize: "var(--font-size-small)",
                       minHeight: "36px",
-                      opacity: exists ? 0.6 : 1,
+                      opacity: exists ? 0.7 : 1,
                     }}
                   >
                     {exists ? <Check size={12} className="inline mr-1" /> : <Plus size={12} className="inline mr-1" />}
@@ -216,21 +224,22 @@ export default function PatientDetail() {
                 value={customTodo}
                 onChange={(e) => setCustomTodo(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCustomTodo()}
-                className="flex-1 px-2.5 py-2 rounded-lg outline-none"
+                className="flex-1 px-2.5 py-2 rounded-lg outline-none transition-colors"
                 style={{
                   backgroundColor: "var(--muted)",
-                  border: "1px solid var(--border)",
+                  border: `1.5px solid ${customTodo.trim() ? "var(--primary)" : "var(--border)"}`,
                   fontSize: "var(--font-size-label)",
                   color: "var(--foreground)",
                 }}
               />
               <button
                 onClick={handleCustomTodo}
-                className="px-3 py-2 rounded-lg"
+                className="px-3 py-2 rounded-lg transition-transform active:scale-[0.98]"
                 style={{
-                  backgroundColor: "var(--primary)",
-                  color: "var(--primary-foreground)",
+                  backgroundColor: customTodo.trim() ? "var(--primary)" : "var(--muted)",
+                  color: customTodo.trim() ? "var(--primary-foreground)" : "var(--muted-foreground)",
                   fontSize: "var(--font-size-label)",
+                  fontWeight: "var(--font-weight-medium)",
                   minHeight: "44px",
                 }}
               >
@@ -242,8 +251,7 @@ export default function PatientDetail() {
 
         {/* Blood Record */}
         <FadeIn>
-          <div className="rounded-lg p-3"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-3">
               <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>
                 查血记录
@@ -256,23 +264,16 @@ export default function PatientDetail() {
                 )}
                 <button
                   onClick={() => setShowBlood(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg"
-                  style={{
-                    backgroundColor: "var(--primary)",
-                    color: "var(--primary-foreground)",
-                    fontSize: "var(--font-size-label)",
-                    minHeight: "36px",
-                  }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-transform active:scale-[0.98]"
+                  style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontSize: "var(--font-size-label)", minHeight: "36px" }}
                 >
-                  <Plus size={14} />
-                  录入
+                  <Plus size={14} />录入
                 </button>
               </div>
             </div>
 
             {latestBlood ? (
               <div>
-                {/* 2-column table layout */}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {BLOOD_KEYS.map(({ key, label, unit }) => {
                     const val = latestBlood[key] as number | undefined;
@@ -288,19 +289,10 @@ export default function PatientDetail() {
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          <span style={{ fontSize: "var(--font-size-small)", opacity: 0.8, fontWeight: "var(--font-weight-medium)" }}>
-                            {label}
-                          </span>
+                          <span style={{ fontSize: "var(--font-size-small)", opacity: 0.8, fontWeight: "var(--font-weight-medium)" }}>{label}</span>
                           <span style={{ fontSize: "10px", opacity: 0.5 }}>{unit}</span>
                         </div>
-                        <span
-                          style={{
-                            fontSize: "var(--font-size-label)",
-                            fontWeight: "var(--font-weight-bold)",
-                          }}
-                        >
-                          {val}
-                        </span>
+                        <span style={{ fontSize: "var(--font-size-label)", fontWeight: "var(--font-weight-bold)" }}>{val}</span>
                       </div>
                     );
                   })}
@@ -311,7 +303,7 @@ export default function PatientDetail() {
               </div>
             ) : (
               <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", textAlign: "center", padding: "var(--spacing-lg) 0" }}>
-                暂无查血记录，点击"录入"添加
+                暂无查血记录，点击「录入」添加
               </p>
             )}
           </div>
@@ -319,8 +311,7 @@ export default function PatientDetail() {
 
         {/* Todo list */}
         <FadeIn>
-          <div className="rounded-lg p-3"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
             <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
               待办列表
             </h3>
@@ -342,7 +333,7 @@ export default function PatientDetail() {
                     >
                       <button
                         onClick={() => handleToggleTodo(todo.id)}
-                        className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center flex-shrink-0"
+                        className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors active:bg-success/20"
                         style={{ borderColor: "var(--border)" }}
                       />
                       <span className="flex-1" style={{ fontSize: "var(--font-size-label)", color: "var(--foreground)" }}>
@@ -350,13 +341,14 @@ export default function PatientDetail() {
                       </span>
                       <div className="flex items-center gap-1">
                         {todo.type && todo.type !== "其他" && (
-                          <span className="px-1.5 py-0.5 rounded text-xs"
-                            style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-small)" }}>
+                          <span className="px-1.5 py-0.5 rounded text-xs" style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-small)" }}>
                             {todo.type}
                           </span>
                         )}
-                        <button onClick={() => deleteTodo(patient.id, todo.id)}
-                          style={{ padding: "4px", display: "flex" }}>
+                        <button
+                          onClick={() => { deleteTodo(patient.id, todo.id); }}
+                          className="p-1 rounded active:bg-destructive/10 transition-colors"
+                        >
                           <Trash2 size={12} style={{ color: "var(--muted-foreground)" }} />
                         </button>
                       </div>
@@ -391,8 +383,7 @@ export default function PatientDetail() {
                       className="space-y-1"
                     >
                       {completedTodos.map((todo) => (
-                        <div key={todo.id} className="flex items-center gap-2.5 p-2 rounded-lg opacity-50"
-                          style={{ backgroundColor: "var(--muted)" }}>
+                        <div key={todo.id} className="flex items-center gap-2.5 p-2 rounded-lg opacity-50" style={{ backgroundColor: "var(--muted)" }}>
                           <Check size={14} style={{ color: "var(--success)" }} />
                           <span className="flex-1 line-through" style={{ fontSize: "var(--font-size-label)" }}>
                             {todo.content}
@@ -412,11 +403,10 @@ export default function PatientDetail() {
           </div>
         </FadeIn>
 
-        {/* Patient Info - collapsed by default if no info */}
+        {/* Patient Info */}
         {hasInfo && (
           <FadeIn>
-            <div className="rounded-lg p-3"
-              style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}>
               <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
                 基本信息
               </h3>
@@ -466,38 +456,28 @@ export default function PatientDetail() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="w-[85vw] max-w-sm rounded-xl p-4"
-              style={{ backgroundColor: "var(--background)" }}
+              className="w-[85vw] max-w-sm rounded-xl p-4 mx-4"
+              style={{ backgroundColor: "var(--background)", boxShadow: "var(--ds-shadow-lg)" }}
               onClick={(e) => e.stopPropagation()}
             >
               <h3 style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)", marginBottom: "var(--spacing-sm)" }}>
                 确认删除
               </h3>
               <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)", marginBottom: "var(--spacing-md)" }}>
-                确定要删除 {patient.bedNumber} {patient.name} 的所有数据吗？此操作不可撤销。
+                确定要删除 {patient.bedNumber} {patient.name} 的所有数据吗？<br />5 秒内可通过 toast 撤回。
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowDelete(false)}
-                  className="flex-1 py-3 rounded-lg"
-                  style={{
-                    backgroundColor: "var(--secondary)",
-                    color: "var(--secondary-foreground)",
-                    fontSize: "var(--font-size-label)",
-                    minHeight: "48px",
-                  }}
+                  className="flex-1 py-3 rounded-lg transition-transform active:scale-[0.98]"
+                  style={{ backgroundColor: "var(--secondary)", color: "var(--secondary-foreground)", fontSize: "var(--font-size-label)", fontWeight: "var(--font-weight-medium)", minHeight: "48px" }}
                 >
                   取消
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex-1 py-3 rounded-lg"
-                  style={{
-                    backgroundColor: "var(--destructive)",
-                    color: "white",
-                    fontSize: "var(--font-size-label)",
-                    minHeight: "48px",
-                  }}
+                  className="flex-1 py-3 rounded-lg transition-transform active:scale-[0.98]"
+                  style={{ backgroundColor: "var(--destructive)", color: "white", fontSize: "var(--font-size-label)", fontWeight: "var(--font-weight-medium)", minHeight: "48px" }}
                 >
                   删除
                 </button>
@@ -508,8 +488,7 @@ export default function PatientDetail() {
       </AnimatePresence>
 
       <BloodRecordDialog open={showBlood} onOpenChange={setShowBlood} onSave={(record) => addBloodRecord(patient.id, record)} />
-      <EditPatientDialog open={showEdit} onOpenChange={setShowEdit} patient={patient}
-        onSave={(updates) => updatePatient(patient.id, updates)} />
+      <EditPatientDialog open={showEdit} onOpenChange={setShowEdit} patient={patient} onSave={(updates) => updatePatient(patient.id, updates)} />
     </div>
   );
 }

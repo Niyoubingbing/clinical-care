@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "临床病人管理助手",
   "app_slug": "clinical-care",
-  "version_description": "优化界面交互视觉布局与信息层级",
+  "version_description": "全面重构UI交互增加撤回与校验",
   "preview_type": "mobile"
 }
