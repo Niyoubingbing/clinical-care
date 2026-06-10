@@ -7,7 +7,7 @@ import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
 import { FadeIn } from "@/components/MotionPrimitives";
 import { toast } from "sonner";
-import type { BloodRecord, Todo } from "@/types/patient";
+import type { Todo } from "@/types/patient";
 import BloodRecordDialog from "@/components/BloodRecordDialog";
 import EditPatientDialog from "@/components/EditPatientDialog";
 

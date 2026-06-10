@@ -7,7 +7,6 @@ import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
 import { getRoundingOrder } from "@/lib/rounding";
 import { FadeIn } from "@/components/MotionPrimitives";
-import type { MedicalGroup } from "@/types/patient";
 import AddPatientDialog from "@/components/AddPatientDialog";
 import ImportTextDialog from "@/components/ImportTextDialog";
 
@@ -38,8 +37,6 @@ export default function PatientList() {
     }
     return list;
   }, [patients, searchQuery, groupFilter, sortMode]);
-
-  const groupColor = (_g: MedicalGroup) => (_g === "解组" ? "var(--theme-blue)" : "var(--theme-green)");
 
   return (
     <div className="flex flex-col min-h-screen">
