@@ -1,0 +1,27 @@
+[
+  {
+    "pageKey": "PatientList",
+    "title": "Patient List",
+    "url": "/"
+  },
+  {
+    "pageKey": "DataManagement",
+    "title": "Data Management",
+    "url": "/data"
+  },
+  {
+    "pageKey": "PatientDetail",
+    "title": "Patient Detail",
+    "url": "/patient/:id"
+  },
+  {
+    "pageKey": "DailySummary",
+    "title": "Daily Summary",
+    "url": "/summary"
+  },
+  {
+    "pageKey": "TodoSummary",
+    "title": "Todo Summary",
+    "url": "/todos"
+  }
+]

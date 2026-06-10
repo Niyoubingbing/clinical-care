@@ -1,0 +1,4 @@
+[2026-06-10 17:32:16] [INFO] ==== setup-project.js =====
+[2026-06-10 17:32:16] [DEBUG] [PPT Setup] stdin 数据: {"session_id":"dc36d07e-04fd-4794-a500-df7f3e25f191","transcript_path":"/root/.codebuddy/projects/workspace/dc36d07e-04fd-4794-a500-df7f3e25f191.jsonl","cwd":"/workspace","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill":"web-implement"},"call_id":"call_00_qqoveq9lvoiV7ppXkoWk3094","tool_use_id":"call_00_qqoveq9lvoiV7ppXkoWk3094","agent_type":"cli","permission_mode":"dontAsk","client":"CLI","version":"2.99.0","generation_id":"eb0c0b4ee9f0481fa7a14686a67381fe","model":"auto"}
+[2026-06-10 17:32:16] [INFO] [PPT Setup] skill: web-implement
+[2026-06-10 17:32:16] [INFO] [PPT Setup] 跳过: skill 是 "web-implement"，不是 "ppt-implement"
