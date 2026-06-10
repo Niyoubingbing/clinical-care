@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { db } from "@/lib/db";
 import { getRoundingOrder } from "@/lib/rounding";
-import type { Patient, SummaryEntry } from "@/types/patient";
+import type { SummaryEntry } from "@/types/patient";
 
 const STORAGE_KEY = "clinical_care_daily_summary";
 

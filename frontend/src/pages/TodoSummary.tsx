@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ClipboardList, Check, ChevronDown, Filter } from "lucide-react";
+import { ClipboardList, Check, Filter } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePatients } from "@/hooks/use-patients";
 import { useMemos } from "@/hooks/use-memos";
@@ -14,7 +14,7 @@ type TodoFilter = "全部" | "换药" | "开术前" | "明天出院" | "康复�
 export default function TodoSummary() {
   const navigate = useNavigate();
   const { patients } = useAppStore();
-  const { toggleTodo, deleteTodo } = usePatients();
+  const { toggleTodo } = usePatients();
   const { addMemo, toggleMemo, deleteMemo } = useMemos();
   const memos = useAppStore((s) => s.memos);
   const [filter, setFilter] = useState<TodoFilter>("全部");
@@ -210,7 +210,7 @@ export default function TodoSummary() {
             </div>
           </FadeIn>
         ) : (
-          groupedTodos.map((group, gi) => (
+          groupedTodos.map((group) => (
             <FadeIn key={group.patientId}>
               <div
                 className="rounded-lg p-4"

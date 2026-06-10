@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Trash2, Plus, Check, ChevronDown, Edit3, Droplet, Calendar } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Check, ChevronDown, Edit3, Droplet } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
@@ -33,7 +33,7 @@ export default function PatientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const patients = useAppStore((s) => s.patients);
-  const { updatePatient, deletePatient, addBloodRecord, deleteBloodRecord, addTodo, toggleTodo, deleteTodo } = usePatients();
+  const { updatePatient, deletePatient, addBloodRecord, addTodo, toggleTodo, deleteTodo } = usePatients();
   const { getBloodAlert } = useReminders();
   const [showBlood, setShowBlood] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -206,7 +206,7 @@ export default function PatientDetail() {
             {latestBlood ? (
               <div className="grid grid-cols-4 gap-2">
                 {(["hb", "wbc", "plt", "k", "na", "cr", "alb", "crp"] as const).map((key) => {
-                  const val = latestBlood[key as keyof BloodRecord];
+                  const val = latestBlood[key] as number | undefined;
                   if (val === undefined) return null;
                   const critical = isCriticalValue(key, val);
                   return (

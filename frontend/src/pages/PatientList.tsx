@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Plus, Stethoscope, ArrowUpDown, Filter } from "lucide-react";
@@ -7,8 +7,7 @@ import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
 import { getRoundingOrder } from "@/lib/rounding";
 import { FadeIn } from "@/components/MotionPrimitives";
-import { toast } from "sonner";
-import type { Patient, MedicalGroup } from "@/types/patient";
+import type { MedicalGroup } from "@/types/patient";
 import AddPatientDialog from "@/components/AddPatientDialog";
 import ImportTextDialog from "@/components/ImportTextDialog";
 
@@ -40,7 +39,7 @@ export default function PatientList() {
     return list;
   }, [patients, searchQuery, groupFilter, sortMode]);
 
-  const groupColor = (g: MedicalGroup) => (g === "解组" ? "var(--theme-blue)" : "var(--theme-green)");
+  const groupColor = (_g: MedicalGroup) => (_g === "解组" ? "var(--theme-blue)" : "var(--theme-green)");
 
   return (
     <div className="flex flex-col min-h-screen">
