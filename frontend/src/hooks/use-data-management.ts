@@ -52,21 +52,62 @@ export function useDataManagement() {
 
   const importText = useCallback(
     async (text: string): Promise<{ success: boolean; message: string; toDelete?: Patient[] }> => {
-      const lines = text
+      const rawLines = text
         .split("\n")
         .map((l) => l.trim())
-        .filter((l) => l.startsWith("-"));
-      const imported: { bedNumber: string; name: string }[] = [];
+        .filter((l) => l.length > 0);
 
-      for (const line of lines) {
-        const match = line.match(/^-(\S+)\s+(.+)/);
-        if (match) {
-          imported.push({ bedNumber: match[1], name: match[2].trim() });
+      const imported: { bedNumber: string; name: string }[] = [];
+      const bedPattern = /^(\d{2,4}[A-Za-z]\d{2,4})$/;
+
+      for (const line of rawLines) {
+        // Strip leading dash/bullet
+        const clean = line.replace(/^[-•·\s]+/, "").trim();
+        if (!clean) continue;
+
+        let bedNumber = "";
+        let name = "";
+
+        // Try comma separated: 309W11,程霞荣 or 程霞荣,309W11
+        const commaMatch = clean.match(/^(.+?)[,，](.+)$/);
+        if (commaMatch) {
+          const a = commaMatch[1].trim();
+          const b = commaMatch[2].trim();
+          if (bedPattern.test(a)) { bedNumber = a; name = b; }
+          else if (bedPattern.test(b)) { bedNumber = b; name = a; }
+          else { bedNumber = a; name = b; } // fallback
+        } else {
+          // Space/tab separated
+          const parts = clean.split(/[\s\t]+/);
+          if (parts.length >= 2) {
+            // Check: first token looks like bed number?
+            if (bedPattern.test(parts[0])) {
+              bedNumber = parts[0];
+              name = parts.slice(1).join("");
+            } else if (bedPattern.test(parts[parts.length - 1])) {
+              bedNumber = parts[parts.length - 1];
+              name = parts.slice(0, -1).join("");
+            } else {
+              // Fallback: first = name, last = bed
+              name = parts.slice(0, -1).join("");
+              bedNumber = parts[parts.length - 1];
+            }
+          } else if (parts.length === 1) {
+            // Single token - try to detect bed pattern
+            if (bedPattern.test(parts[0])) {
+              bedNumber = parts[0];
+              name = parts[0]; // use bed as name fallback
+            }
+          }
+        }
+
+        if (bedNumber && name) {
+          imported.push({ bedNumber, name });
         }
       }
 
       if (imported.length === 0) {
-        return { success: false, message: "未识别到有效格式。请使用 '-床号 姓名' 格式" };
+        return { success: false, message: "未能识别出有效的床号和姓名，请检查格式" };
       }
 
       const existingPatients = await db.patients.toArray();

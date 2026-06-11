@@ -1,8 +1,8 @@
 {
   "project_type": "web",
   "sub_project_type": "",
-  "name": "临床病人管理助手",
+  "name": "临床查房卡片助手",
   "app_slug": "clinical-care",
-  "version_description": "全面重构UI交互增加撤回与校验",
+  "version_description": "卡片式流转查房全新交互设计",
   "preview_type": "mobile"
 }

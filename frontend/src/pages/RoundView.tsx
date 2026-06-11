@@ -52,16 +52,13 @@ export default function RoundView() {
   // No patients at all
   if (patients.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: "var(--muted)" }}
-        >
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-5">
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ backgroundColor: "var(--card)", border: "2px dashed var(--border)" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         </div>
         <div>
-          <h1 style={{ fontSize: "var(--font-size-title)", fontWeight: "var(--font-weight-bold)", color: "var(--foreground)", marginBottom: "4px" }}>还没有病人</h1>
-          <p style={{ fontSize: "var(--font-size-label)", color: "var(--muted-foreground)" }}>通过右上角菜单导入病人数据</p>
+          <h1 className="text-xl font-bold mb-1" style={{ color: "var(--foreground)" }}>还没有病人</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>点击右上角菜单导入病人数据</p>
         </div>
         <QuickMenu />
       </div>
@@ -158,51 +155,39 @@ function TopBar({
   total: number;
 }) {
   return (
-    <div
-      className="flex-shrink-0 px-4 pt-3 pb-2"
-      style={{
-        backgroundColor: "var(--background)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      {/* Group chips + progress */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="flex-shrink-0 px-4 pt-4 pb-2" style={{ backgroundColor: "var(--background)" }}>
+      <div className="flex items-center justify-between mb-3">
         <div className="flex gap-1.5">
           {(["全部", "解组", "勇组"] as const).map((g) => (
             <button
               key={g}
               onClick={() => onGroupChange(g)}
-              className="px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
               style={{
-                backgroundColor: groupFilter === g ? "var(--primary)" : "var(--secondary)",
-                color: groupFilter === g ? "var(--primary-foreground)" : "var(--secondary-foreground)",
+                backgroundColor: groupFilter === g ? "var(--primary)" : "var(--card)",
+                color: groupFilter === g ? "var(--primary-foreground)" : "var(--muted-foreground)",
                 fontSize: "var(--font-size-small)",
+                border: groupFilter === g ? "1px solid var(--primary)" : "1px solid var(--border)",
+                boxShadow: groupFilter === g ? "0 2px 8px rgba(13,148,136,0.2)" : "none",
               }}
             >
               {g}
               {g !== "全部" && groupCounts[g] > 0 && (
-                <span className="ml-1 opacity-60">{groupCounts[g]}</span>
+                <span className="ml-1.5 opacity-60">{groupCounts[g]}</span>
               )}
             </button>
           ))}
         </div>
         {total > 0 && (
-          <span style={{ fontSize: "var(--font-size-small)", color: "var(--muted-foreground)", fontWeight: "var(--font-weight-medium)" }}>
+          <span className="text-xs font-semibold tabular-nums" style={{ color: "var(--muted-foreground)" }}>
             {index}/{total}
           </span>
         )}
       </div>
-
-      {/* Progress bar */}
       {total > 0 && (
-        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "var(--secondary)" }}>
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${(index / total) * 100}%`,
-              backgroundColor: "var(--primary)",
-            }}
-          />
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--secondary)" }}>
+          <div className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${(index/total)*100}%`, backgroundColor: "var(--primary)" }} />
         </div>
       )}
     </div>

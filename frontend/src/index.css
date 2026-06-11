@@ -34,91 +34,86 @@
   --text-sm: var(--font-size-label);
   --text-base: var(--font-size-body);
   --font-sans: var(--font-family);
+  --shadow-card: var(--shadow-card-css);
+  --shadow-elevated: var(--shadow-elevated-css);
 }
 
 :root {
   --radius: 0.75rem;
-  --font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-size-title: 1.5rem;
-  --font-size-body: 1rem;
-  --font-size-label: 0.875rem;
+  --font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-size-title: 1.375rem;
+  --font-size-body: 0.9375rem;
+  --font-size-label: 0.8125rem;
   --font-size-small: 0.75rem;
-  --font-weight-bold: 700;
+  --font-weight-bold: 650;
   --font-weight-semibold: 600;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --spacing-xs: 0.375rem;
-  --spacing-sm: 0.625rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  --spacing-unit: 0.25rem;
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-card-css: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-elevated-css: 0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
 
-  --background: oklch(0.985 0.003 200);
-  --foreground: oklch(0.15 0.01 220);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 220);
+  --background: #f8fafb;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
 
-  --primary: oklch(0.52 0.13 195);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.01 195);
-  --secondary-foreground: oklch(0.25 0.02 195);
-  --muted: oklch(0.96 0.005 195);
-  --muted-foreground: oklch(0.45 0.02 195);
-  --accent: oklch(0.92 0.04 195);
-  --accent-foreground: oklch(0.2 0.05 195);
-  --border: oklch(0.9 0.01 200);
-  --ring: oklch(0.52 0.13 195);
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f5f5;
+  --secondary-foreground: #334155;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e0f2f1;
+  --accent-foreground: #0f766e;
+  --border: #e8edf2;
+  --ring: #0d9488;
 
-  --success: oklch(0.55 0.15 160);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.65 0.18 55);
-  --warning-foreground: oklch(0.25 0.05 50);
-  --info: oklch(0.5 0.15 245);
-  --info-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.52 0.22 20);
-  --destructive-foreground: oklch(0.99 0 0);
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #78350f;
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+  * { @apply border-border outline-ring/50; }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-family);
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Hide scrollbar */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-normal) var(--ease-smooth) both;
 }
 
-/* Touch ripple effect */
-.ripple {
-  position: relative;
-  overflow: hidden;
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(13, 148, 136, 0); }
 }
-.ripple::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity var(--duration-normal) var(--ease-smooth);
-}
-.ripple:active::after {
-  opacity: 0.08;
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
 }
