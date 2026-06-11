@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+
 import { useAppStore } from "@/lib/store";
 import { useMemos } from "@/hooks/use-memos";
 import { useDailySummary } from "@/hooks/use-daily-summary";
@@ -74,7 +74,7 @@ export default function QuickMenu() {
 
                 {panel === "menu" && <MenuPanel onNavigate={handleOpen} onClose={close} patientCount={patients.length} memoCount={activeMemos.length} />}
                 {panel === "summary" && <SummaryPanel onClose={close} generateSummary={generateSummary} getSavedSummary={getSavedSummary} formatSummaryText={formatSummaryText} copyToClipboard={copyToClipboard} />}
-                {panel === "memos" && <MemosPanel memos={memos} activeMemos={activeMemos} customMemo={customMemo} setCustomMemo={setCustomMemo} addMemo={addMemo} toggleMemo={toggleMemo} deleteMemo={deleteMemo} />}
+                {panel === "memos" && <MemosPanel activeMemos={activeMemos} customMemo={customMemo} setCustomMemo={setCustomMemo} addMemo={addMemo} toggleMemo={toggleMemo} deleteMemo={deleteMemo} />}
                 {panel === "data" && <DataPanel exportJSON={exportJSON} importJSON={importJSON} onImportClick={() => setShowImport(true)} />}
                 {panel === "patients" && <PatientsPanel patients={sortedPatients} onClose={close} />}
               </div>
@@ -164,7 +164,7 @@ function PatientsPanel({ patients, onClose }: { patients: any[]; onClose: () => 
   );
 }
 
-function SummaryPanel({ onClose, generateSummary, getSavedSummary, formatSummaryText, copyToClipboard }: any) {
+function SummaryPanel({ generateSummary, getSavedSummary, formatSummaryText, copyToClipboard }: any) {
   const [entries, setEntries] = useState<any[]>(() => {
     const s = getSavedSummary();
     const today = new Date().toISOString().slice(0, 10);
@@ -238,7 +238,7 @@ function SummaryPanel({ onClose, generateSummary, getSavedSummary, formatSummary
   );
 }
 
-function MemosPanel({ memos, activeMemos, customMemo, setCustomMemo, addMemo, toggleMemo, deleteMemo }: any) {
+function MemosPanel({ activeMemos, customMemo, setCustomMemo, addMemo, toggleMemo, deleteMemo }: any) {
   return (
     <div>
       <h2 className="mb-3" style={{ fontSize: "var(--font-size-body)", fontWeight: "var(--font-weight-semibold)", color: "var(--foreground)" }}>

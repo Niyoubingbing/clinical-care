@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePatients } from "@/hooks/use-patients";
 import { useReminders } from "@/hooks/use-reminders";
