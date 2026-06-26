@@ -4,14 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { RoundsTab } from '@/pages/RoundsTab';
 import { TodosTab } from '@/pages/TodosTab';
+import { BloodTestTab } from '@/pages/BloodTestTab';
 import { SettingsTab } from '@/pages/SettingsTab';
 import { useKeyboard } from '@/hooks/use-keyboard';
+import { CommandPalette } from '@/components/CommandPalette';
 
-type Tab = 'rounds' | 'todos' | 'settings';
+type Tab = 'rounds' | 'todos' | 'blood' | 'settings';
 
 const TABS = [
   { key: 'rounds', label: '查房', icon: 'clipboard' },
   { key: 'todos', label: '待办', icon: 'checklist' },
+  { key: 'blood', label: '查血', icon: 'droplet' },
   { key: 'settings', label: '设置', icon: 'cog' },
 ];
 
@@ -38,6 +41,14 @@ function TabIcon({ name, active }: { name: string; active: boolean }) {
       </svg>
     );
   }
+
+  if (name === 'droplet') {
+    return (
+      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+      </svg>
+    );
+  }
   
   // cog icon
   return (
@@ -50,13 +61,28 @@ function TabIcon({ name, active }: { name: string; active: boolean }) {
 
 export function AppShell() {
   const [tab, setTab] = useState<Tab>('rounds');
+  const [showCommand, setShowCommand] = useState(false);
   const { theme, cycle } = useTheme();
+  
+  const commands = [
+    { id: 'tab-rounds', label: '切换到查房', shortcut: 'Ctrl+1', action: () => setTab('rounds') },
+    { id: 'tab-todos', label: '切换到待办', shortcut: 'Ctrl+2', action: () => setTab('todos') },
+    { id: 'tab-blood', label: '切换到查血', shortcut: 'Ctrl+3', action: () => setTab('blood') },
+    { id: 'tab-settings', label: '切换到设置', shortcut: 'Ctrl+4', action: () => setTab('settings') },
+    { id: 'theme-toggle', label: '切换主题', shortcut: 'Ctrl+Shift+L', action: cycle },
+    { id: 'search', label: '搜索患者', action: () => {
+      // Focus search input - would need to implement
+      alert('搜索功能开发中');
+    }},
+  ];
   
   const keyMap = useRef({
     'mod+1': () => setTab('rounds'),
     'mod+2': () => setTab('todos'),
-    'mod+3': () => setTab('settings'),
+    'mod+3': () => setTab('blood'),
+    'mod+4': () => setTab('settings'),
     'mod+shift+l': () => cycle(),
+    'mod+k': () => setShowCommand(true),
   });
   
   useKeyboard(keyMap.current);
@@ -127,8 +153,16 @@ export function AppShell() {
       <main style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
         {tab === 'rounds' && <RoundsTab />}
         {tab === 'todos' && <TodosTab />}
+        {tab === 'blood' && <BloodTestTab />}
         {tab === 'settings' && <SettingsTab />}
       </main>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommand}
+        onClose={() => setShowCommand(false)}
+        commands={commands}
+      />
     </div>
   );
 }
