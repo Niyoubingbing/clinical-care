@@ -9,6 +9,7 @@ import React, {
   ReactNode,
 } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { MotionConfig } from "framer-motion";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/db";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
@@ -96,9 +97,11 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AppContext.Provider value={{ toast }}>
-      {children}
-      <ToastContainer items={toasts} onDismiss={removeToast} />
-    </AppContext.Provider>
+    <MotionConfig reducedMotion="user">
+      <AppContext.Provider value={{ toast }}>
+        {children}
+        <ToastContainer items={toasts} onDismiss={removeToast} />
+      </AppContext.Provider>
+    </MotionConfig>
   );
 }

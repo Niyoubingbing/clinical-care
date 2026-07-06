@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, ClipboardList } from "lucide-react";
 import { db, getSettings, deletePatient, todayStr } from "@/lib/db";
@@ -162,16 +163,18 @@ export default function HomePage() {
         />
       ) : (
         <div className="space-y-2">
-          {filtered.map((p) => (
-            <PatientCard
-              key={p.id}
-              patient={p}
-              todoCount={pendingTodoCount(p, todos)}
-              status={patientStatus(p, todos, today)}
-              onOpen={openDetail}
-              onMenu={(patient) => setMenuPatient(patient)}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {filtered.map((p) => (
+              <PatientCard
+                key={p.id}
+                patient={p}
+                todoCount={pendingTodoCount(p, todos)}
+                status={patientStatus(p, todos, today)}
+                onOpen={openDetail}
+                onMenu={(patient) => setMenuPatient(patient)}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

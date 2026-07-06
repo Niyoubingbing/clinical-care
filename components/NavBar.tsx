@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { Users, ClipboardList, Settings } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -37,26 +38,34 @@ export default function NavBar() {
               key={tab.href}
               href={tab.href}
               aria-label={tab.label}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition"
+              className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition-transform active:scale-90"
             >
-              <span
-                className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                  active ? "bg-primary/15 text-primary" : "text-muted"
-                }`}
-                style={
-                  active
-                    ? { transform: "scale(1.1)" }
-                    : undefined
-                }
-              >
-                <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+              <span className="relative flex h-9 w-9 items-center justify-center rounded-xl">
+                {active && (
+                  <motion.span
+                    layoutId="nav-active-pill"
+                    className="absolute inset-0 rounded-xl bg-primary/15"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  />
+                )}
+                <Icon
+                  size={22}
+                  strokeWidth={active ? 2.4 : 2}
+                  className={`relative z-10 transition-colors duration-200 ${
+                    active ? "text-primary" : "text-muted"
+                  }`}
+                />
                 {tab.label === "待办" && badge > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
               </span>
-              <span className={active ? "text-primary font-medium" : "text-muted"}>
+              <span
+                className={`relative z-10 transition-colors duration-200 ${
+                  active ? "font-medium text-primary" : "text-muted"
+                }`}
+              >
                 {tab.label}
               </span>
             </Link>

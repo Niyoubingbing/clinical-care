@@ -2,10 +2,12 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, todayStr } from "@/lib/db";
 import { Todo } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
+import { listItemTransition } from "@/lib/motion";
 import SwipeableTodo from "@/components/SwipeableTodo";
 import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
@@ -149,22 +151,31 @@ function TodosInner() {
         <EmptyState title="没有符合条件的待办" hint="切换筛选或添加待办" />
       ) : (
         <div className="space-y-2">
-          {list.map((t) => (
-            <div key={t.id}>
-              {seg === "patient" && t.patientId && patientMap.get(t.patientId) && (
-                <p className="mb-1 px-1 text-[11px] text-muted">
-                  {patientMap.get(t.patientId)!.bedNumber}{" "}
-                  {patientMap.get(t.patientId)!.name}
-                </p>
-              )}
-              <SwipeableTodo
-                todo={t}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onOpen={seg === "patient" ? onOpen : undefined}
-              />
-            </div>
-          ))}
+          <AnimatePresence initial={false}>
+            {list.map((t) => (
+              <motion.div
+                key={t.id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={listItemTransition}
+              >
+                {seg === "patient" && t.patientId && patientMap.get(t.patientId) && (
+                  <p className="mb-1 px-1 text-[11px] text-muted">
+                    {patientMap.get(t.patientId)!.bedNumber}{" "}
+                    {patientMap.get(t.patientId)!.name}
+                  </p>
+                )}
+                <SwipeableTodo
+                  todo={t}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                  onOpen={seg === "patient" ? onOpen : undefined}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

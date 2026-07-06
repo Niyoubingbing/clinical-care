@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { springSheet } from "@/lib/motion";
 
 export default function BottomSheet({
   open,
@@ -40,7 +41,7 @@ export default function BottomSheet({
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            transition={springSheet}
           >
             <div className="flex items-center justify-between px-5 pt-3">
               <div className="mx-auto h-2 w-10 rounded-full bg-muted/15" />

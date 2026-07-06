@@ -91,7 +91,7 @@ export default function SettingsPage() {
               <button
                 key={t.key}
                 onClick={() => setTheme(t.key)}
-                className={`flex flex-col items-center gap-1.5 rounded-xl py-3 transition ${
+                className={`flex flex-col items-center gap-1.5 rounded-xl py-3 transition active:scale-[0.97] ${
                   active
                     ? "bg-primary text-white"
                     : "bg-card border border-border/60 text-muted"
@@ -203,7 +203,7 @@ function EntryLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-main shadow-xs"
+      className="flex items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-main shadow-xs transition active:scale-[0.98]"
     >
       <Icon size={18} className="text-primary" />
       <span className="flex-1">{label}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
+import { motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
 import { Patient } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
@@ -36,8 +37,14 @@ export default function PatientCard({
   const dangerBorder = status.overdue || status.needDressing;
 
   return (
-    <div
-      className={`card-interactive flex items-center gap-3 p-3 active:scale-[0.99] ${
+    <motion.div
+      layout="position"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      whileTap={{ scale: 0.98 }}
+      className={`card-interactive flex items-center gap-3 p-3 ${
         dangerBorder ? "border-danger/30" : ""
       }`}
       onClick={() => {
@@ -99,6 +106,6 @@ export default function PatientCard({
       >
         <MoreHorizontal size={20} />
       </button>
-    </div>
+    </motion.div>
   );
 }
