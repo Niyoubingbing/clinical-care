@@ -1,0 +1,19 @@
+{
+  "name": "临床病人管理助手",
+  "short_name": "临床助手",
+  "description": "面向临床医生的移动端病人查房与待办管理 PWA",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f2",
+  "theme_color": "#da7756",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface: 250 247 242;
+    --card: 255 255 255;
+    --main: 35 32 28;
+    --muted: 115 110 105;
+    --border: 230 225 218;
+    --primary: 218 119 86;
+    --primary-hover: 194 100 63;
+    --success: 75 140 90;
+    --warning: 195 135 45;
+    --danger: 185 65 65;
+    --surface-alt: 245 242 238;
+  }
+
+  .dark {
+    --surface: 32 30 28;
+    --card: 42 40 37;
+    --main: 245 242 238;
+    --muted: 145 140 132;
+    --border: 62 58 54;
+    --primary: 230 165 125;
+    --primary-hover: 240 180 143;
+    --success: 105 165 115;
+    --warning: 210 160 80;
+    --danger: 200 95 95;
+    --surface-alt: 38 36 33;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface text-main antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-xl bg-card border border-border px-4 py-3 text-main outline-none transition;
+  }
+  .input:focus {
+    @apply border-primary;
+    box-shadow: 0 0 0 2px rgb(var(--primary) / 0.25);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 text-white font-medium transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 1px 3px rgba(35, 32, 28, 0.06);
+  }
+  .btn-primary:hover {
+    @apply bg-primary-hover;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-4 font-medium text-primary transition active:scale-[0.97];
+  }
+  .btn-secondary:hover {
+    @apply border-primary;
+  }
+
+  .card {
+    @apply bg-card rounded-xl border border-border/60 shadow-xs;
+  }
+
+  .card-interactive {
+    @apply card transition hover:shadow-sm hover:border-border;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-tight;
+  }
+  .badge-primary {
+    @apply badge text-primary bg-primary/10;
+  }
+  .badge-success {
+    @apply badge text-success bg-success/10;
+  }
+  .badge-warning {
+    @apply badge text-warning bg-warning/10;
+  }
+  .badge-danger {
+    @apply badge text-danger bg-danger/10;
+  }
+  .badge-muted {
+    @apply badge text-muted bg-muted/10;
+  }
+}
+
+@layer utilities {
+  .bg-surface {
+    background-color: rgb(var(--surface));
+  }
+  .text-main {
+    color: rgb(var(--main));
+  }
+  .bg-card {
+    background-color: rgb(var(--card));
+  }
+  .text-muted {
+    color: rgb(var(--muted));
+  }
+  .border-custom {
+    border-color: rgb(var(--border));
+  }
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+  .bg-primary-hover {
+    background-color: rgb(var(--primary-hover));
+  }
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
