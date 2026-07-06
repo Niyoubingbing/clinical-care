@@ -1,0 +1,104 @@
+"use client";
+
+import React, { useRef } from "react";
+import { MoreHorizontal } from "lucide-react";
+import { Patient } from "@/types";
+import { PatientStatus } from "@/lib/reminders";
+import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
+
+export default function PatientCard({
+  patient,
+  status,
+  todoCount,
+  onOpen,
+  onMenu,
+}: {
+  patient: Patient;
+  status: PatientStatus;
+  todoCount: number;
+  onOpen: (p: Patient) => void;
+  onMenu: (p: Patient) => void;
+}) {
+  const longPressed = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startPress = () => {
+    timer.current = setTimeout(() => {
+      longPressed.current = true;
+      onMenu(patient);
+    }, 500);
+  };
+  const endPress = () => {
+    if (timer.current) clearTimeout(timer.current);
+  };
+
+  const color = patient.groupColor || "#e2e8f0";
+  const dangerBorder = status.overdue || status.needDressing;
+
+  return (
+    <div
+      className={`card-interactive flex items-center gap-3 p-3 active:scale-[0.99] ${
+        dangerBorder ? "border-danger/30" : ""
+      }`}
+      onClick={() => {
+        if (longPressed.current) {
+          longPressed.current = false;
+          return;
+        }
+        onOpen(patient);
+      }}
+      onPointerDown={startPress}
+      onPointerUp={endPress}
+      onPointerLeave={endPress}
+    >
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold"
+        style={{ backgroundColor: color, color: contrastTextColor(color) }}
+      >
+        {bedBlockLabel(patient.bedNumber)}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-[14px] font-semibold text-main">
+            {patient.name}
+          </span>
+          {patient.group && (
+            <span
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+              style={{
+                backgroundColor: color + "33",
+                color: color,
+              }}
+            >
+              {patient.group}
+            </span>
+          )}
+        </div>
+        <p className="truncate text-[12px] text-muted">{patient.diagnosis}</p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {todoCount > 0 && (
+            <span className="badge-primary">待办 {todoCount}</span>
+          )}
+          {status.needDressing && (
+            <span className="badge-danger">需换药</span>
+          )}
+          {status.needBlood && <span className="badge-warning">需查血</span>}
+          {status.overdue && <span className="badge-danger">已逾期</span>}
+          {status.todayDue && <span className="badge-warning">今日到期</span>}
+        </div>
+      </div>
+
+      <button
+        aria-label="更多操作"
+        className="shrink-0 rounded-lg p-1.5 text-muted opacity-60 transition hover:bg-surface-alt hover:opacity-100"
+        onClick={(e) => {
+          e.stopPropagation();
+          onMenu(patient);
+        }}
+      >
+        <MoreHorizontal size={20} />
+      </button>
+    </div>
+  );
+}
