@@ -123,6 +123,46 @@ export function unitsFromText(text: string): RoundingUnit[] {
   return unitsFromBeds(beds);
 }
 
+/** 将一组（同病区）病人按基础床号聚合成查房单元：相邻真实床成段为 room，真实加床独立成 extra-real。 */
+function unitsForList(list: Patient[]): RoundingUnit[] {
+  list.sort((a, b) => (a.bedBase ?? 0) - (b.bedBase ?? 0));
+  const units: RoundingUnit[] = [];
+  let cur: string[] = [];
+  let curWard = "";
+  const flush = () => {
+    if (cur.length) {
+      units.push({ id: uid(), kind: "room", ward: curWard, beds: [...cur] });
+      cur = [];
+    }
+  };
+  for (const p of list) {
+    if (p.bedType === "extra-real") {
+      flush();
+      units.push({
+        id: uid(),
+        kind: "extra-real",
+        bed: p.bedNumber,
+        room: curWard || p.ward || "",
+      });
+    } else {
+      const last = cur.length ? baseOf(cur[cur.length - 1]) : null;
+      if (last !== null && (p.bedBase ?? 0) !== last + 1) flush();
+      curWard = p.ward || "";
+      if (p.bedNumber) cur.push(p.bedNumber);
+    }
+  }
+  flush();
+  return units;
+}
+
+/** 仅针对单个病区，按基础床号自动聚合生成查房片段（不含其他病区）。 */
+export function buildWardDraft(patients: Patient[], ward: string): RoundingUnit[] {
+  const list = patients.filter(
+    (p) => (p.ward || parseBed(p.bedNumber ?? "").ward) === ward
+  );
+  return unitsForList(list);
+}
+
 /**
  * 按当前病人库生成查房序列草稿：
  * 读全部病人，按病区分组、组内按基础床号排序，相邻真实床成段，真实加床插入其所在病区序列中。
@@ -141,32 +181,13 @@ export function buildDraftFromPatients(patients: Patient[]): RoundingUnit[] {
   );
   const units: RoundingUnit[] = [];
   for (const [, list] of sortedWards) {
-    list.sort((a, b) => (a.bedBase ?? 0) - (b.bedBase ?? 0));
-    let cur: string[] = [];
-    let curWard = "";
-    const flush = () => {
-      if (cur.length) {
-        units.push({ id: uid(), kind: "room", ward: curWard, beds: [...cur] });
-        cur = [];
-      }
-    };
-    for (const p of list) {
-      if (p.bedType === "extra-real") {
-        flush();
-        units.push({
-          id: uid(),
-          kind: "extra-real",
-          bed: p.bedNumber,
-          room: curWard || p.ward || "",
-        });
-      } else {
-        const last = cur.length ? baseOf(cur[cur.length - 1]) : null;
-        if (last !== null && (p.bedBase ?? 0) !== last + 1) flush();
-        curWard = p.ward || "";
-        if (p.bedNumber) cur.push(p.bedNumber);
-      }
-    }
-    flush();
+    units.push(...unitsForList(list));
   }
   return units;
+}
+
+/** 取单元所属病区：病房块取 ward；真实加床按床号解析其病区。 */
+export function wardOfUnit(u: RoundingUnit): string {
+  if (u.kind === "room") return u.ward;
+  return parseBed(u.bed).ward;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, X, Plus, RotateCcw, Wand2, ChevronDown } from "lucide-react";
+import { GripVertical, X, Plus, RotateCcw, Wand2, ChevronDown, Layers } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getSettings,
@@ -10,6 +10,7 @@ import {
   defaultRoundingOrder,
   db,
 } from "@/lib/db";
+import { parseBed } from "@/lib/bed-parser";
 import {
   expandRange,
   inferRoomRange,
@@ -18,6 +19,8 @@ import {
   roomLabels,
   unitsFromText,
   buildDraftFromPatients,
+  buildWardDraft,
+  wardOfUnit,
 } from "@/lib/rounding-edit";
 import { RoundingUnit } from "@/types";
 import { useApp } from "@/components/Providers";
@@ -27,6 +30,7 @@ export default function RoundingPage() {
   const settings = useLiveQuery(() => getSettings(), []);
   const patients = useLiveQuery(() => db.patients.toArray(), []);
   const [units, setUnits] = useState<RoundingUnit[]>([]);
+  const [activeWard, setActiveWard] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [text, setText] = useState("");
   const inited = useRef(false);
@@ -36,14 +40,14 @@ export default function RoundingPage() {
     if (!settings || inited.current) return;
     inited.current = true;
     const raw = settings.roundingOrder ?? [];
-    const missing = raw.some((u) => !("id" in u) || !(u as RoundingUnit).id);
     const fixed = raw.map((u) =>
       "id" in u && (u as RoundingUnit).id
         ? (u as RoundingUnit)
         : ({ ...(u as RoundingUnit), id: crypto.randomUUID() } as RoundingUnit)
     );
     setUnits(fixed);
-    if (missing) updateSettings({ roundingOrder: fixed });
+    if (raw.some((u) => !("id" in u) || !(u as RoundingUnit).id))
+      updateSettings({ roundingOrder: fixed });
   }, [settings]);
 
   const save = (next: RoundingUnit[]) => {
@@ -53,28 +57,88 @@ export default function RoundingPage() {
 
   const wards = useMemo(() => listWards(patients ?? []), [patients]);
   const extraBeds = useMemo(() => listExtraRealBeds(patients ?? []), [patients]);
-  const labels = useMemo(() => roomLabels(units), [units]);
 
-  const updateUnit = (next: RoundingUnit) => {
+  // 所有出现过病区（病人库 + 现有序列），按字母序；用于顶部 tabs。
+  const allWards = useMemo(() => {
+    const set = new Set<string>(wards);
+    for (const u of units) set.add(wardOfUnit(u));
+    return [...set].sort((a, b) => a.localeCompare(b, "zh"));
+  }, [wards, units]);
+
+  // 初次进入默认选中第一个病区。
+  useEffect(() => {
+    if (!activeWard && allWards.length) setActiveWard(allWards[0]);
+  }, [allWards, activeWard]);
+
+  // 当前病区可见片段（病区之间不交叉）。
+  const visible = useMemo(
+    () => units.filter((u) => wardOfUnit(u) === activeWard),
+    [units, activeWard]
+  );
+  const labels = useMemo(() => roomLabels(visible), [visible]);
+  const wardExtras = useMemo(
+    () => extraBeds.filter((b) => parseBed(b).ward === activeWard),
+    [extraBeds, activeWard]
+  );
+
+  const updateUnit = (next: RoundingUnit) =>
     save(units.map((u) => (u.id === next.id ? next : u)));
+  const removeUnit = (id: string) =>
+    save(units.filter((u) => u.id !== id));
+
+  // 拖拽仅在「当前病区视图」内重排；其他病区片段保持原位（不交叉、不丢失）。
+  const onReorder = (ids: string[]) => {
+    const idSet = new Set(visible.map((u) => u.id));
+    const byId = new Map(units.map((u) => [u.id, u]));
+    const reordered = ids
+      .map((id) => byId.get(id))
+      .filter((u): u is RoundingUnit => Boolean(u));
+    let i = 0;
+    const next = units.map((u) => (idSet.has(u.id) ? reordered[i++] : u));
+    save(next);
   };
 
-  const removeUnit = (id: string) => {
-    save(units.filter((u) => u.id !== id));
+  // 一键按基础床号填充本病区（无需手输）。
+  const fillWard = () => {
+    if (!activeWard) return;
+    const draft = buildWardDraft(patients ?? [], activeWard);
+    if (!draft.length) {
+      toast({ message: `本病区（${activeWard}）暂无已识别病人` });
+      return;
+    }
+    const idSet = new Set(
+      units.filter((u) => wardOfUnit(u) === activeWard).map((u) => u.id)
+    );
+    const others = units.filter((u) => !idSet.has(u.id));
+    const idx = units.findIndex((u) => wardOfUnit(u) === activeWard);
+    const insertAt = idx === -1 ? others.length : idx;
+    const next = [...others];
+    next.splice(insertAt, 0, ...draft);
+    save(next);
+    toast({ message: `已按基础床号填充 ${activeWard}（${draft.length} 个单元）` });
   };
 
   const addRoom = () => {
-    const ward = wards[0] ?? "309W";
-    save([...units, { id: crypto.randomUUID(), kind: "room", ward, beds: expandRange(ward, 1, 1) }]);
+    const ward = activeWard || wards[0] || "309W";
+    save([
+      ...units,
+      {
+        id: crypto.randomUUID(),
+        kind: "room",
+        ward,
+        beds: expandRange(ward, 1, 1),
+      },
+    ]);
   };
   const addExtra = () => {
+    const ward = activeWard || wards[0] || "309W";
     save([
       ...units,
       {
         id: crypto.randomUUID(),
         kind: "extra-real",
-        bed: extraBeds[0] ?? "",
-        room: labels[0] ?? wards[0] ?? "",
+        bed: wardExtras[0] ?? "",
+        room: labels[0] ?? ward,
       },
     ]);
   };
@@ -85,7 +149,6 @@ export default function RoundingPage() {
     updateSettings({ roundingOrder: def });
     toast({ message: "已重置为内置示例" });
   };
-
   const generateFromPatients = () => {
     const draft = buildDraftFromPatients(patients ?? []);
     if (!draft.length) {
@@ -95,17 +158,25 @@ export default function RoundingPage() {
     save(draft);
     toast({ message: `已按病人库生成 ${draft.length} 个单元` });
   };
-
   const applyAdvanced = () => {
     const next = unitsFromText(text);
     if (!next.length) {
       toast({ message: "未解析到有效床号" });
       return;
     }
-    save(next);
+    const ward = activeWard || wards[0] || "309W";
+    const idSet = new Set(
+      units.filter((u) => wardOfUnit(u) === ward).map((u) => u.id)
+    );
+    const others = units.filter((u) => !idSet.has(u.id));
+    const idx = units.findIndex((u) => wardOfUnit(u) === ward);
+    const insertAt = idx === -1 ? others.length : idx;
+    const merged = [...others];
+    merged.splice(insertAt, 0, ...next);
+    save(merged);
     setText("");
     setShowAdvanced(false);
-    toast({ message: `已导入 ${next.length} 个单元` });
+    toast({ message: `已导入 ${next.length} 个单元到 ${ward}` });
   };
 
   return (
@@ -129,34 +200,54 @@ export default function RoundingPage() {
       </div>
 
       <p className="text-[12px] text-muted">
-        拖动卡片左侧手柄调整顺序。病房块用「病区 + 床号范围」设置，真实加床从已识别清单选择，无需手输床号串。
+        按病区单独设置，病区之间不交叉。选中病区后，点「填充本病区」即可按已解析的基础床号自动生成病房块与真实加床，无需手输。
       </p>
 
-      {(!wards.length || !extraBeds.length) && (
+      {allWards.length === 0 ? (
         <p className="rounded-lg bg-surface-alt px-3 py-2 text-[12px] text-warning">
-          病人库暂无已识别的病区/真实加床，清单选择为空。可先在「床号识别」与「导入病人」后使用，或用下方高级文本输入。
+          尚未识别到任何病区。请先在「床号识别」与「导入病人」后使用，或用下方高级文本输入。
+        </p>
+      ) : (
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {allWards.map((w) => (
+            <button
+              key={w}
+              onClick={() => setActiveWard(w)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
+                w === activeWard
+                  ? "bg-primary text-white"
+                  : "bg-surface-alt text-muted hover:text-main"
+              }`}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeWard && (
+        <button onClick={fillWard} className="btn-primary h-11 w-full">
+          <Layers size={16} /> 填充本病区（{activeWard}）
+        </button>
+      )}
+
+      {activeWard && visible.length === 0 && (
+        <p className="rounded-lg bg-surface-alt px-3 py-2 text-[12px] text-muted">
+          本病区（{activeWard}）暂无查房单元。点上方「填充本病区」自动生成，或手动添加。
         </p>
       )}
 
       <Reorder.Group
         axis="y"
-        values={units.map((u) => u.id)}
-        onReorder={(ids) => {
-          const byId = new Map(units.map((u) => [u.id, u]));
-          save(
-            (ids as string[])
-              .map((id) => byId.get(id))
-              .filter((u): u is RoundingUnit => Boolean(u))
-          );
-        }}
+        values={visible.map((u) => u.id)}
+        onReorder={onReorder}
         className="space-y-2"
       >
-        {units.map((u) =>
+        {visible.map((u) =>
           u.kind === "room" ? (
             <RoomRow
               key={u.id}
               u={u}
-              wards={wards}
               onUpdate={updateUnit}
               onRemove={() => removeUnit(u.id)}
             />
@@ -164,7 +255,7 @@ export default function RoundingPage() {
             <ExtraRow
               key={u.id}
               u={u}
-              extraBeds={extraBeds}
+              extraBeds={wardExtras}
               labels={labels}
               onUpdate={updateUnit}
               onRemove={() => removeUnit(u.id)}
@@ -187,7 +278,7 @@ export default function RoundingPage() {
           onClick={() => setShowAdvanced((v) => !v)}
           className="flex w-full items-center justify-between px-4 py-3 text-[13px] font-medium text-primary"
         >
-          高级：文本批量输入
+          高级：文本批量输入（仅当前病区 {activeWard}）
           <ChevronDown
             size={16}
             className={`transition ${showAdvanced ? "rotate-180" : ""}`}
@@ -202,7 +293,7 @@ export default function RoundingPage() {
               onChange={(e) => setText(e.target.value)}
             />
             <button className="btn-primary h-10 w-full" onClick={applyAdvanced}>
-              解析并覆盖当前顺序
+              解析并覆盖本病区顺序
             </button>
           </div>
         )}
@@ -226,29 +317,27 @@ function DragHandle() {
 
 function RoomRow({
   u,
-  wards,
   onUpdate,
   onRemove,
 }: {
   u: Extract<RoundingUnit, { kind: "room" }>;
-  wards: string[];
   onUpdate: (next: RoundingUnit) => void;
   onRemove: () => void;
 }) {
   const controls = useDragControls();
   const { toast } = useApp();
   const range = inferRoomRange(u.beds);
-  const wardOptions = wards.includes(u.ward) ? wards : [u.ward, ...wards];
   const start = range?.start ?? 1;
   const end = range?.end ?? 1;
 
-  const MAX_BEDS = 2000; // 防误输护栏（非业务上限）：单病区床位数通常数百内，超此视为输入异常
-  const commit = (ward: string, s: number, e: number) => {
+  // 防误输护栏（非业务上限）：单病区床位数通常数百内，超此视为输入异常。
+  const MAX_BEDS = 2000;
+  const commit = (s: number, e: number) => {
     if (Math.abs(e - s) + 1 > MAX_BEDS) {
       toast({ message: `床号跨度过大（${Math.abs(e - s) + 1} 床），请检查输入` });
       return;
     }
-    onUpdate({ id: u.id, kind: "room", ward, beds: expandRange(ward, s, e) });
+    onUpdate({ id: u.id, kind: "room", ward: u.ward, beds: expandRange(u.ward, s, e) });
   };
 
   return (
@@ -260,25 +349,15 @@ function RoomRow({
     >
       <DragHandle />
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-medium text-primary">病房块</p>
+        <p className="text-[12px] font-medium text-primary">病房块 · {u.ward}</p>
         <div className="mt-1 grid grid-cols-[1fr_auto_auto] items-center gap-2">
-          <select
-            className="input py-2 text-[13px]"
-            value={u.ward}
-            onChange={(e) => commit(e.target.value, start, end)}
-          >
-            {wardOptions.map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
+          <span className="input py-2 text-[13px] text-muted">{u.ward}</span>
           <input
             type="number"
             min={1}
             className="input w-16 py-2 text-center text-[13px]"
             value={start}
-            onChange={(e) => commit(u.ward, Number(e.target.value || 1), end)}
+            onChange={(e) => commit(Number(e.target.value || 1), end)}
             aria-label="起始床号"
           />
           <span className="text-muted">–</span>
@@ -287,7 +366,7 @@ function RoomRow({
             min={1}
             className="input w-16 py-2 text-center text-[13px] col-start-3 row-start-1"
             value={end}
-            onChange={(e) => commit(u.ward, start, Number(e.target.value || 1))}
+            onChange={(e) => commit(start, Number(e.target.value || 1))}
             aria-label="结束床号"
           />
         </div>
