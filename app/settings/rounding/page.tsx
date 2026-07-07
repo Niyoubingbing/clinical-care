@@ -236,12 +236,18 @@ function RoomRow({
   onRemove: () => void;
 }) {
   const controls = useDragControls();
+  const { toast } = useApp();
   const range = inferRoomRange(u.beds);
   const wardOptions = wards.includes(u.ward) ? wards : [u.ward, ...wards];
   const start = range?.start ?? 1;
   const end = range?.end ?? 1;
 
+  const MAX_BEDS = 2000; // 防误输护栏（非业务上限）：单病区床位数通常数百内，超此视为输入异常
   const commit = (ward: string, s: number, e: number) => {
+    if (Math.abs(e - s) + 1 > MAX_BEDS) {
+      toast({ message: `床号跨度过大（${Math.abs(e - s) + 1} 床），请检查输入` });
+      return;
+    }
     onUpdate({ id: u.id, kind: "room", ward, beds: expandRange(ward, s, e) });
   };
 
@@ -291,6 +297,9 @@ function RoomRow({
                 u.ward
               }${String(end).padStart(2, "0")}（共 ${u.beds.length} 床）`
             : "预览不可用（跨病区或非连续），建议用高级文本输入"}
+        </p>
+        <p className="mt-0.5 text-[11px] text-muted/70">
+          床号范围自定义，无数量上限（按实际病区床位填写）
         </p>
       </div>
       <button
