@@ -24,7 +24,7 @@ export class ClinicalDB extends Dexie {
 
 export const db = new ClinicalDB();
 
-function uid(): string {
+export function uid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
@@ -43,11 +43,13 @@ export function bedRoomLabel(beds: string[]): string {
 
 export function defaultRoundingOrder(): RoundingUnit[] {
   const room = (beds: string[]): RoundingUnit => ({
+    id: uid(),
     kind: "room",
     ward: beds[0].replace(/\d+$/, ""),
     beds,
   });
   const extra = (bed: string, roomBeds: string[]): RoundingUnit => ({
+    id: uid(),
     kind: "extra-real",
     bed,
     room: bedRoomLabel(roomBeds),

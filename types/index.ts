@@ -50,8 +50,8 @@ export interface QuickTodo {
 }
 
 export type RoundingUnit =
-  | { kind: "room"; ward: string; beds: string[] }
-  | { kind: "extra-real"; bed: string; room: string };
+  | { id: string; kind: "room"; ward: string; beds: string[] }
+  | { id: string; kind: "extra-real"; bed: string; room: string };
 
 export interface Settings {
   id: number;
