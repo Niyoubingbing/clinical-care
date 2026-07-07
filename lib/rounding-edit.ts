@@ -97,7 +97,6 @@ export function importConfigText(text: string): RoundingConfig | null {
   }));
   return {
     ruleType,
-    direction: c.direction === "reverse" ? "reverse" : "forward",
     regularBedCount: c.regularBedCount,
     avgBedsPerRoom: c.avgBedsPerRoom,
     blocks,

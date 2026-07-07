@@ -15,23 +15,17 @@ export function isFullBedNumber(bed: string): boolean {
 
 /**
  * 将查房配置解析为有序病人序列（PRD 4.9.3 / 4.9.4）。
- * - direction=reverse 时，整条序列整体反转（块顺序 + 块内床号均反转）。
  * - 默认规则（块内为完整床号）：按 bedNumber 精确匹配。
  * - 基础规则（块内为基础床号）：按病区隔离套用块模板——各病区依次按 bedBase 匹配。
  * - 未进入任何块的病人在末尾按「病区 + 基础床号」升序追加。
  * 返回结果中相邻同 groupId 的病人即为同一病房块，供首页组合卡片展示。
+ * 注：序列的整体正/反序是首页病人列表的展示偏好（settings.listDirection），不在此处理。
  */
 export function resolveOrder(
   config: RoundingConfig,
   patients: Patient[]
 ): OrderedPatient[] {
-  const dir = config.direction ?? "forward";
-  let blocks: RoundingBlock[] = config.blocks ?? [];
-  if (dir === "reverse") {
-    blocks = [...blocks]
-      .reverse()
-      .map((b) => ({ ...b, beds: [...b.beds].reverse() }));
-  }
+  const blocks: RoundingBlock[] = config.blocks ?? [];
 
   const byBed = new Map(patients.map((p) => [p.bedNumber, p]));
   const placed = new Set<string>();

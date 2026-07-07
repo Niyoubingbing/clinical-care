@@ -55,15 +55,15 @@ export type RoundingBlock =
 
 export interface RoundingConfig {
   ruleType: "default" | "basic" | "custom"; // 当前规则态；修改内置规则后自动置 'custom'
-  direction?: "forward" | "reverse"; // 序列方向，默认 'forward'；reverse 为整体反转
   regularBedCount?: number; // 基础规则：普通病床总数（不含加床/虚拟）
   avgBedsPerRoom?: number; // 基础规则：平均单一病房床数
-  blocks: RoundingBlock[]; // 有序序列：病房块 + 真实加床块
+  blocks: RoundingBlock[]; // 有序序列：病房块 + 真实加床块（顺序本身即查房顺序）
 }
 
 export interface Settings {
   id: number;
   roundingOrder: RoundingConfig; // 查房顺序配置（块模型，见 PRD 4.9.4）
+  listDirection?: "forward" | "reverse"; // 首页病人列表展示方向（与查房顺序设置解耦），默认 'forward'
   quickTodos: QuickTodo[];
   theme: Theme;
   bedTemplate?: string;

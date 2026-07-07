@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Reorder, useDragControls } from "framer-motion";
+import { Reorder, useDragControls, type DragControls } from "framer-motion";
 import {
   GripVertical,
   X,
@@ -9,7 +9,6 @@ import {
   RotateCcw,
   Copy,
   ChevronDown,
-  ArrowUpDown,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings, updateSettings, defaultRoundingConfig, db } from "@/lib/db";
@@ -88,7 +87,6 @@ export default function RoundingPage() {
       const fresh = config.ruleType === "default" || hasFull || config.blocks.length === 0;
       save({
         ruleType: "basic",
-        direction: config.direction ?? "forward",
         regularBedCount: basicCount,
         avgBedsPerRoom: basicAvg,
         blocks: fresh ? [] : config.blocks,
@@ -103,7 +101,6 @@ export default function RoundingPage() {
     const avg = Math.min(200, Math.max(1, Math.floor(basicAvg) || 1));
     save({
       ruleType: "basic",
-      direction: config.direction ?? "forward",
       regularBedCount: count,
       avgBedsPerRoom: avg,
       blocks: basicRuleFromCounts(count, avg),
@@ -123,9 +120,6 @@ export default function RoundingPage() {
       ruleType: "custom",
       blocks: [...config.blocks, { id: crypto.randomUUID(), kind: "extra", beds: [] }],
     });
-
-  const setDirection = (dir: "forward" | "reverse") =>
-    save({ ...config, direction: dir });
 
   const copyExport = async () => {
     const text = exportConfigText(config);
@@ -186,27 +180,6 @@ export default function RoundingPage() {
         {ruleType === "basic" && "仅基础床号（01、02…），由普通病床数 ÷ 平均病房床数推导病房块。"}
         {ruleType === "custom" && "已手动修改内置规则，当前为自定义规则。"}
       </p>
-
-      {/* 方向切换 */}
-      <div className="flex items-center gap-2 rounded-xl bg-card border border-border/60 p-2">
-        <ArrowUpDown size={16} className="text-primary" />
-        <span className="text-[13px] text-main">序列方向</span>
-        <div className="ml-auto grid grid-cols-2 gap-1 rounded-lg bg-surface-alt p-1">
-          {(["forward", "reverse"] as const).map((d) => (
-            <button
-              key={d}
-              onClick={() => setDirection(d)}
-              className={`rounded-md px-3 py-1 text-[12px] font-medium transition ${
-                (config.direction ?? "forward") === d
-                  ? "bg-primary text-white"
-                  : "text-muted"
-              }`}
-            >
-              {d === "forward" ? "正序" : "反序"}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* 基础规则向导 */}
       {ruleType === "basic" && (
@@ -314,8 +287,7 @@ export default function RoundingPage() {
   );
 }
 
-function DragHandle() {
-  const controls = useDragControls();
+function DragHandle({ controls }: { controls: DragControls }) {
   return (
     <span
       onPointerDown={(e) => controls.start(e)}
@@ -367,7 +339,7 @@ function BlockCard({
       dragControls={controls}
       className="card flex items-start gap-2 p-3"
     >
-      <DragHandle />
+      <DragHandle controls={controls} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span

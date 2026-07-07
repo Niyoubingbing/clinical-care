@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, ClipboardList } from "lucide-react";
-import { db, getSettings, deletePatient, todayStr } from "@/lib/db";
+import { Plus, ClipboardList, ArrowUpDown } from "lucide-react";
+import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/db";
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
 import { buildDailySummary } from "@/lib/summary";
@@ -34,6 +34,11 @@ export default function HomePage() {
 
   const [group, setGroup] = useState<string | null>(null);
 
+  // 首页病人列表的展示方向（正/反序），与查房顺序设置解耦，持久化到 settings。
+  const listDirection = settings?.listDirection ?? "forward";
+  const setListDirection = (dir: "forward" | "reverse") =>
+    updateSettings({ listDirection: dir });
+
   const [addOpen, setAddOpen] = useState(false);
   const [todoOpen, setTodoOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -55,8 +60,9 @@ export default function HomePage() {
 
   const ordered = useMemo(() => {
     if (!settings) return [];
-    return resolveOrder(settings.roundingOrder, patients);
-  }, [patients, settings]);
+    const base = resolveOrder(settings.roundingOrder, patients);
+    return listDirection === "reverse" ? [...base].reverse() : base;
+  }, [patients, settings, listDirection]);
 
   // 将有序序列按「病房块」连续分组（grouped card，PRD 4.1.1 / 4.9.3）。
   const rows = useMemo(() => {
@@ -182,6 +188,27 @@ export default function HomePage() {
       />
 
       <GroupFilter groups={groups} selected={group} onChange={setGroup} />
+
+      {/* 列表顺序：正序/反序（首页病人列表展示，不改动查房顺序设置） */}
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] text-muted">列表顺序</span>
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-alt p-1">
+          {(["forward", "reverse"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setListDirection(d)}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition ${
+                listDirection === d
+                  ? "bg-primary text-white"
+                  : "text-muted"
+              }`}
+            >
+              <ArrowUpDown size={13} />
+              {d === "forward" ? "正序" : "反序"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState

@@ -52,7 +52,6 @@ export function defaultRoundingConfig(): RoundingConfig {
   });
   return {
     ruleType: "default",
-    direction: "forward",
     blocks: [
       room(["309W41", "309W42", "309W43"]),
       extra("309WJ04"),
@@ -97,7 +96,6 @@ export function migrateRoundingOrder(raw: unknown): RoundingConfig {
     const c = raw as RoundingConfig;
     return {
       ruleType: c.ruleType ?? "custom",
-      direction: c.direction ?? "forward",
       regularBedCount: c.regularBedCount,
       avgBedsPerRoom: c.avgBedsPerRoom,
       blocks: c.blocks ?? [],
@@ -107,7 +105,6 @@ export function migrateRoundingOrder(raw: unknown): RoundingConfig {
     if (raw.length && typeof raw[0] === "string") {
       return {
         ruleType: "custom",
-        direction: "forward",
         blocks: [{ id: uid(), kind: "room", beds: raw as string[] }],
       };
     }
@@ -129,7 +126,7 @@ export function migrateRoundingOrder(raw: unknown): RoundingConfig {
         return { id: uid(), kind: "room", beds: [] };
       }
     );
-    return { ruleType: "custom", direction: "forward", blocks };
+    return { ruleType: "custom", blocks };
   }
   return defaultRoundingConfig();
 }
@@ -146,6 +143,7 @@ export function defaultSettings(): Settings {
   return {
     id: 1,
     roundingOrder: defaultRoundingConfig(),
+    listDirection: "forward",
     quickTodos: defaultQuickTodos(),
     theme: "system",
     bedTemplate: "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$",
