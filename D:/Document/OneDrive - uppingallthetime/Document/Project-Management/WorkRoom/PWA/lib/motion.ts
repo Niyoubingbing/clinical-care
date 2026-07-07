@@ -3,15 +3,18 @@ import type { Transition, Variants } from "framer-motion";
 // App-wide easing — a smooth ease-out curve (close to easeOutExpo)
 export const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-// Page transition (used by app/template.tsx; re-mounts on every navigation)
+// Page transition (used by app/template.tsx; re-mounts on every navigation).
+// IMPORTANT: transform/opacity only (compositor-friendly). Avoid `scale` on the
+// whole-page wrapper — scaling a large subtree forces a full re-raster every
+// frame and is the main source of page-switch jank.
 export const pageTransition: Transition = {
-  duration: 0.4,
+  duration: 0.3,
   ease: EASE,
 };
 
 export const pageVariants: Variants = {
-  initial: { opacity: 0, y: 16, scale: 0.99 },
-  animate: { opacity: 1, y: 0, scale: 1 },
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
 };
 
 // Springy press feedback for cards / buttons

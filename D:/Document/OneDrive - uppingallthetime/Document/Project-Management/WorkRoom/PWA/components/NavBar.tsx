@@ -25,7 +25,7 @@ export default function NavBar() {
   }).length;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-card/95 backdrop-blur-xl shadow-lg safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-lg safe-area-pb transform-gpu">
       <div className="mx-auto flex max-w-2xl grid-cols-3">
         {TABS.map((tab) => {
           const active =

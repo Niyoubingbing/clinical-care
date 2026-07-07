@@ -38,10 +38,9 @@ export default function PatientCard({
 
   return (
     <motion.div
-      layout="position"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
+      exit={{ opacity: 0, y: 6 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       whileTap={{ scale: 0.98 }}
       className={`card-interactive flex items-center gap-3 p-3 ${

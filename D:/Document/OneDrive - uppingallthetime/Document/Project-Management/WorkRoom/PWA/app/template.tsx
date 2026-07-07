@@ -12,7 +12,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
       initial="initial"
       animate="animate"
       transition={pageTransition}
-      style={{ willChange: "transform, opacity" }}
     >
       {children}
     </motion.div>
