@@ -6,16 +6,15 @@ import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, ClipboardList } from "lucide-react";
 import { db, getSettings, deletePatient, todayStr } from "@/lib/db";
-import { sortPatients } from "@/lib/rounding";
-import { matchPatient } from "@/lib/pinyin";
-import { computeReminders, patientStatus, pendingTodoCount } from "@/lib/reminders";
+import { resolveOrder } from "@/lib/rounding";
+import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
 import { buildDailySummary } from "@/lib/summary";
 import { Patient } from "@/types";
 
 import PatientCard from "@/components/PatientCard";
+import GroupedPatientCard, { GroupedItem } from "@/components/GroupedPatientCard";
 import ReminderBar from "@/components/ReminderBar";
 import DailySummaryCard from "@/components/DailySummary";
-import SearchBar from "@/components/SearchBar";
 import GroupFilter from "@/components/GroupFilter";
 import EmptyState from "@/components/EmptyState";
 import AddPatientSheet from "@/components/AddPatientSheet";
@@ -33,7 +32,6 @@ export default function HomePage() {
   const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
   const settings = useLiveQuery(() => getSettings(), []);
 
-  const [query, setQuery] = useState("");
   const [group, setGroup] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -55,18 +53,48 @@ export default function HomePage() {
     [patients]
   );
 
-  const sorted = useMemo(() => {
-    if (!settings) return patients;
-    return sortPatients(patients, settings.roundingOrder);
+  const ordered = useMemo(() => {
+    if (!settings) return [];
+    return resolveOrder(settings.roundingOrder, patients);
   }, [patients, settings]);
+
+  // 将有序序列按「病房块」连续分组（grouped card，PRD 4.1.1 / 4.9.3）。
+  const rows = useMemo(() => {
+    type Row =
+      | { type: "group"; id: string; label: string; items: GroupedItem[] }
+      | { type: "single"; patient: Patient; todoCount: number; status: PatientStatus };
+    const out: Row[] = [];
+    let cur: { id: string; label: string; items: GroupedItem[] } | null = null;
+    for (const op of ordered) {
+      const todoCount = pendingTodoCount(op.patient, todos);
+      const status = patientStatus(op.patient, todos, today);
+      if (op.groupId) {
+        if (cur && cur.id === op.groupId) {
+          cur.items.push({ patient: op.patient, todoCount, status });
+        } else {
+          cur = {
+            id: op.groupId,
+            label: op.groupLabel ?? "",
+            items: [{ patient: op.patient, todoCount, status }],
+          };
+          out.push({ type: "group", ...cur });
+        }
+      } else {
+        cur = null;
+        out.push({ type: "single", patient: op.patient, todoCount, status });
+      }
+    }
+    return out;
+  }, [ordered, todos, today]);
 
   const filtered = useMemo(
     () =>
-      sorted.filter(
-        (p) =>
-          matchPatient(p, query) && (group === null || p.group === group)
+      rows.filter((g) =>
+        g.type === "single"
+          ? group === null || g.patient.group === group
+          : g.items.some((it) => group === null || it.patient.group === group)
       ),
-    [sorted, query, group]
+    [groups, group]
   );
 
   const reminders = useMemo(
@@ -153,27 +181,40 @@ export default function HomePage() {
         }}
       />
 
-      <SearchBar value={query} onChange={setQuery} />
       <GroupFilter groups={groups} selected={group} onChange={setGroup} />
 
       {filtered.length === 0 ? (
         <EmptyState
           title={patients.length === 0 ? "暂无病人" : "未找到匹配病人"}
-          hint={patients.length === 0 ? "点击右上角添加或批量导入" : "试试其他关键词或清空筛选"}
+          hint={
+            patients.length === 0
+              ? "点击右上角添加或批量导入"
+              : "试试切换分组筛选"
+          }
         />
       ) : (
         <div className="space-y-2">
           <AnimatePresence initial={false}>
-            {filtered.map((p) => (
-              <PatientCard
-                key={p.id}
-                patient={p}
-                todoCount={pendingTodoCount(p, todos)}
-                status={patientStatus(p, todos, today)}
-                onOpen={openDetail}
-                onMenu={(patient) => setMenuPatient(patient)}
-              />
-            ))}
+            {filtered.map((g) =>
+              g.type === "group" ? (
+                <GroupedPatientCard
+                  key={g.id}
+                  label={g.label}
+                  items={g.items}
+                  onOpen={openDetail}
+                  onMenu={(patient) => setMenuPatient(patient)}
+                />
+              ) : (
+                <PatientCard
+                  key={g.patient.id}
+                  patient={g.patient}
+                  todoCount={g.todoCount}
+                  status={g.status}
+                  onOpen={openDetail}
+                  onMenu={(patient) => setMenuPatient(patient)}
+                />
+              )
+            )}
           </AnimatePresence>
         </div>
       )}

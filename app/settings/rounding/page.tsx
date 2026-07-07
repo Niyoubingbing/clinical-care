@@ -1,299 +1,311 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, X, Plus, RotateCcw, Wand2, ChevronDown, Layers } from "lucide-react";
+import {
+  GripVertical,
+  X,
+  Plus,
+  RotateCcw,
+  Copy,
+  ChevronDown,
+  ArrowUpDown,
+} from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { getSettings, updateSettings, defaultRoundingConfig, db } from "@/lib/db";
 import {
-  getSettings,
-  updateSettings,
-  defaultRoundingOrder,
-  db,
-} from "@/lib/db";
-import { parseBed } from "@/lib/bed-parser";
-import {
-  expandRange,
-  inferRoomRange,
-  listWards,
-  listExtraRealBeds,
-  roomLabels,
-  unitsFromText,
-  buildDraftFromPatients,
-  buildWardDraft,
-  wardOfUnit,
+  basicRuleFromCounts,
+  exportConfigText,
+  importConfigText,
+  blockLabel,
+  normalizeBeds,
+  isFullBed,
 } from "@/lib/rounding-edit";
-import { RoundingUnit } from "@/types";
+import { RoundingConfig, RoundingBlock } from "@/types";
 import { useApp } from "@/components/Providers";
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
 
 export default function RoundingPage() {
   const { toast } = useApp();
   const settings = useLiveQuery(() => getSettings(), []);
-  const patients = useLiveQuery(() => db.patients.toArray(), []);
-  const [units, setUnits] = useState<RoundingUnit[]>([]);
-  const [activeWard, setActiveWard] = useState<string>("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [text, setText] = useState("");
+  const [config, setConfig] = useState<RoundingConfig | null>(null);
+  const [basicCount, setBasicCount] = useState(40);
+  const [basicAvg, setBasicAvg] = useState(3);
+  const [showIO, setShowIO] = useState(false);
+  const [ioText, setIoText] = useState("");
   const inited = useRef(false);
 
-  // 仅初始化一次：从 DB 读取，并为缺失 id 的旧数据补 id（一次性迁移）。
+  // 仅初始化一次：从 DB 读取（已迁移），缺失则回填。
   useEffect(() => {
     if (!settings || inited.current) return;
     inited.current = true;
-    const raw = settings.roundingOrder ?? [];
-    const fixed = raw.map((u) =>
-      "id" in u && (u as RoundingUnit).id
-        ? (u as RoundingUnit)
-        : ({ ...(u as RoundingUnit), id: crypto.randomUUID() } as RoundingUnit)
-    );
-    setUnits(fixed);
-    if (raw.some((u) => !("id" in u) || !(u as RoundingUnit).id))
-      updateSettings({ roundingOrder: fixed });
+    const c = settings.roundingOrder;
+    setConfig(c);
+    if (c.regularBedCount) setBasicCount(c.regularBedCount);
+    if (c.avgBedsPerRoom) setBasicAvg(c.avgBedsPerRoom);
   }, [settings]);
 
-  const save = (next: RoundingUnit[]) => {
-    setUnits(next);
+  if (!config) return <div className="py-10 text-center text-muted">加载中…</div>;
+
+  const save = (next: RoundingConfig) => {
+    setConfig(next);
     updateSettings({ roundingOrder: next });
   };
 
-  const wards = useMemo(() => listWards(patients ?? []), [patients]);
-  const extraBeds = useMemo(() => listExtraRealBeds(patients ?? []), [patients]);
+  // 任意病房块/床号/加床的编辑都视为自定义。
+  const updateBlock = (id: string, patch: Partial<RoundingBlock>) => {
+    save({
+      ...config,
+      ruleType: "custom",
+      blocks: config.blocks.map((b) =>
+        b.id === id ? ({ ...b, ...patch } as RoundingBlock) : b
+      ),
+    });
+  };
+  const removeBlock = (id: string) =>
+    save({ ...config, blocks: config.blocks.filter((b) => b.id !== id) });
 
-  // 所有出现过病区（病人库 + 现有序列），按字母序；用于顶部 tabs。
-  const allWards = useMemo(() => {
-    const set = new Set<string>(wards);
-    for (const u of units) set.add(wardOfUnit(u));
-    return [...set].sort((a, b) => a.localeCompare(b, "zh"));
-  }, [wards, units]);
-
-  // 初次进入默认选中第一个病区。
-  useEffect(() => {
-    if (!activeWard && allWards.length) setActiveWard(allWards[0]);
-  }, [allWards, activeWard]);
-
-  // 当前病区可见片段（病区之间不交叉）。
-  const visible = useMemo(
-    () => units.filter((u) => wardOfUnit(u) === activeWard),
-    [units, activeWard]
-  );
-  const labels = useMemo(() => roomLabels(visible), [visible]);
-  const wardExtras = useMemo(
-    () => extraBeds.filter((b) => parseBed(b).ward === activeWard),
-    [extraBeds, activeWard]
-  );
-
-  const updateUnit = (next: RoundingUnit) =>
-    save(units.map((u) => (u.id === next.id ? next : u)));
-  const removeUnit = (id: string) =>
-    save(units.filter((u) => u.id !== id));
-
-  // 拖拽仅在「当前病区视图」内重排；其他病区片段保持原位（不交叉、不丢失）。
   const onReorder = (ids: string[]) => {
-    const idSet = new Set(visible.map((u) => u.id));
-    const byId = new Map(units.map((u) => [u.id, u]));
-    const reordered = ids
+    const byId = new Map(config.blocks.map((b) => [b.id, b]));
+    const next = ids
       .map((id) => byId.get(id))
-      .filter((u): u is RoundingUnit => Boolean(u));
-    let i = 0;
-    const next = units.map((u) => (idSet.has(u.id) ? reordered[i++] : u));
-    save(next);
+      .filter((b): b is RoundingBlock => Boolean(b));
+    save({ ...config, blocks: next });
   };
 
-  // 一键按基础床号填充本病区（无需手输）。
-  const fillWard = () => {
-    if (!activeWard) return;
-    const draft = buildWardDraft(patients ?? [], activeWard);
-    if (!draft.length) {
-      toast({ message: `本病区（${activeWard}）暂无已识别病人` });
+  // 规则态切换
+  const switchRule = (rule: RoundingConfig["ruleType"]) => {
+    if (rule === "default") {
+      save(defaultRoundingConfig());
       return;
     }
-    const idSet = new Set(
-      units.filter((u) => wardOfUnit(u) === activeWard).map((u) => u.id)
-    );
-    const others = units.filter((u) => !idSet.has(u.id));
-    const idx = units.findIndex((u) => wardOfUnit(u) === activeWard);
-    const insertAt = idx === -1 ? others.length : idx;
-    const next = [...others];
-    next.splice(insertAt, 0, ...draft);
-    save(next);
-    toast({ message: `已按基础床号填充 ${activeWard}（${draft.length} 个单元）` });
+    if (rule === "basic") {
+      const hasFull = config.blocks.some((b) => b.beds.some(isFullBed));
+      // 从默认（带前缀）切换或当前无块时，清空以便走向导；否则保留已编辑块。
+      const fresh = config.ruleType === "default" || hasFull || config.blocks.length === 0;
+      save({
+        ruleType: "basic",
+        direction: config.direction ?? "forward",
+        regularBedCount: basicCount,
+        avgBedsPerRoom: basicAvg,
+        blocks: fresh ? [] : config.blocks,
+      });
+      return;
+    }
+    save({ ...config, ruleType: "custom" });
   };
 
-  const addRoom = () => {
-    const ward = activeWard || wards[0] || "309W";
-    save([
-      ...units,
-      {
-        id: crypto.randomUUID(),
-        kind: "room",
-        ward,
-        beds: expandRange(ward, 1, 1),
-      },
-    ]);
-  };
-  const addExtra = () => {
-    const ward = activeWard || wards[0] || "309W";
-    save([
-      ...units,
-      {
-        id: crypto.randomUUID(),
-        kind: "extra-real",
-        bed: wardExtras[0] ?? "",
-        room: labels[0] ?? ward,
-      },
-    ]);
+  const generateBasic = () => {
+    const count = Math.min(2000, Math.max(1, Math.floor(basicCount) || 1));
+    const avg = Math.min(200, Math.max(1, Math.floor(basicAvg) || 1));
+    save({
+      ruleType: "basic",
+      direction: config.direction ?? "forward",
+      regularBedCount: count,
+      avgBedsPerRoom: avg,
+      blocks: basicRuleFromCounts(count, avg),
+    });
+    toast({ message: `已按 ${count} 床 / 每房 ${avg} 床 生成病房块` });
   };
 
-  const reset = () => {
-    const def = defaultRoundingOrder();
-    setUnits(def);
-    updateSettings({ roundingOrder: def });
-    toast({ message: "已重置为内置示例" });
+  const addRoom = () =>
+    save({
+      ...config,
+      ruleType: "custom",
+      blocks: [...config.blocks, { id: crypto.randomUUID(), kind: "room", beds: ["01"] }],
+    });
+  const addExtra = () =>
+    save({
+      ...config,
+      ruleType: "custom",
+      blocks: [...config.blocks, { id: crypto.randomUUID(), kind: "extra", beds: [] }],
+    });
+
+  const setDirection = (dir: "forward" | "reverse") =>
+    save({ ...config, direction: dir });
+
+  const copyExport = async () => {
+    const text = exportConfigText(config);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ message: "配置已复制" });
+    } catch {
+      setIoText(text);
+      setShowIO(true);
+      toast({ message: "已填入下方文本框，请手动复制" });
+    }
   };
-  const generateFromPatients = () => {
-    const draft = buildDraftFromPatients(patients ?? []);
-    if (!draft.length) {
-      toast({ message: "病人库为空，无法生成" });
+  const doImport = () => {
+    const parsed = importConfigText(ioText);
+    if (!parsed) {
+      toast({ message: "导入失败：文本格式不正确" });
       return;
     }
-    save(draft);
-    toast({ message: `已按病人库生成 ${draft.length} 个单元` });
+    save(parsed);
+    toast({ message: "已导入查房顺序" });
   };
-  const applyAdvanced = () => {
-    const next = unitsFromText(text);
-    if (!next.length) {
-      toast({ message: "未解析到有效床号" });
-      return;
-    }
-    const ward = activeWard || wards[0] || "309W";
-    const idSet = new Set(
-      units.filter((u) => wardOfUnit(u) === ward).map((u) => u.id)
-    );
-    const others = units.filter((u) => !idSet.has(u.id));
-    const idx = units.findIndex((u) => wardOfUnit(u) === ward);
-    const insertAt = idx === -1 ? others.length : idx;
-    const merged = [...others];
-    merged.splice(insertAt, 0, ...next);
-    save(merged);
-    setText("");
-    setShowAdvanced(false);
-    toast({ message: `已导入 ${next.length} 个单元到 ${ward}` });
-  };
+
+  const ruleType = config.ruleType;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-[20px] font-semibold text-main">查房顺序</h1>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={generateFromPatients}
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] text-primary hover:bg-surface-alt"
-          >
-            <Wand2 size={16} /> 按病人库生成
-          </button>
-          <button
-            onClick={reset}
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] text-muted hover:bg-surface-alt"
-          >
-            <RotateCcw size={16} /> 重置示例
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            save(defaultRoundingConfig());
+            toast({ message: "已恢复默认规则" });
+          }}
+          className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] text-muted hover:bg-surface-alt"
+        >
+          <RotateCcw size={16} /> 恢复默认
+        </button>
       </div>
 
+      {/* 规则态三态 */}
+      <div className="grid grid-cols-3 gap-2">
+        {(["default", "basic", "custom"] as const).map((r) => (
+          <button
+            key={r}
+            onClick={() => switchRule(r)}
+            className={`rounded-xl py-2.5 text-[13px] font-medium transition active:scale-[0.97] ${
+              ruleType === r
+                ? "bg-primary text-white"
+                : "bg-card border border-border/60 text-muted"
+            }`}
+          >
+            {r === "default" ? "默认规则" : r === "basic" ? "基础规则" : "自定义"}
+          </button>
+        ))}
+      </div>
       <p className="text-[12px] text-muted">
-        按病区单独设置，病区之间不交叉。选中病区后，点「填充本病区」即可按已解析的基础床号自动生成病房块与真实加床，无需手输。
+        {ruleType === "default" && "内置示范（309W01 系列），以基础规则同款块样式展示，可调整。"}
+        {ruleType === "basic" && "仅基础床号（01、02…），由普通病床数 ÷ 平均病房床数推导病房块。"}
+        {ruleType === "custom" && "已手动修改内置规则，当前为自定义规则。"}
       </p>
 
-      {allWards.length === 0 ? (
-        <p className="rounded-lg bg-surface-alt px-3 py-2 text-[12px] text-warning">
-          尚未识别到任何病区。请先在「床号识别」与「导入病人」后使用，或用下方高级文本输入。
-        </p>
-      ) : (
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-          {allWards.map((w) => (
+      {/* 方向切换 */}
+      <div className="flex items-center gap-2 rounded-xl bg-card border border-border/60 p-2">
+        <ArrowUpDown size={16} className="text-primary" />
+        <span className="text-[13px] text-main">序列方向</span>
+        <div className="ml-auto grid grid-cols-2 gap-1 rounded-lg bg-surface-alt p-1">
+          {(["forward", "reverse"] as const).map((d) => (
             <button
-              key={w}
-              onClick={() => setActiveWard(w)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
-                w === activeWard
+              key={d}
+              onClick={() => setDirection(d)}
+              className={`rounded-md px-3 py-1 text-[12px] font-medium transition ${
+                (config.direction ?? "forward") === d
                   ? "bg-primary text-white"
-                  : "bg-surface-alt text-muted hover:text-main"
+                  : "text-muted"
               }`}
             >
-              {w}
+              {d === "forward" ? "正序" : "反序"}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 基础规则向导 */}
+      {ruleType === "basic" && (
+        <div className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
+          <p className="text-[12px] font-medium text-primary">基础规则设置</p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[12px] text-muted">
+              普通病床数量
+              <input
+                type="number"
+                min={1}
+                max={2000}
+                className="input mt-1 w-full py-2 text-[14px]"
+                value={basicCount}
+                onChange={(e) => setBasicCount(Number(e.target.value || 1))}
+              />
+            </label>
+            <label className="text-[12px] text-muted">
+              平均单一病房床数
+              <input
+                type="number"
+                min={1}
+                max={200}
+                className="input mt-1 w-full py-2 text-[14px]"
+                value={basicAvg}
+                onChange={(e) => setBasicAvg(Number(e.target.value || 1))}
+              />
+            </label>
+          </div>
+          <p className="text-[11px] text-muted/70">
+            病房数 = ceil(普通病床数 ÷ 平均病房床数)，块内基础床号连续、可增删。
+          </p>
+          <button className="btn-primary h-10 w-full" onClick={generateBasic}>
+            生成病房块
+          </button>
+        </div>
       )}
 
-      {activeWard && (
-        <button onClick={fillWard} className="btn-primary h-11 w-full">
-          <Layers size={16} /> 填充本病区（{activeWard}）
-        </button>
-      )}
-
-      {activeWard && visible.length === 0 && (
-        <p className="rounded-lg bg-surface-alt px-3 py-2 text-[12px] text-muted">
-          本病区（{activeWard}）暂无查房单元。点上方「填充本病区」自动生成，或手动添加。
+      {/* 块列表 */}
+      {config.blocks.length === 0 ? (
+        <p className="rounded-lg bg-surface-alt px-3 py-3 text-[12px] text-muted">
+          {ruleType === "basic"
+            ? "填入上方数量并点「生成病房块」，或直接添加病房块手动编辑。"
+            : "暂无病房块，点击下方按钮添加。"}
         </p>
+      ) : (
+        <Reorder.Group
+          axis="y"
+          values={config.blocks.map((b) => b.id)}
+          onReorder={onReorder}
+          className="space-y-2"
+        >
+          {config.blocks.map((b) => (
+            <BlockCard
+              key={b.id}
+              block={b}
+              onUpdate={(patch) => updateBlock(b.id, patch)}
+              onRemove={() => removeBlock(b.id)}
+            />
+          ))}
+        </Reorder.Group>
       )}
 
-      <Reorder.Group
-        axis="y"
-        values={visible.map((u) => u.id)}
-        onReorder={onReorder}
-        className="space-y-2"
-      >
-        {visible.map((u) =>
-          u.kind === "room" ? (
-            <RoomRow
-              key={u.id}
-              u={u}
-              onUpdate={updateUnit}
-              onRemove={() => removeUnit(u.id)}
-            />
-          ) : (
-            <ExtraRow
-              key={u.id}
-              u={u}
-              extraBeds={wardExtras}
-              labels={labels}
-              onUpdate={updateUnit}
-              onRemove={() => removeUnit(u.id)}
-            />
-          )
-        )}
-      </Reorder.Group>
-
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-1">
         <button className="btn-secondary h-11 flex-1" onClick={addRoom}>
           <Plus size={16} /> 添加病房块
         </button>
         <button className="btn-secondary h-11 flex-1" onClick={addExtra}>
-          <Plus size={16} /> 添加真实加床
+          <Plus size={16} /> 添加真实加床块
         </button>
       </div>
 
+      {/* 导入 / 导出 */}
       <div className="rounded-xl border border-border/60 bg-card">
         <button
-          onClick={() => setShowAdvanced((v) => !v)}
+          onClick={() => setShowIO((v) => !v)}
           className="flex w-full items-center justify-between px-4 py-3 text-[13px] font-medium text-primary"
         >
-          高级：文本批量输入（仅当前病区 {activeWard}）
+          导入 / 导出（可复制文本）
           <ChevronDown
             size={16}
-            className={`transition ${showAdvanced ? "rotate-180" : ""}`}
+            className={`transition ${showIO ? "rotate-180" : ""}`}
           />
         </button>
-        {showAdvanced && (
+        {showIO && (
           <div className="space-y-2 border-t border-border/60 p-3">
+            <div className="flex gap-2">
+              <button className="btn-secondary h-10 flex-1" onClick={copyExport}>
+                <Copy size={16} /> 复制当前配置
+              </button>
+            </div>
             <textarea
-              className="input min-h-[96px] py-2 text-[13px]"
-              placeholder={"每行一个床号，保存时按行生成单元（相邻真实床自动成组为一个病房块）\n309W01\n309W02\n309WJ04"}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              className="input min-h-[120px] py-2 text-[12px] font-mono"
+              placeholder="粘贴导出的查房顺序 JSON，然后点「导入」"
+              value={ioText}
+              onChange={(e) => setIoText(e.target.value)}
             />
-            <button className="btn-primary h-10 w-full" onClick={applyAdvanced}>
-              解析并覆盖本病区顺序
+            <button className="btn-primary h-10 w-full" onClick={doImport}>
+              导入并应用
             </button>
           </div>
         )}
@@ -315,137 +327,107 @@ function DragHandle() {
   );
 }
 
-function RoomRow({
-  u,
+function BlockCard({
+  block,
   onUpdate,
   onRemove,
 }: {
-  u: Extract<RoundingUnit, { kind: "room" }>;
-  onUpdate: (next: RoundingUnit) => void;
+  block: RoundingBlock;
+  onUpdate: (patch: Partial<RoundingBlock>) => void;
   onRemove: () => void;
 }) {
   const controls = useDragControls();
-  const { toast } = useApp();
-  const range = inferRoomRange(u.beds);
-  const start = range?.start ?? 1;
-  const end = range?.end ?? 1;
+  const [draft, setDraft] = useState("");
 
-  // 防误输护栏（非业务上限）：单病区床位数通常数百内，超此视为输入异常。
-  const MAX_BEDS = 2000;
-  const commit = (s: number, e: number) => {
-    if (Math.abs(e - s) + 1 > MAX_BEDS) {
-      toast({ message: `床号跨度过大（${Math.abs(e - s) + 1} 床），请检查输入` });
-      return;
+  const isRoom = block.kind === "room";
+  const ward = block.kind === "room" ? block.ward : undefined;
+
+  const addBed = () => {
+    const raw = draft.trim();
+    if (!raw) return;
+    let bed: string;
+    if (isRoom) {
+      const n = parseInt(raw, 10);
+      if (isNaN(n)) return;
+      bed = ward ? `${ward}${pad2(n)}` : pad2(n);
+    } else {
+      bed = raw;
     }
-    onUpdate({ id: u.id, kind: "room", ward: u.ward, beds: expandRange(u.ward, s, e) });
+    onUpdate({ beds: normalizeBeds([...block.beds, bed]) });
+    setDraft("");
   };
 
+  const removeBed = (bed: string) =>
+    onUpdate({ beds: block.beds.filter((b) => b !== bed) });
+
   return (
     <Reorder.Item
-      value={u.id}
+      value={block.id}
       dragListener={false}
       dragControls={controls}
       className="card flex items-start gap-2 p-3"
     >
       <DragHandle />
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-medium text-primary">病房块 · {u.ward}</p>
-        <div className="mt-1 grid grid-cols-[1fr_auto_auto] items-center gap-2">
-          <span className="input py-2 text-[13px] text-muted">{u.ward}</span>
-          <input
-            type="number"
-            min={1}
-            className="input w-16 py-2 text-center text-[13px]"
-            value={start}
-            onChange={(e) => commit(Number(e.target.value || 1), end)}
-            aria-label="起始床号"
-          />
-          <span className="text-muted">–</span>
-          <input
-            type="number"
-            min={1}
-            className="input w-16 py-2 text-center text-[13px] col-start-3 row-start-1"
-            value={end}
-            onChange={(e) => commit(start, Number(e.target.value || 1))}
-            aria-label="结束床号"
-          />
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+              isRoom ? "bg-primary/10 text-primary" : "bg-warning/15 text-warning"
+            }`}
+          >
+            {isRoom ? "病房块" : "真实加床块"}
+          </span>
+          {isRoom && ward && <span className="text-[12px] text-muted">{ward}</span>}
+          <span className="text-[11px] text-muted">共 {block.beds.length} 床</span>
+          {!isRoom && block.beds.length === 0 && (
+            <span className="text-[11px] text-muted/70">（待添加床号）</span>
+          )}
         </div>
-        <p className="mt-2 text-[12px] text-muted">
-          {range
-            ? `${u.ward}${String(start).padStart(2, "0")} – ${
-                u.ward
-              }${String(end).padStart(2, "0")}（共 ${u.beds.length} 床）`
-            : "预览不可用（跨病区或非连续），建议用高级文本输入"}
-        </p>
-        <p className="mt-0.5 text-[11px] text-muted/70">
-          床号范围自定义，无数量上限（按实际病区床位填写）
-        </p>
+
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {block.beds.map((bed) => (
+            <span
+              key={bed}
+              className="flex items-center gap-1 rounded-md bg-surface-alt px-2 py-1 text-[12px] text-main"
+            >
+              {bed}
+              <button
+                aria-label={`删除 ${bed}`}
+                onClick={() => removeBed(bed)}
+                className="text-muted hover:text-danger"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          ))}
+          {block.beds.length === 0 && (
+            <span className="text-[12px] text-muted/60">尚无床号</span>
+          )}
+        </div>
+
+        <div className="mt-2 flex gap-2">
+          <input
+            className="input h-9 flex-1 py-1 text-[13px]"
+            placeholder={isRoom ? "添加床号，如 44" : "如 J04 或 309WJ04"}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addBed();
+            }}
+          />
+          <button className="btn-secondary h-9 px-3" onClick={addBed}>
+            <Plus size={15} /> 添加
+          </button>
+        </div>
+
+        {isRoom && (
+          <p className="mt-1.5 text-[11px] text-muted/70">
+            基础床号，升序；病房块内可单独增删（如某房仅 2 床，去掉 03）。
+          </p>
+        )}
       </div>
       <button
-        aria-label="删除"
-        onClick={onRemove}
-        className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
-      >
-        <X size={18} />
-      </button>
-    </Reorder.Item>
-  );
-}
-
-function ExtraRow({
-  u,
-  extraBeds,
-  labels,
-  onUpdate,
-  onRemove,
-}: {
-  u: Extract<RoundingUnit, { kind: "extra-real" }>;
-  extraBeds: string[];
-  labels: string[];
-  onUpdate: (next: RoundingUnit) => void;
-  onRemove: () => void;
-}) {
-  const controls = useDragControls();
-  const bedOptions = extraBeds.includes(u.bed) ? extraBeds : [u.bed, ...extraBeds];
-  const roomOptions = labels.includes(u.room) ? labels : [u.room, ...labels];
-
-  return (
-    <Reorder.Item
-      value={u.id}
-      dragListener={false}
-      dragControls={controls}
-      className="card flex items-start gap-2 p-3"
-    >
-      <DragHandle />
-      <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-medium text-primary">真实加床</p>
-        <div className="mt-1 grid grid-cols-2 gap-2">
-          <select
-            className="input py-2 text-[13px]"
-            value={u.bed}
-            onChange={(e) => onUpdate({ ...u, bed: e.target.value })}
-          >
-            {bedOptions.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-          <select
-            className="input py-2 text-[13px]"
-            value={u.room}
-            onChange={(e) => onUpdate({ ...u, room: e.target.value })}
-          >
-            {roomOptions.map((r) => (
-              <option key={r} value={r}>
-                {r || "（未指定）"}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <button
-        aria-label="删除"
+        aria-label="删除块"
         onClick={onRemove}
         className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
       >

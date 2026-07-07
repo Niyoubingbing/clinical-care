@@ -4,7 +4,8 @@ import {
   Todo,
   Settings,
   QuickTodo,
-  RoundingUnit,
+  RoundingBlock,
+  RoundingConfig,
 } from "@/types";
 
 export class ClinicalDB extends Dexie {
@@ -33,57 +34,104 @@ export function uid(): string {
 
 // ---- Default seed data ----
 
-export function bedRoomLabel(beds: string[]): string {
-  if (beds.length === 0) return "";
-  const first = beds[0];
-  const last = beds[beds.length - 1];
-  const base = first.replace(/\d+$/, "");
-  return `${first}-${last.replace(base, "")}`;
-}
-
-export function defaultRoundingOrder(): RoundingUnit[] {
-  const room = (beds: string[]): RoundingUnit => ({
+/**
+ * 内置「默认规则」：以 309W01 系列为代表的带病区前缀示范布局（PRD 4.9.2 / 4.9.3）。
+ * 以基础规则同款「病房块 + 真实加床块」结构存储，病房块 beds 为带前缀完整床号。
+ */
+export function defaultRoundingConfig(): RoundingConfig {
+  const room = (beds: string[]): RoundingBlock => ({
     id: uid(),
     kind: "room",
     ward: beds[0].replace(/\d+$/, ""),
     beds,
   });
-  const extra = (bed: string, roomBeds: string[]): RoundingUnit => ({
+  const extra = (bed: string): RoundingBlock => ({
     id: uid(),
-    kind: "extra-real",
-    bed,
-    room: bedRoomLabel(roomBeds),
+    kind: "extra",
+    beds: [bed],
   });
-  return [
-    room(["309W41", "309W42", "309W43"]),
-    extra("309WJ04", ["309W41", "309W42", "309W43"]),
-    room(["309W38", "309W39", "309W40"]),
-    extra("309WJ06", ["309W38", "309W39", "309W40"]),
-    extra("309WJ07", ["309W38", "309W39", "309W40"]),
-    room(["309W36", "309W37"]),
-    room(["309W01", "309W02", "309W03"]),
-    room(["309W04", "309W05", "309W06"]),
-    extra("309WJ08", ["309W04", "309W05", "309W06"]),
-    room(["309W34", "309W35"]),
-    room(["309W07", "309W08", "309W09"]),
-    extra("309WJ09", ["309W07", "309W08", "309W09"]),
-    extra("309WJ10", ["309W07", "309W08", "309W09"]),
-    extra("309WJ12", ["309W07", "309W08", "309W09"]),
-    room(["309W10", "309W11", "309W12"]),
-    extra("309WJ13", ["309W10", "309W11", "309W12"]),
-    room(["309W13", "309W14", "309W15"]),
-    extra("309WJ14", ["309W13", "309W14", "309W15"]),
-    room(["309W16", "309W17", "309W18"]),
-    extra("309WJ15", ["309W16", "309W17", "309W18"]),
-    room(["309W19", "309W20", "309W21"]),
-    extra("309WJ16", ["309W19", "309W20", "309W21"]),
-    room(["309W22", "309W23", "309W24"]),
-    extra("309WJ17", ["309W22", "309W23", "309W24"]),
-    room(["309W25", "309W26", "309W27"]),
-    extra("309WJ18", ["309W25", "309W26", "309W27"]),
-    room(["309W28", "309W29", "309W30"]),
-    room(["309W31", "309W32", "309W33"]),
-  ];
+  return {
+    ruleType: "default",
+    direction: "forward",
+    blocks: [
+      room(["309W41", "309W42", "309W43"]),
+      extra("309WJ04"),
+      room(["309W38", "309W39", "309W40"]),
+      extra("309WJ06"),
+      extra("309WJ07"),
+      room(["309W36", "309W37"]),
+      room(["309W01", "309W02", "309W03"]),
+      room(["309W04", "309W05", "309W06"]),
+      extra("309WJ08"),
+      room(["309W34", "309W35"]),
+      room(["309W07", "309W08", "309W09"]),
+      extra("309WJ09"),
+      extra("309WJ10"),
+      extra("309WJ12"),
+      room(["309W10", "309W11", "309W12"]),
+      extra("309WJ13"),
+      room(["309W13", "309W14", "309W15"]),
+      extra("309WJ14"),
+      room(["309W16", "309W17", "309W18"]),
+      extra("309WJ15"),
+      room(["309W19", "309W20", "309W21"]),
+      extra("309WJ16"),
+      room(["309W22", "309W23", "309W24"]),
+      extra("309WJ17"),
+      room(["309W25", "309W26", "309W27"]),
+      extra("309WJ18"),
+      room(["309W28", "309W29", "309W30"]),
+      room(["309W31", "309W32", "309W33"]),
+    ],
+  };
+}
+
+/** 旧数据（Unit[] 或 string[]）迁移为新的 RoundingConfig（PRD 4.9.4 兼容迁移）。 */
+export function migrateRoundingOrder(raw: unknown): RoundingConfig {
+  const isNewConfig =
+    raw &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    "blocks" in (raw as Record<string, unknown>);
+  if (isNewConfig) {
+    const c = raw as RoundingConfig;
+    return {
+      ruleType: c.ruleType ?? "custom",
+      direction: c.direction ?? "forward",
+      regularBedCount: c.regularBedCount,
+      avgBedsPerRoom: c.avgBedsPerRoom,
+      blocks: c.blocks ?? [],
+    };
+  }
+  if (Array.isArray(raw)) {
+    if (raw.length && typeof raw[0] === "string") {
+      return {
+        ruleType: "custom",
+        direction: "forward",
+        blocks: [{ id: uid(), kind: "room", beds: raw as string[] }],
+      };
+    }
+    const blocks: RoundingBlock[] = (raw as Record<string, unknown>[]).map(
+      (u) => {
+        if (u && u.kind === "room")
+          return {
+            id: (u.id as string) || uid(),
+            kind: "room",
+            ward: u.ward as string | undefined,
+            beds: Array.isArray(u.beds) ? (u.beds as string[]) : [],
+          };
+        if (u && u.kind === "extra-real")
+          return {
+            id: (u.id as string) || uid(),
+            kind: "extra",
+            beds: u.bed ? [u.bed as string] : [],
+          };
+        return { id: uid(), kind: "room", beds: [] };
+      }
+    );
+    return { ruleType: "custom", direction: "forward", blocks };
+  }
+  return defaultRoundingConfig();
 }
 
 export function defaultQuickTodos(): QuickTodo[] {
@@ -97,7 +145,7 @@ export function defaultQuickTodos(): QuickTodo[] {
 export function defaultSettings(): Settings {
   return {
     id: 1,
-    roundingOrder: defaultRoundingOrder(),
+    roundingOrder: defaultRoundingConfig(),
     quickTodos: defaultQuickTodos(),
     theme: "system",
     bedTemplate: "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$",
@@ -113,7 +161,19 @@ db.on("populate", () => {
 
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get(1);
-  return s ?? defaultSettings();
+  if (!s) return defaultSettings();
+  const migrated = migrateRoundingOrder(s.roundingOrder);
+  // 仅在旧格式（无 blocks 字段）时写回一次，使既有用户数据归一到新块模型。
+  const raw = s.roundingOrder as unknown;
+  const isNewConfig =
+    raw &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    "blocks" in (raw as Record<string, unknown>);
+  if (!isNewConfig) {
+    await db.settings.put({ ...s, roundingOrder: migrated, id: 1 });
+  }
+  return { ...s, roundingOrder: migrated };
 }
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
@@ -210,7 +270,7 @@ export async function clearAllData(): Promise<void> {
     const s = await db.settings.get(1);
     await db.settings.put({
       id: 1,
-      roundingOrder: s?.roundingOrder ?? defaultRoundingOrder(),
+      roundingOrder: s?.roundingOrder ?? defaultRoundingConfig(),
       quickTodos: s?.quickTodos ?? defaultQuickTodos(),
       theme: s?.theme ?? "system",
       bedTemplate: s?.bedTemplate,
