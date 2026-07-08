@@ -1,6 +1,6 @@
 # 临床病人管理助手 - 产品需求文档 (PRD)
 
-**版本**: v2.12.1  
+**版本**: v2.12.2  
 **日期**: 2026-07-06  
 **作者**: Jiahao Wu
 
@@ -1719,6 +1719,7 @@ interface Settings {
 | v2.12 | 2026-07-08 | 真正实现 PWA 应用更新机制（此前 sw.js 安装即 `skipWaiting` 自动顶替、且无任何更新 UI，即「更新功能失效」）：① 设置页新增「关于应用」区块，显示当前版本（`/version.json`）+「检查更新」「更新应用」按钮，状态文案覆盖检查中/已是最新/发现新版本/检查失败；② `public/sw.js` 改为版本化缓存名 `clinical-care-v{APP_VERSION}`、`install` 不再自动 `skipWaiting`（新版本后台下载完成后进入 waiting，旧 Service Worker 继续控制页面=**旧版本完整运行**），新增 `message` 监听 `SKIP_WAITING`→`skipWaiting`；`fetch` 改为 cache-first 且 `caches.match` **仅匹配当前版本缓存**，杜绝更新前旧版本串入新资源、也防止新 SW 误服务旧缓存；③ `components/Providers.tsx` 注册 SW 并管理更新生命周期，经 `useApp().update` 暴露 `{state, localVersion, remoteVersion, checkForUpdate, applyUpdate}`：`checkForUpdate` 拉取 `/version.json`(no-cache) 比对 + `registration.update()` 触发后台安装新 SW，`applyUpdate` 向 waiting worker 发 `SKIP_WAITING`、由 `controllerchange` 刷新页面加载新版本；④ 本地数据（IndexedDB）与 SW 更新完全解耦，更新全程不触碰、保证旧版本与数据完整，**只有用户点「更新应用」才合并新版本并刷新**；⑤ 版本源统一为 `package.json.version`，新增 `scripts/sync-version.mjs` 由 `prebuild` 调用，构建时注入 sw.js 并生成 version.json，确保每次部署 sw.js 内容随版本变化、浏览器才能检测到新版本。**本版本二进制号 2.12.0（由 2.11.0 升上来），本次部署即用于实测「2.11.0(旧)→2.12.0(新)」完整更新链：旧版用户打开设置→关于应用→检查更新→发现新版本 2.12.0→（可选不更新，旧版继续可用、数据不动）→点更新应用→后台已下载的新 SW 接管→刷新进入 2.12.0。** 构建零错误 | Jiahao Wu |
 | v2.12.0 (patch) | 2026-07-08 | UI 修复三处：① **查房顺序页按钮文字换行**——「添加病房块」「添加真实加床块」按钮加 `whitespace-nowrap` 防止长文本折行；② **快捷待办添加时移除类型选择**——删除「类型」下拉框，添加快捷待办只需输入标签（type 默认「其他」），简化操作流程；③ **快捷待办支持拖拽排序**——列表改用 Framer Motion `Reorder` 拖拽重排替代上/下箭头按钮（保留拖拽手柄 + 删除按钮），与查房顺序设置页交互一致。构建零错误 | Jiahao Wu |
 | v2.12.1 (patch) | 2026-07-08 | 修复「应用更新形同虚设 / 刷新即更新」：① `components/Providers.tsx` 注册 SW 后**每 60s 轮询 + `visibilitychange` 时调用 `registration.update()`** 后台自动发现新版本（仅下载安装新 SW 进入 waiting，**绝不自动激活**），让已打开的标签页主动察觉新版本；② 新增 `components/UpdateBanner.tsx`——App 内底部浮层，当 `update.state==="available"` 时提示「发现新版本 vX，已下载，旧版本继续运行」，含「立即更新」(`applyUpdate`) 与「稍后」(dismiss)，**不遮挡 NavBar**；③ SW 仍保持 `install` 不 `skipWaiting` + `controllerchange` 仅用户点更新后刷新——确保旧版本持续运行、只有用户点「更新」才切换。用户此前看到「刷新即更新」的根因：刷新那一刻标签页未被旧 SW 接管时会直接加载最新版（标准 PWA 行为）；现在 SW 经 `clients.claim()` 持续接管，刷新也会先服务旧缓存。**本版本号 2.12.1（由 2.12.0 升上来），用于实测：用户停留 2.12.0 标签页 → 部署 2.12.1 → 不刷新 → 底部横幅出现 → 点「立即更新」才切换。** 构建零错误 | Jiahao Wu |
+| v2.12.2 (patch) | 2026-07-08 | 修复用户反馈四项：① **详情页首次点击卡顿**——首页 `openDetail` 改用 `React.startTransition` 包裹 `router.push`（路由过渡不阻塞交互），详情页 `!patient` 分支由纯「加载中…」改为 **Skeleton 骨架屏**（头部/卡片/待办列表占位），消除首帧空白与等待感。② **病房分组卡片冗余信息**——移除 `GroupedPatientCard` 标题行的床号范围（如 `309W41 – 309W43`）与床位数（`N 床`），分组卡片仅作视觉容器，病人床号本身在每张卡片内可见。③ **分组改为设置页自定义**——数据模型 `Settings` 新增 `customGroups: {id,name,color}[]`（默认沿用原 4 个预设）；新增 `/settings/groups` 分组管理页（增删改、拖拽排序 Framer Motion `Reorder`、内联颜色选择）；`PatientFormSheet` 分组选择改为读取 `customGroups` 渲染快捷 chips（原 `PRESET_GROUPS` 硬编码移除）；**详情页新增「切换分组」快捷入口**，一键把当前病人归入某个自定义分组（含「无」清除）；首页分组筛选同步合并设置页自定义分组（空分组也可筛）。④ **检查更新状态不回弹**——`Providers.checkForUpdate` 终态（`latest`/`error`）经 `scheduleReset` 在 3.5s 后自动回弹为 `idle`，按钮恢复可点、文案消失，可再次检查。构建零错误、新增 `/settings/groups` 页面（共 10 页）。**本版本号 2.12.2（由 2.12.1 升上来）** | Jiahao Wu |
 
 ---
 

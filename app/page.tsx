@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, startTransition } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -52,12 +52,6 @@ export default function HomePage() {
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
 
   const today = todayStr();
-
-  // restore scroll position when returning from detail
-  useEffect(() => {
-    const y = sessionStorage.getItem("homeScroll");
-    if (y) window.scrollTo(0, parseInt(y, 10));
-  }, []);
 
   // 筛选分组列表：优先采用设置页自定义分组（保证空分组也可筛选），
   // 并合并实际病人中存在的分组，兼容未在设置中登记的分组名。
@@ -112,6 +106,36 @@ export default function HomePage() {
       ),
     [rows, group]
   );
+
+  // 从详情页返回时恢复列表滚动位置。
+  // 关键：patients 经 useLiveQuery 异步加载，首帧列表尚未渲染、页面很矮，
+  // 若此刻 scrollTo 会落空（被 clamp 回顶部），造成「概率回到顶部」。
+  // 因此必须等 loading=false 且列表节点渲染完成（双 rAF 布局稳定）后再恢复，且只做一次。
+  const scrollRestored = useRef(false);
+  const rafIds = useRef<number[]>([]);
+  useEffect(() => {
+    if (scrollRestored.current || loading) return;
+    const raw = sessionStorage.getItem("homeScroll");
+    const y = raw ? parseInt(raw, 10) : 0;
+    if (!y) {
+      scrollRestored.current = true;
+      return;
+    }
+    const r1 = requestAnimationFrame(() => {
+      const r2 = requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+        scrollRestored.current = true;
+        sessionStorage.removeItem("homeScroll");
+      });
+      rafIds.current.push(r2);
+    });
+    rafIds.current.push(r1);
+  }, [loading, filtered.length]);
+
+  useEffect(() => {
+    const ids = rafIds.current;
+    return () => ids.forEach(cancelAnimationFrame);
+  }, []);
 
   const reminders = useMemo(
     () => computeReminders(patients, todos, today),
