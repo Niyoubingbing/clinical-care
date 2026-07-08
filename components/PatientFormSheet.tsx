@@ -85,6 +85,7 @@ export function PatientForm({
       ward: parsed.ward,
       bedBase: parsed.bedBase,
       bedType: parsed.bedType,
+      specialType: parsed.specialType,
     };
     if (patient) {
       await updatePatient(patient.id, payload);

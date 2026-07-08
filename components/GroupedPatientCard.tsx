@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Patient } from "@/types";
+import { Patient, BedType } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
 import PatientCard from "@/components/PatientCard";
 
@@ -12,14 +12,18 @@ export interface GroupedItem {
   status: PatientStatus;
 }
 
+export type BedInfo = { bedType?: BedType; specialType?: string };
+
 function GroupedPatientCard({
   label,
   items,
+  bedInfoMap,
   onOpen,
   onMenu,
 }: {
   label: string;
   items: GroupedItem[];
+  bedInfoMap?: Map<string, BedInfo>;
   onOpen: (p: Patient) => void;
   onMenu: (p: Patient) => void;
 }) {
@@ -36,16 +40,21 @@ function GroupedPatientCard({
         <span className="text-[11px] text-muted">{items.length} 床</span>
       </div>
       <div className="space-y-2">
-        {items.map((it) => (
-          <PatientCard
-            key={it.patient.id}
-            patient={it.patient}
-            todoCount={it.todoCount}
-            status={it.status}
-            onOpen={onOpen}
-            onMenu={onMenu}
-          />
-        ))}
+        {items.map((it) => {
+          const info = bedInfoMap?.get(it.patient.id);
+          return (
+            <PatientCard
+              key={it.patient.id}
+              patient={it.patient}
+              todoCount={it.todoCount}
+              status={it.status}
+              bedType={info?.bedType}
+              specialType={info?.specialType}
+              onOpen={onOpen}
+              onMenu={onMenu}
+            />
+          );
+        })}
       </div>
     </motion.div>
   );

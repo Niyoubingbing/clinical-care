@@ -93,6 +93,7 @@ export async function applyRoster(
       ward: parsed.ward,
       bedBase: parsed.bedBase,
       bedType: parsed.bedType,
+      specialType: parsed.specialType,
     });
     added++;
   }
@@ -105,6 +106,7 @@ export async function applyRoster(
       ward: parsed.ward,
       bedBase: parsed.bedBase,
       bedType: parsed.bedType,
+      specialType: parsed.specialType,
     });
     updated++;
   }

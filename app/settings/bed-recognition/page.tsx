@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSettings, updateSettings, updatePatient } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
@@ -12,10 +12,16 @@ export default function BedRecognitionPage() {
   const settings = useLiveQuery(() => getSettings(), []);
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
 
-  const [template, setTemplate] = useState(settings?.bedTemplate ?? "");
-  const [marks, setMarks] = useState(
-    (settings?.specialMarks ?? []).join(", ")
-  );
+  const [template, setTemplate] = useState("");
+  const [marks, setMarks] = useState("");
+  // settings 来自异步 useLiveQuery，首帧为 undefined；useState 只取一次初值，
+  // 必须在 settings 就绪后用 effect 同步，否则打开页面输入框为空、点「保存模板」会把已配置清空。
+  useEffect(() => {
+    if (settings) {
+      setTemplate(settings.bedTemplate ?? "");
+      setMarks((settings.specialMarks ?? []).join(", "));
+    }
+  }, [settings]);
 
   const tpl = settings?.bedTemplate ?? "";
   const mk = settings?.specialMarks ?? [];
@@ -28,6 +34,7 @@ export default function BedRecognitionPage() {
         bedBase: parsed.bedBase,
         bedType:
           p.bedType === "virtual" ? "virtual" : parsed.bedType,
+        specialType: parsed.specialType,
       });
     }
     toast({ message: "已按当前模板重新解析" });

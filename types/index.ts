@@ -28,6 +28,7 @@ export interface Patient {
   room?: string;
   bedBase?: number;
   bedType?: BedType;
+  specialType?: string; // 特殊床标记字母（如 "J" / "YZ"），由床号解析得到并持久化，用于列表/详情快速标识特殊类型床
   createdAt: number;
   updatedAt: number;
 }

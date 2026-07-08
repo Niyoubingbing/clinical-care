@@ -9,7 +9,8 @@ import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
 import { buildDailySummary } from "@/lib/summary";
-import { Patient } from "@/types";
+import { Patient, BedType } from "@/types";
+import { parseBed } from "@/lib/bed-parser";
 
 import PatientCard from "@/components/PatientCard";
 import GroupedPatientCard, { GroupedItem } from "@/components/GroupedPatientCard";
@@ -117,6 +118,17 @@ export default function HomePage() {
     () => buildDailySummary(todos, patients, today),
     [todos, patients, today]
   );
+
+  // 实时解析床号，得到每个病人的床型与特殊标记，用于列表卡片标识特殊类型床（加床 / 虚拟）。
+  const bedInfoMap = useMemo(() => {
+    const m = new Map<string, { bedType: BedType; specialType: string }>();
+    if (!settings) return m;
+    for (const p of patients) {
+      const r = parseBed(p.bedNumber, settings.bedTemplate, settings.specialMarks);
+      m.set(p.id, { bedType: r.bedType, specialType: r.specialType });
+    }
+    return m;
+  }, [patients, settings]);
 
   const openDetail = (p: Patient) => {
     sessionStorage.setItem("homeScroll", String(window.scrollY));
@@ -235,6 +247,7 @@ export default function HomePage() {
                   key={g.id}
                   label={g.label}
                   items={g.items}
+                  bedInfoMap={bedInfoMap}
                   onOpen={openDetail}
                   onMenu={(patient) => setMenuPatient(patient)}
                 />
@@ -244,6 +257,8 @@ export default function HomePage() {
                   patient={g.patient}
                   todoCount={g.todoCount}
                   status={g.status}
+                  bedType={bedInfoMap.get(g.patient.id)?.bedType}
+                  specialType={bedInfoMap.get(g.patient.id)?.specialType}
                   onOpen={openDetail}
                   onMenu={(patient) => setMenuPatient(patient)}
                 />

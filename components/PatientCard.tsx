@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
-import { Patient } from "@/types";
+import { Patient, BedType } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 
@@ -11,12 +11,16 @@ function PatientCard({
   patient,
   status,
   todoCount,
+  bedType,
+  specialType,
   onOpen,
   onMenu,
 }: {
   patient: Patient;
   status: PatientStatus;
   todoCount: number;
+  bedType?: BedType;
+  specialType?: string;
   onOpen: (p: Patient) => void;
   onMenu: (p: Patient) => void;
 }) {
@@ -35,6 +39,17 @@ function PatientCard({
 
   const color = patient.groupColor || "#e2e8f0";
   const dangerBorder = status.overdue || status.needDressing;
+
+  // 合并「传入的实时解析值」与「已持久化的字段」，确保两种来源都能标识特殊床。
+  const bt = bedType ?? patient.bedType;
+  const st = specialType ?? patient.specialType;
+  const isVirtual = bt === "virtual";
+  const isExtra = bt === "extra-real";
+  const bedRingStyle = isVirtual
+    ? { boxShadow: "0 0 0 2px rgb(var(--info) / 0.55)" }
+    : isExtra
+      ? { boxShadow: "0 0 0 2px rgb(var(--special) / 0.55)" }
+      : undefined;
 
   return (
     <motion.div
@@ -59,7 +74,7 @@ function PatientCard({
     >
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold"
-        style={{ backgroundColor: color, color: contrastTextColor(color) }}
+        style={{ backgroundColor: color, color: contrastTextColor(color), ...bedRingStyle }}
       >
         {bedBlockLabel(patient.bedNumber)}
       </div>
@@ -85,6 +100,10 @@ function PatientCard({
         <div className="mt-1 flex flex-wrap gap-1">
           {todoCount > 0 && (
             <span className="badge-primary">待办 {todoCount}</span>
+          )}
+          {isVirtual && <span className="badge-virtual">虚拟床</span>}
+          {isExtra && (
+            <span className="badge-special">{st ? `加床·${st}` : "加床"}</span>
           )}
           {status.needDressing && (
             <span className="badge-danger">需换药</span>

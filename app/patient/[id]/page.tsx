@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
-import { db, deletePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
+import { db, getSettings, deletePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
 import { Todo } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
 import { patientStatus } from "@/lib/reminders";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
+import { parseBed } from "@/lib/bed-parser";
 
 import QuickActions from "@/components/QuickActions";
 import QuickTodoBar from "@/components/QuickTodoBar";
@@ -39,6 +40,7 @@ export default function PatientDetailPage() {
     () => db.todos.where("patientId").equals(id).toArray(),
     [id]
   );
+  const settings = useLiveQuery(() => getSettings(), []);
 
   const [todoOpen, setTodoOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -47,6 +49,12 @@ export default function PatientDetailPage() {
   const today = todayStr();
   const list = sortTodos(todos ?? []);
   const status = patient ? patientStatus(patient, todos ?? [], today) : null;
+
+  // 解析当前病人床号，用于详情页头部标识特殊类型床（加床 / 虚拟）。
+  const parsedBed = useMemo(
+    () => (settings && patient ? parseBed(patient.bedNumber, settings.bedTemplate, settings.specialMarks) : null),
+    [settings, patient]
+  );
 
   const onToggle = async (t: Todo) => {
     await toggleTodo(t.id, t.status !== "completed");
@@ -112,6 +120,14 @@ export default function PatientDetailPage() {
               {patient.bedNumber} · {patient.diagnosis}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
+              {parsedBed?.bedType === "virtual" && (
+                <span className="badge-virtual">虚拟床</span>
+              )}
+              {parsedBed?.bedType === "extra-real" && (
+                <span className="badge-special">
+                  {parsedBed.specialType ? `加床·${parsedBed.specialType}` : "加床"}
+                </span>
+              )}
               {status?.needDressing && <span className="badge-danger">需换药</span>}
               {status?.needBlood && <span className="badge-warning">需查血</span>}
               {status?.overdue && <span className="badge-danger">有逾期待办</span>}
