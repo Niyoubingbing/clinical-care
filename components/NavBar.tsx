@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { Users, ClipboardList, Settings } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -42,11 +41,7 @@ export default function NavBar() {
             >
               <span className="relative flex h-9 w-9 items-center justify-center rounded-xl">
                 {active && (
-                  <motion.span
-                    layoutId="nav-active-pill"
-                    className="absolute inset-0 rounded-xl bg-primary/15"
-                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                  />
+                  <span className="absolute inset-0 rounded-xl bg-primary/15" />
                 )}
                 <Icon
                   size={22}

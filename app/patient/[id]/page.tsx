@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
-import { db, getSettings, deletePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
+import { db, deletePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
 import { Todo } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
 import { patientStatus } from "@/lib/reminders";
@@ -39,7 +39,6 @@ export default function PatientDetailPage() {
     () => db.todos.where("patientId").equals(id).toArray(),
     [id]
   );
-  const settings = useLiveQuery(() => getSettings(), []);
 
   const [todoOpen, setTodoOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);

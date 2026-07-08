@@ -7,7 +7,7 @@ import { Patient } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 
-export default function PatientCard({
+function PatientCard({
   patient,
   status,
   todoCount,
@@ -108,3 +108,5 @@ export default function PatientCard({
     </motion.div>
   );
 }
+
+export default React.memo(PatientCard);

@@ -1714,6 +1714,7 @@ interface Settings {
 | v2.7 | 2026-07-07 | 移除搜索功能（保留分组筛选）：删除 4.1.1/4.3.1/4.3.2/5.5/信息架构/TOC/快捷键/空状态/查询优化的搜索描述与入口，及对应验收；新增查房顺序「正序 / 反序」切换（4.9.3 `direction` 字段，持久化、不破坏块结构、整体反转），数据模型（7.4 引用）与验收同步更新 | Jiahao Wu |
 | v2.8 | 2026-07-07 | 实现 v2.6+v2.7：重写为 `RoundingConfig` 块模型（默认/基础/自定义三态、基础规则由「普通病床数÷平均病房床数」推导病房块、真实加床块、正序/反序、可复制文本导入导出）；查房首页按块分组组合卡片展示；移除搜索改用分组筛选；旧 `Unit[]`/`string[]` 数据迁移；构建零错误并部署上线 | Jiahao Wu |
 | v2.9 | 2026-07-07 | 修正两点：① 正序/反序「位置」错误——从 `RoundingConfig.direction`（查房顺序设置页）移出，改为首页病人列表的展示偏好 `Settings.listDirection`（与查房顺序设置解耦，仅首页整体反转展示序列，不改动块结构）；② 修复查房顺序设置页拖拽失效——`DragHandle` 原先自创独立 `useDragControls()` 实例、与 `Reorder.Item` 实际绑定的 controls 不一致导致拖手柄无效，改为由 `BlockCard` 将同一 `controls` 实例下传；代码构建零错误 | Jiahao Wu |
+| v2.10 | 2026-07-07 | 修复「导入/卡顿」类 bug（实测复现 + 修复）：① **导入数据丢失**——`importClinicalData` 原逻辑先 `clear()` 再 `bulkAdd`，当导入 JSON 字段缺失但 id 合法时 `bulkAdd` 不报错却只写入残缺数据，导致原有全部病人被静默清空；改为**先逐条校验必填字段、非法即整体抛错中止、绝不执行 clear()**，事务内若 `bulkAdd` 异常由 Dexie 原子回滚保证安全。② **切页闪「暂无病人」误判为丢数据**——`useLiveQuery` 重新挂载首帧返回 `undefined` 被 `?? []` 兜底成空数组，首页会闪现空状态；新增 `loading` 态区分「加载中」与「真的为空」。③ **首页 `filtered` 列表缓存过期**——`useMemo` 依赖写 `[groups, group]` 却用了 `rows`，仅改待办（`patients` 不变→`groups` 不变）时返回旧 `rows` 缓存、卡片角标不刷新；依赖改为 `[rows, group]`。④ **切换/详情卡顿**——移除 `NavBar` 的 `layoutId` 共享布局动画（移动端切换 tab 已知卡顿源）、给 `PatientCard/GroupedPatientCard/SwipeableTodo` 加 `React.memo`、详情页移除未使用的 `getSettings` 冗余订阅。构建零错误 | Jiahao Wu |
 
 ---
 

@@ -28,9 +28,14 @@ export default function HomePage() {
   const router = useRouter();
   const { toast } = useApp();
 
-  const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
-  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
+  const patientsQuery = useLiveQuery(() => db.patients.toArray(), []);
+  const patients = patientsQuery ?? [];
+  const todosQuery = useLiveQuery(() => db.todos.toArray(), []);
+  const todos = todosQuery ?? [];
   const settings = useLiveQuery(() => getSettings(), []);
+  // 切回首页时 useLiveQuery 首帧返回 undefined，需与「真的为空」区分，
+  // 否则会闪一下「暂无病人」被误认为数据丢失。
+  const loading = patientsQuery === undefined || settings === undefined;
 
   const [group, setGroup] = useState<string | null>(null);
 
@@ -100,7 +105,7 @@ export default function HomePage() {
           ? group === null || g.patient.group === group
           : g.items.some((it) => group === null || it.patient.group === group)
       ),
-    [groups, group]
+    [rows, group]
   );
 
   const reminders = useMemo(
@@ -212,11 +217,13 @@ export default function HomePage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={patients.length === 0 ? "暂无病人" : "未找到匹配病人"}
+          title={loading ? "加载中…" : patients.length === 0 ? "暂无病人" : "未找到匹配病人"}
           hint={
-            patients.length === 0
-              ? "点击右上角添加或批量导入"
-              : "试试切换分组筛选"
+            loading
+              ? "正在读取本地数据…"
+              : patients.length === 0
+                ? "点击右上角添加或批量导入"
+                : "试试切换分组筛选"
           }
         />
       ) : (

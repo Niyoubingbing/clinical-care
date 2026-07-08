@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { Patient } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
@@ -11,7 +12,7 @@ export interface GroupedItem {
   status: PatientStatus;
 }
 
-export default function GroupedPatientCard({
+function GroupedPatientCard({
   label,
   items,
   onOpen,
@@ -49,3 +50,5 @@ export default function GroupedPatientCard({
     </motion.div>
   );
 }
+
+export default React.memo(GroupedPatientCard);

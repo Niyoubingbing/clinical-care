@@ -8,7 +8,7 @@ import { dueLabel } from "@/lib/time-parser";
 
 const ACTION_WIDTH = 112; // 7rem
 
-export default function SwipeableTodo({
+function SwipeableTodo({
   todo,
   onToggle,
   onDelete,
@@ -109,3 +109,5 @@ export default function SwipeableTodo({
     </div>
   );
 }
+
+export default React.memo(SwipeableTodo);
