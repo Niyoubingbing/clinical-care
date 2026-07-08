@@ -1,4 +1,4 @@
-const APP_VERSION = "2.12.0";
+const APP_VERSION = "2.12.1";
 const CACHE = "clinical-care-v" + APP_VERSION;
 const ASSETS = ["/", "/manifest.json", "/icon.svg"];
 

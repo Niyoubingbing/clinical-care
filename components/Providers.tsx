@@ -14,6 +14,7 @@ import { MotionConfig } from "framer-motion";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/db";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
+import UpdateBanner from "@/components/UpdateBanner";
 
 type Theme = "light" | "dark" | "system";
 
@@ -119,6 +120,8 @@ export default function Providers({ children }: { children: ReactNode }) {
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let onVisible: (() => void) | null = null;
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
@@ -142,11 +145,24 @@ export default function Providers({ children }: { children: ReactNode }) {
             }
           });
         });
+
+        // 后台轮询检查新版本：仅触发浏览器下载/安装新 SW（进入 waiting），
+        // 绝不自动激活——必须用户点「更新」才切换。这样已打开的标签页会主动
+        // 发现新版本并弹出更新横幅，而不是靠刷新页面（刷新在 SW 未接管时可能直接加载最新版）。
+        const poll = () => reg.update().catch(() => {});
+        onVisible = () => {
+          if (document.visibilityState === "visible") poll();
+        };
+        poll();
+        interval = setInterval(poll, 60000);
+        document.addEventListener("visibilitychange", onVisible);
       })
       .catch(() => setUpdateState("error"));
 
     return () => {
       cancelled = true;
+      if (interval) clearInterval(interval);
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
       navigator.serviceWorker.removeEventListener(
         "controllerchange",
         onControllerChange
@@ -229,6 +245,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     <MotionConfig reducedMotion="user">
       <AppContext.Provider value={{ toast, update: updateValue }}>
         {children}
+        <UpdateBanner />
         <ToastContainer items={toasts} onDismiss={removeToast} />
       </AppContext.Provider>
     </MotionConfig>
