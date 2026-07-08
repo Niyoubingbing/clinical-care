@@ -13,16 +13,93 @@ function SwipeableTodo({
   onToggle,
   onDelete,
   onOpen,
+  swipeComplete,
 }: {
   todo: Todo;
   onToggle: (t: Todo) => void;
   onDelete: (t: Todo) => void;
   onOpen?: (t: Todo) => void;
+  swipeComplete?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const done = todo.status === "completed";
   const info = dueLabel(todo.dueDate);
   const showDue = !done && todo.dueDate;
+
+  // 待办页模式：左滑 / 右滑单条卡片即「快速完成」（越过阈值触发 onToggle，随后回弹）。
+  if (swipeComplete) {
+    return (
+      <div className="relative overflow-hidden rounded-xl">
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: -90, right: 90 }}
+          dragElastic={0.08}
+          dragMomentum={false}
+          animate={{ x: 0 }}
+          onDragEnd={(_, d) => {
+            if (d.offset.x < -56 || d.offset.x > 56) onToggle(todo);
+          }}
+          onClick={() => {
+            if (onOpen) onOpen(todo);
+          }}
+          whileTap={{ scale: 0.99 }}
+          className="relative flex items-start gap-3 rounded-xl bg-card p-3 shadow-xs"
+          style={{ opacity: done ? 0.6 : 1 }}
+        >
+          <button
+            aria-label={done ? "标记为未完成" : "标记为完成"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(todo);
+            }}
+            className="mt-0.5 shrink-0"
+          >
+            {done ? (
+              <CheckCircle2 size={20} className="text-success" />
+            ) : (
+              <Circle size={20} className="text-muted" />
+            )}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <p className={`text-[14px] text-main ${done ? "line-through" : ""}`}>
+              {todo.content}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {todo.type && todo.type !== "其他" && (
+                <span className="badge-muted">{todo.type}</span>
+              )}
+              {showDue && (
+                <span
+                  className={`badge ${
+                    info.level === "overdue"
+                      ? "badge-danger"
+                      : info.level === "today"
+                        ? "badge-warning"
+                        : "badge-muted"
+                  }`}
+                >
+                  {info.text}
+                </span>
+              )}
+              {done && <span className="badge-success">已完成</span>}
+            </div>
+          </div>
+
+          <button
+            aria-label="删除"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(todo);
+            }}
+            className="mt-0.5 shrink-0 text-muted transition hover:text-danger"
+          >
+            <Trash2 size={18} />
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden rounded-xl">

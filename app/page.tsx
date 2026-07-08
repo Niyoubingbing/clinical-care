@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -158,11 +158,10 @@ export default function HomePage() {
     return m;
   }, [patients, settings]);
 
+  // 导航交给 PatientCard 内的 <Link>（Next 自动视口预取动态路由），
+  // 这里只记录滚动位置，确保详情页返回时回到原位置。
   const openDetail = (p: Patient) => {
     sessionStorage.setItem("homeScroll", String(window.scrollY));
-    startTransition(() => {
-      router.push(`/patient/${p.id}`);
-    });
   };
 
   const onReminderClick = () => {
