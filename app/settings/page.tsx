@@ -14,6 +14,7 @@ import {
   ListOrdered,
   ScanLine,
   Zap,
+  Users,
 } from "lucide-react";
 import { db, getSettings, updateSettings } from "@/lib/db";
 import {
@@ -109,6 +110,7 @@ export default function SettingsPage() {
         <EntryLink href="/settings/rounding" icon={ListOrdered} label="查房顺序" />
         <EntryLink href="/settings/bed-recognition" icon={ScanLine} label="床号识别" />
         <EntryLink href="/settings/quick-todos" icon={Zap} label="快捷待办" />
+        <EntryLink href="/settings/groups" icon={Users} label="分组管理" />
       </Section>
 
       <Section title="数据管理">

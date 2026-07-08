@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
-import { db, getSettings, deletePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
+import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
 import { Todo } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
 import { patientStatus } from "@/lib/reminders";
@@ -56,6 +56,22 @@ export default function PatientDetailPage() {
     [settings, patient]
   );
 
+  const customGroups = settings?.customGroups ?? [];
+
+  // 详情页一键切换分组（设置页自定义的分组）。
+  const switchGroup = async (
+    g: { name: string; color: string } | null
+  ) => {
+    await updatePatient(id, {
+      group: g?.name,
+      groupColor: g?.color,
+      updatedAt: Date.now(),
+    });
+    toast({
+      message: g ? `已切换到「${g.name}」` : "已取消分组",
+    });
+  };
+
   const onToggle = async (t: Todo) => {
     await toggleTodo(t.id, t.status !== "completed");
   };
@@ -74,7 +90,36 @@ export default function PatientDetailPage() {
 
   if (!patient) {
     return (
-      <div className="py-20 text-center text-muted">加载中…</div>
+      <div className="space-y-4">
+        <header className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-surface-alt" />
+          <div className="h-5 w-32 rounded bg-surface-alt" />
+        </header>
+        <div className="card p-4">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 shrink-0 rounded-lg bg-surface-alt" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-48 rounded bg-surface-alt" />
+              <div className="h-3 w-24 rounded bg-surface-alt" />
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-y-1.5">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <div className="h-3 w-16 rounded bg-surface-alt" />
+                <div className="h-3 w-20 rounded bg-surface-alt" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card h-20 p-4" />
+        <div className="space-y-2">
+          <div className="h-3 w-20 rounded bg-surface-alt" />
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="card h-14" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -142,6 +187,47 @@ export default function PatientDetailPage() {
           <Info label="查血日" value={patient.bloodTestDay} />
         </dl>
       </div>
+
+      {/* 详情页一键切换分组（设置页自定义的分组列表） */}
+      {customGroups.length > 0 && (
+        <div>
+          <p className="mb-2 text-[13px] font-medium text-muted">切换分组</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => switchGroup(null)}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] ${
+                !patient.group
+                  ? "border-primary text-primary"
+                  : "border-border/60 text-muted"
+              }`}
+            >
+              无
+            </button>
+            {customGroups.map((g) => {
+              const active = patient.group === g.name;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => switchGroup({ name: g.name, color: g.color })}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition ${
+                    active
+                      ? "border-primary text-primary"
+                      : "border-border/60 text-muted"
+                  }`}
+                >
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: g.color }}
+                  />
+                  {g.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <QuickActions patientId={patient.id} onAddTodo={() => setTodoOpen(true)} />
 

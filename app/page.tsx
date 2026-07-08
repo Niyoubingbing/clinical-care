@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -59,10 +59,15 @@ export default function HomePage() {
     if (y) window.scrollTo(0, parseInt(y, 10));
   }, []);
 
-  const groups = useMemo(
-    () => Array.from(new Set(patients.map((p) => p.group).filter(Boolean))) as string[],
-    [patients]
-  );
+  // 筛选分组列表：优先采用设置页自定义分组（保证空分组也可筛选），
+  // 并合并实际病人中存在的分组，兼容未在设置中登记的分组名。
+  const groups = useMemo(() => {
+    const preset = (settings?.customGroups ?? []).map((g) => g.name);
+    const fromPatients = Array.from(
+      new Set(patients.map((p) => p.group).filter(Boolean))
+    ) as string[];
+    return Array.from(new Set([...preset, ...fromPatients]));
+  }, [patients, settings]);
 
   const ordered = useMemo(() => {
     if (!settings) return [];
@@ -73,10 +78,10 @@ export default function HomePage() {
   // 将有序序列按「病房块」连续分组（grouped card，PRD 4.1.1 / 4.9.3）。
   const rows = useMemo(() => {
     type Row =
-      | { type: "group"; id: string; label: string; items: GroupedItem[] }
+      | { type: "group"; id: string; items: GroupedItem[] }
       | { type: "single"; patient: Patient; todoCount: number; status: PatientStatus };
     const out: Row[] = [];
-    let cur: { id: string; label: string; items: GroupedItem[] } | null = null;
+    let cur: { id: string; items: GroupedItem[] } | null = null;
     for (const op of ordered) {
       const todoCount = pendingTodoCount(op.patient, todos);
       const status = patientStatus(op.patient, todos, today);
@@ -86,7 +91,6 @@ export default function HomePage() {
         } else {
           cur = {
             id: op.groupId,
-            label: op.groupLabel ?? "",
             items: [{ patient: op.patient, todoCount, status }],
           };
           out.push({ type: "group", ...cur });
@@ -132,7 +136,9 @@ export default function HomePage() {
 
   const openDetail = (p: Patient) => {
     sessionStorage.setItem("homeScroll", String(window.scrollY));
-    router.push(`/patient/${p.id}`);
+    startTransition(() => {
+      router.push(`/patient/${p.id}`);
+    });
   };
 
   const onReminderClick = () => {
@@ -245,7 +251,6 @@ export default function HomePage() {
               g.type === "group" ? (
                 <GroupedPatientCard
                   key={g.id}
-                  label={g.label}
                   items={g.items}
                   bedInfoMap={bedInfoMap}
                   onOpen={openDetail}

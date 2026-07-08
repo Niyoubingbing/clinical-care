@@ -139,12 +139,22 @@ export function defaultQuickTodos(): QuickTodo[] {
   ];
 }
 
+export function defaultCustomGroups(): { id: string; name: string; color: string }[] {
+  return [
+    { id: "g-jie", name: "解组", color: "#fecaca" },
+    { id: "g-yong", name: "勇组", color: "#bfdbfe" },
+    { id: "g-li", name: "李组", color: "#bbf7d0" },
+    { id: "g-wang", name: "王组", color: "#fde68a" },
+  ];
+}
+
 export function defaultSettings(): Settings {
   return {
     id: 1,
     roundingOrder: defaultRoundingConfig(),
     listDirection: "forward",
     quickTodos: defaultQuickTodos(),
+    customGroups: defaultCustomGroups(),
     theme: "system",
     bedTemplate: "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$",
     specialMarks: ["J", "YZ"],

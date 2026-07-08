@@ -81,6 +81,17 @@ export default function Providers({ children }: { children: ReactNode }) {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const waitingRef = useRef<ServiceWorker | null>(null);
   const reloadOnActivateRef = useRef(false);
+  // 检查更新后若显示「已是最新版本 / 失败」，延时自动回弹为 idle，
+  // 让按钮恢复可点状态，避免卡在终态无法再次检查。
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleReset = useCallback(() => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
+      setUpdateState((prev) =>
+        prev === "latest" || prev === "error" ? "idle" : prev
+      );
+    }, 3500);
+  }, []);
 
   // Apply theme
   useEffect(() => {
@@ -162,6 +173,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       if (onVisible) document.removeEventListener("visibilitychange", onVisible);
       navigator.serviceWorker.removeEventListener(
         "controllerchange",
@@ -194,8 +206,10 @@ export default function Providers({ children }: { children: ReactNode }) {
             return "available";
           return prev === "checking" ? "latest" : prev;
         });
+        // 终态（已是最新 / 失败）延时回弹，恢复按钮可点状态
+        scheduleReset();
       });
-  }, [localVersion]);
+  }, [localVersion, scheduleReset]);
 
   // 应用更新：向 waiting worker 发送 SKIP_WAITING，新 SW 激活后 controllerchange 触发刷新
   const applyUpdate = useCallback(() => {

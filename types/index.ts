@@ -50,6 +50,12 @@ export interface QuickTodo {
   content?: string;
 }
 
+export interface CustomGroup {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export type RoundingBlock =
   | { id: string; kind: "room"; ward?: string; beds: string[] }
   | { id: string; kind: "extra"; beds: string[] };
@@ -66,6 +72,7 @@ export interface Settings {
   roundingOrder: RoundingConfig; // 查房顺序配置（块模型，见 PRD 4.9.4）
   listDirection?: "forward" | "reverse"; // 首页病人列表展示方向（与查房顺序设置解耦），默认 'forward'
   quickTodos: QuickTodo[];
+  customGroups?: CustomGroup[]; // 自定义分组（设置页维护，详情页快捷切换）
   theme: Theme;
   bedTemplate?: string;
   specialMarks?: string[];

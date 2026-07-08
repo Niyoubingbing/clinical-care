@@ -1,18 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import BottomSheet from "./BottomSheet";
 import { useApp } from "./Providers";
 import { addPatient, updatePatient, getSettings } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
 import { Patient } from "@/types";
-
-const PRESET_GROUPS = [
-  { name: "解组", color: "#fecaca" },
-  { name: "勇组", color: "#bfdbfe" },
-  { name: "李组", color: "#bbf7d0" },
-  { name: "王组", color: "#fde68a" },
-];
 
 export function PatientForm({
   patient,
@@ -24,6 +18,8 @@ export function PatientForm({
   onClose: () => void;
 }) {
   const { toast } = useApp();
+  const settings = useLiveQuery(() => getSettings(), []);
+  const customGroups = settings?.customGroups ?? [];
   const [bedNumber, setBedNumber] = useState("");
   const [name, setName] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -130,12 +126,13 @@ export function PatientForm({
           className="input"
           value={group}
           onChange={(e) => setGroup(e.target.value)}
-          placeholder="分组名称（可选）"
+          placeholder="分组名称（可选，可在设置页自定义）"
         />
         <div className="mt-2 flex flex-wrap gap-2">
-          {PRESET_GROUPS.map((g) => (
+          {customGroups.map((g) => (
             <button
-              key={g.name}
+              key={g.id}
+              type="button"
               onClick={() => {
                 setGroup(g.name);
                 setGroupColor(g.color);

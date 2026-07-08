@@ -15,13 +15,11 @@ export interface GroupedItem {
 export type BedInfo = { bedType?: BedType; specialType?: string };
 
 function GroupedPatientCard({
-  label,
   items,
   bedInfoMap,
   onOpen,
   onMenu,
 }: {
-  label: string;
   items: GroupedItem[];
   bedInfoMap?: Map<string, BedInfo>;
   onOpen: (p: Patient) => void;
@@ -35,10 +33,6 @@ function GroupedPatientCard({
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="card overflow-hidden p-3"
     >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-primary">{label}</span>
-        <span className="text-[11px] text-muted">{items.length} 床</span>
-      </div>
       <div className="space-y-2">
         {items.map((it) => {
           const info = bedInfoMap?.get(it.patient.id);
