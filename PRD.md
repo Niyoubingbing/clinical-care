@@ -1,6 +1,6 @@
 # 临床病人管理助手 - 产品需求文档 (PRD)
 
-**版本**: v2.12.4  
+**版本**: v2.12.5  
 **日期**: 2026-07-06  
 **作者**: Jiahao Wu
 
@@ -1724,6 +1724,8 @@ interface Settings {
 | v2.12.3 (patch) | 2026-07-08 | 修复用户反馈两项：① **病房块视觉区分度**——`GroupedPatientCard` 容器由白底 `card` 改为**彩色玻璃质感**（主色→信息色 135° 渐变半透明底 `rgb(var(--primary)/0.10)→rgb(var(--info)/0.06)` + `backdrop-filter: blur(6px)` 磨砂 + 左侧强调色条 + 细描边/投影），内层白色 `PatientCard` 不透明「浮」于其上，与普通单卡明显区分（浅/深色模式均适配）。② **返回列表概率回到顶部**——根因为滚动恢复 `useEffect` 在挂载即执行（`[]` 依赖），而列表由 `useLiveQuery` 异步加载、首帧页面很矮，`scrollTo` 被 clamp 到底部（即顶部）导致落空。改为依赖 `[loading, filtered.length]`，等数据加载完成且列表渲染后再用**双 `requestAnimationFrame`** 恢复滚动位置、且只执行一次（`scrollRestored` ref 守卫 + rafIds 卸载清理）。构建零错误（共 10 页）。**本版本号 2.12.3（由 2.12.2 升上来）** | Jiahao Wu |
 
 | v2.12.4 (patch) | 2026-07-08 | 修复用户反馈两项：① **首页点病人卡进详情页仍卡顿（明确根因+修复）**——根因为 `/patient/[id]` 是 `ƒ` 动态服务端渲染路由，原 `openDetail` 用 `startTransition(() => router.push(...))` 导航且**未预取**，每次点击都先向 Vercel 发一次 RSC 网络请求才渲染页面（这就是点击→页面出现之间的延迟）；`startTransition` 又把本该紧急的导航降级、进一步拖慢。`PatientCard` 改用 Next.js `<Link href="/patient/{id}">`（**自动按视口预取动态路由**，点击即复用已缓存的 RSC、直接渲染 Skeleton）；首页 `openDetail` 仅 `sessionStorage` 写滚动位置、去掉 `startTransition`；`MoreHorizontal` 按钮补 `e.preventDefault()` 防整页跳转。② **待办页重做**——去掉「病人/通用」分段切换，合并同页：**通用待办永远置顶**并用大边框方块（`border-2 rounded-2xl`）框起；**病人待办按病人独立卡片**（`card`+病人色块床标/姓名/床号/分组标签），单病人待办集中展示；**已完成待办默认折叠**（每组「已完成 N」可展开）；筛选保留 全部/未完成/今天到期/已逾期。③ `SwipeableTodo` 新增 `swipeComplete` 模式：**单条待办卡片左滑或右滑越过阈值即快速完成**（`onToggle`），勾选圆圈/删除按钮保留；详情页沿用原 reveal 行为（不受影响）。构建零错误（10 页面）。**本版本号 2.12.4（由 2.12.3 升上来）** | Jiahao Wu |
+
+| v2.12.5 (patch) | 2026-07-08 | 修复用户反馈两项：① **详情页待办样式与待办页不一致**——抽出共享组件 `components/TodoListView.tsx`（滑动快速完成 `swipeComplete` + 进行中按序平铺 + 已完成默认折叠可展开），详情页（`app/patient/[id]/page.tsx`）与待办页（`app/todos/page.tsx`）均改为复用该组件，两处待办视觉/交互彻底统一；`SwipeableTodo` 不再在两页各自直接拼装。② **纯本地 `npm run dev` 完全无法运行**——根因是 `components/Providers.tsx` 在 dev 环境仍注册 Service Worker，而 SW 的 `fetch` 为 **cache-first** 会缓存 dev 模式带 hash 的 JS chunk，改代码/重启 dev 后旧 chunk 取不到 → 整页白屏。修复：`Providers` 注册 SW 前置 `if (process.env.NODE_ENV !== "production") { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); return; }`——dev 不注册且主动注销残留旧 SW，本地运行恢复顺畅。**已实测**：`npm run dev` 后 `/`、`/todos`、`/settings` 均返回 HTTP 200，无运行时崩溃。构建零错误（10 页面）。**本版本号 2.12.5（由 2.12.4 升上来）** | Jiahao Wu |
 
 ---
 

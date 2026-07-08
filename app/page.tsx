@@ -38,6 +38,28 @@ export default function HomePage() {
   // 否则会闪一下「暂无病人」被误认为数据丢失。
   const loading = patientsQuery === undefined || settings === undefined;
 
+  // 离线优先：首次联网加载后，后台分块预取「全部病人详情路由」的 RSC。
+  // 这样「联网加载一次后断网」也能打开任意病人详情页——否则未预取的动态路由
+  // (/patient/[id]) 在离线时客户端路由要去拉取 RSC 而失败，浏览器报「Vercel 网址无法访问」。
+  // 预取的 RSC 由 Service Worker 运行时缓存，离线导航直接命中缓存。
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return; // dev 不预取
+    if (!patients.length) return;
+    let i = 0;
+    const CHUNK = 10;
+    const timer = setInterval(() => {
+      for (let k = 0; k < CHUNK && i < patients.length; k++, i++) {
+        try {
+          router.prefetch(`/patient/${patients[i].id}`);
+        } catch {
+          /* 忽略单个预取失败 */
+        }
+      }
+      if (i >= patients.length) clearInterval(timer);
+    }, 250);
+    return () => clearInterval(timer);
+  }, [patients, router]);
+
   const [group, setGroup] = useState<string | null>(null);
 
   // 首页病人列表的展示方向（正/反序），与查房顺序设置解耦，持久化到 settings。
