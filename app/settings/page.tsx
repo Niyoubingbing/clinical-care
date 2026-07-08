@@ -35,7 +35,7 @@ const THEMES: { key: Theme; label: string; icon: typeof Sun }[] = [
 ];
 
 export default function SettingsPage() {
-  const { toast } = useApp();
+  const { toast, update } = useApp();
   const settings = useLiveQuery(() => getSettings(), []);
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
   const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
@@ -140,6 +140,53 @@ export default function SettingsPage() {
           className="hidden"
           onChange={onFile}
         />
+      </Section>
+
+      <Section title="关于应用">
+        <div className="card space-y-3 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] text-muted">当前版本</span>
+            <span className="text-[14px] font-semibold text-main">
+              v{update.localVersion ?? "—"}
+            </span>
+          </div>
+
+          {update.state === "available" && (
+            <div className="rounded-xl bg-primary/10 px-3 py-2">
+              <p className="text-[13px] font-medium text-primary">
+                发现新版本 v{update.remoteVersion ?? "?"}
+              </p>
+              <p className="mt-0.5 text-[12px] text-muted">
+                已后台下载完成，旧版本仍可正常运行。点击「更新应用」将应用新版本并刷新页面，本地数据全部保留。
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary h-10 flex-1"
+              onClick={update.checkForUpdate}
+              disabled={update.state === "checking"}
+            >
+              {update.state === "checking" ? "检查中…" : "检查更新"}
+            </button>
+            {update.state === "available" && (
+              <button
+                className="btn-primary h-10 flex-1"
+                onClick={update.applyUpdate}
+              >
+                更新应用
+              </button>
+            )}
+          </div>
+
+          {update.state === "latest" && (
+            <p className="text-[12px] text-muted">已是最新版本</p>
+          )}
+          {update.state === "error" && (
+            <p className="text-[12px] text-danger">检查更新失败，请重试</p>
+          )}
+        </div>
       </Section>
 
       <ConfirmDialog

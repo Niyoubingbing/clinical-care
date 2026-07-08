@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -23,11 +24,36 @@ interface ToastOptions {
   duration?: number;
 }
 
-interface AppContextValue {
-  toast: (opts: ToastOptions) => void;
+export type UpdateState =
+  | "idle"
+  | "checking"
+  | "latest"
+  | "available"
+  | "error";
+
+interface AppUpdate {
+  state: UpdateState;
+  localVersion: string | null;
+  remoteVersion: string | null;
+  checkForUpdate: () => void;
+  applyUpdate: () => void;
 }
 
-const AppContext = createContext<AppContextValue>({ toast: () => {} });
+interface AppContextValue {
+  toast: (opts: ToastOptions) => void;
+  update: AppUpdate;
+}
+
+const AppContext = createContext<AppContextValue>({
+  toast: () => {},
+  update: {
+    state: "idle",
+    localVersion: null,
+    remoteVersion: null,
+    checkForUpdate: () => {},
+    applyUpdate: () => {},
+  },
+});
 
 export function useApp() {
   return useContext(AppContext);
@@ -47,6 +73,14 @@ export default function Providers({ children }: { children: ReactNode }) {
   const settings = useLiveQuery(() => getSettings(), []);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // 应用更新状态（PWA Service Worker 更新管理）
+  const [updateState, setUpdateState] = useState<UpdateState>("idle");
+  const [localVersion, setLocalVersion] = useState<string | null>(null);
+  const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const waitingRef = useRef<ServiceWorker | null>(null);
+  const reloadOnActivateRef = useRef(false);
+
   // Apply theme
   useEffect(() => {
     if (!settings) return;
@@ -65,14 +99,109 @@ export default function Providers({ children }: { children: ReactNode }) {
     applyThemeClass("system");
   }, []);
 
-  // Register service worker
+  // Register service worker + 管理更新生命周期
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        /* SW failure is non-fatal */
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+    // 读取本地版本（关于应用页展示 + 检查更新比对）
+    fetch("/version.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j && j.version && setLocalVersion(j.version))
+      .catch(() => {});
+
+    // 新版本激活（用户点击更新后 skipWaiting）时，刷新页面以加载新版本内容
+    const onControllerChange = () => {
+      if (reloadOnActivateRef.current) {
+        reloadOnActivateRef.current = false;
+        window.location.reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+
+    let cancelled = false;
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        if (cancelled) return;
+        registrationRef.current = reg;
+
+        // 页面加载时若已有 waiting worker（上一次部署遗留、用户尚未更新），提示可更新
+        if (reg.waiting) {
+          waitingRef.current = reg.waiting;
+          setUpdateState("available");
+        }
+
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            // 已安装且存在现有控制器（即这是一次更新而非首次安装）→ 新版本后台下载完成，等待激活
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              waitingRef.current = reg.waiting || worker;
+              setUpdateState("available");
+            }
+          });
+        });
+      })
+      .catch(() => setUpdateState("error"));
+
+    return () => {
+      cancelled = true;
+      navigator.serviceWorker.removeEventListener(
+        "controllerchange",
+        onControllerChange
+      );
+    };
+  }, []);
+
+  // 检查更新：拉取远程版本号 + 触发浏览器后台下载并安装新 SW（旧版本继续运行）
+  const checkForUpdate = useCallback(() => {
+    setUpdateState("checking");
+    const reg = registrationRef.current;
+    let fetchedRemote: string | null = null;
+    fetch("/version.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j && j.version) {
+          fetchedRemote = j.version;
+          setRemoteVersion(j.version);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        // 触发后台下载/安装新 SW；若已有 waiting worker，updatefound 会置 available
+        if (reg) reg.update().catch(() => {});
+        const hasWaiting = !!(waitingRef.current || reg?.waiting);
+        setUpdateState((prev) => {
+          if (hasWaiting) return "available";
+          if (fetchedRemote && localVersion && fetchedRemote !== localVersion)
+            return "available";
+          return prev === "checking" ? "latest" : prev;
+        });
       });
+  }, [localVersion]);
+
+  // 应用更新：向 waiting worker 发送 SKIP_WAITING，新 SW 激活后 controllerchange 触发刷新
+  const applyUpdate = useCallback(() => {
+    const reg = registrationRef.current;
+    const worker = waitingRef.current || reg?.waiting || null;
+    if (worker) {
+      reloadOnActivateRef.current = true;
+      worker.postMessage({ type: "SKIP_WAITING" });
+      setUpdateState("checking");
+    } else {
+      // 没有 waiting worker（极端情况）：直接刷新，重新注册并拉取新 SW
+      window.location.reload();
     }
   }, []);
+
+  const updateValue: AppUpdate = {
+    state: updateState,
+    localVersion,
+    remoteVersion,
+    checkForUpdate,
+    applyUpdate,
+  };
 
   const removeToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -98,7 +227,7 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <AppContext.Provider value={{ toast }}>
+      <AppContext.Provider value={{ toast, update: updateValue }}>
         {children}
         <ToastContainer items={toasts} onDismiss={removeToast} />
       </AppContext.Provider>
