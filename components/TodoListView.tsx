@@ -81,7 +81,7 @@ function TodoListViewImpl({
     scrollMargin: offset,
   });
 
-  if (items.length === 0) {
+  if (pending.length === 0 && completed.length === 0) {
     return <p className="px-1 py-2 text-[12px] text-muted">暂无待办</p>;
   }
 

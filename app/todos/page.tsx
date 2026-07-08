@@ -84,6 +84,13 @@ function TodosInner() {
     [filter]
   );
 
+  // 仅渲染「至少有一条待办通过当前筛选」的病人组，避免已完成-only 病人在
+  // 「未完成/今天/逾期」等筛选下残留空卡片。
+  const visiblePatientGroups = useMemo(
+    () => patientGroups.filter((g) => g.items.some(passFilter)),
+    [patientGroups, passFilter]
+  );
+
   const onToggle = useCallback(
     async (t: Todo) => {
       const done = t.status === "completed";
@@ -156,24 +163,26 @@ function TodosInner() {
       ) : (
         <>
           {/* 通用待办：永远置顶 + 大边框方块 */}
-          <section className="rounded-2xl border-2 border-border/50 bg-card/40 p-4">
-            <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted">
-              通用待办
-              <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
-                {generalTodos.filter((t) => t.status === "pending").length} 进行中
-              </span>
-            </p>
-            <TodoListView
-              list={generalTodos}
-              passFilter={passFilter}
-              onToggle={onToggle}
-              onDelete={onDelete}
-            />
-          </section>
+          {generalTodos.some(passFilter) && (
+            <section className="rounded-2xl border-2 border-border/50 bg-card/40 p-4">
+              <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted">
+                通用待办
+                <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
+                  {generalTodos.filter((t) => t.status === "pending").length} 进行中
+                </span>
+              </p>
+              <TodoListView
+                list={generalTodos}
+                passFilter={passFilter}
+                onToggle={onToggle}
+                onDelete={onDelete}
+              />
+            </section>
+          )}
 
           {/* 病人待办：每位病人一张独立卡片，单病人待办集中展示 */}
           <div className="space-y-3">
-            {patientGroups.map(({ patient, items }) => {
+            {visiblePatientGroups.map(({ patient, items }) => {
               const color = patient?.groupColor || "#e2e8f0";
               return (
                 <section key={patient?.id ?? "orphan"} className="card p-3">
