@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, todayStr } from "@/lib/db";
@@ -70,45 +70,62 @@ function TodosInner() {
     return groups;
   }, [todos, patients, patientMap]);
 
-  const passFilter = (t: Todo): boolean => {
-    if (filter === "all") return true;
-    if (filter === "pending") return t.status === "pending";
-    if (filter === "today")
-      return t.status === "pending" && dueLabel(t.dueDate).level === "today";
-    if (filter === "overdue")
-      return t.status === "pending" && dueLabel(t.dueDate).level === "overdue";
-    return true;
-  };
+  // 筛选条件：用 useCallback 稳定引用，确保传给 memo 化的 TodoListView 时命中 memo。
+  const passFilter = useCallback(
+    (t: Todo): boolean => {
+      if (filter === "all") return true;
+      if (filter === "pending") return t.status === "pending";
+      if (filter === "today")
+        return t.status === "pending" && dueLabel(t.dueDate).level === "today";
+      if (filter === "overdue")
+        return t.status === "pending" && dueLabel(t.dueDate).level === "overdue";
+      return true;
+    },
+    [filter]
+  );
 
-  const onToggle = async (t: Todo) => {
-    const done = t.status === "completed";
-    if (!done && t.type === "换药" && t.patientId) {
-      await db.patients.update(t.patientId, {
-        lastDressingChange: today,
-        updatedAt: Date.now(),
+  const onToggle = useCallback(
+    async (t: Todo) => {
+      const done = t.status === "completed";
+      if (!done && t.type === "换药" && t.patientId) {
+        await db.patients.update(t.patientId, {
+          lastDressingChange: today,
+          updatedAt: Date.now(),
+        });
+      }
+      await db.todos.update(t.id, {
+        status: done ? "pending" : "completed",
+        completedAt: done ? undefined : Date.now(),
       });
-    }
-    await db.todos.update(t.id, {
-      status: done ? "pending" : "completed",
-      completedAt: done ? undefined : Date.now(),
-    });
-  };
+    },
+    [today]
+  );
 
-  const onDelete = async (t: Todo) => {
-    await db.todos.delete(t.id);
-    toast({
-      message: "已删除 · 撤销",
-      actionLabel: "撤销",
-      onAction: async () => {
-        await db.todos.add(t);
-        toast({ message: "已恢复" });
-      },
-    });
-  };
+  const onDelete = useCallback(
+    async (t: Todo) => {
+      await db.todos.delete(t.id);
+      toast({
+        message: "已删除 · 撤销",
+        actionLabel: "撤销",
+        onAction: async () => {
+          await db.todos.add(t);
+          toast({ message: "已恢复" });
+        },
+      });
+    },
+    [toast]
+  );
 
-  const onOpen = (t: Todo) => {
-    if (t.patientId) router.push(`/patient/${t.patientId}`);
-  };
+  // 打开某待办所属病人：写入客户端 store 后跳转静态 /patient 页（离线可用）。
+  const onOpen = useCallback(
+    (t: Todo) => {
+      if (t.patientId) {
+        sessionStorage.setItem("cc:pid", t.patientId);
+        router.push("/patient");
+      }
+    },
+    [router]
+  );
 
   const hasAny =
     generalTodos.some(passFilter) ||

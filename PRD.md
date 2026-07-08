@@ -1,6 +1,6 @@
 # 临床病人管理助手 - 产品需求文档 (PRD)
 
-**版本**: v2.12.6  
+**版本**: v2.12.7  
 **日期**: 2026-07-06  
 **作者**: Jiahao Wu
 
@@ -1728,6 +1728,7 @@ interface Settings {
 | v2.12.5 (patch) | 2026-07-08 | 修复用户反馈两项：① **详情页待办样式与待办页不一致**——抽出共享组件 `components/TodoListView.tsx`（滑动快速完成 `swipeComplete` + 进行中按序平铺 + 已完成默认折叠可展开），详情页（`app/patient/[id]/page.tsx`）与待办页（`app/todos/page.tsx`）均改为复用该组件，两处待办视觉/交互彻底统一；`SwipeableTodo` 不再在两页各自直接拼装。② **纯本地 `npm run dev` 完全无法运行**——根因是 `components/Providers.tsx` 在 dev 环境仍注册 Service Worker，而 SW 的 `fetch` 为 **cache-first** 会缓存 dev 模式带 hash 的 JS chunk，改代码/重启 dev 后旧 chunk 取不到 → 整页白屏。修复：`Providers` 注册 SW 前置 `if (process.env.NODE_ENV !== "production") { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); return; }`——dev 不注册且主动注销残留旧 SW，本地运行恢复顺畅。**已实测**：`npm run dev` 后 `/`、`/todos`、`/settings` 均返回 HTTP 200，无运行时崩溃。构建零错误（10 页面）。**本版本号 2.12.5（由 2.12.4 升上来）** | Jiahao Wu |
 
 | v2.12.6 (patch) | 2026-07-08 | 修复部署到 Vercel 后「移动端首次联网加载即断网，打开病人详情页报错 Vercel 网址无法访问」的**离线可用性问题**（用户实测场景）。**根因**：`/patient/[id]` 是 `ƒ` 动态服务端路由，其 RSC 载荷需联网请求；详情页数据虽来自 IndexedDB（离线可用），但客户端路由导航时要拉取该 id 的 RSC，旧 SW 仅缓存安装时预缓存的 App Shell + 静态资源，**未预取的动态路由在离线时 fetch RSC 失败 → 浏览器报「Vercel 网址无法访问」**（首页 `/` 是 `○` 静态会被预缓存，所以列表页能开、详情页不能）。**修复**：① `app/page.tsx` 首页首次联网加载后，后台**分块预取全部病人详情路由 RSC**（`router.prefetch('/patient/'+id)`，10 个/批、250ms 间隔，不阻塞 UI），由 SW 的运行时缓存（fetch 成功即 `cache.put`）留存，使「联网加载一次后断网」也能打开**任意**病人详情（数据来自 IndexedDB）；② `public/sw.js` fetch 增加**导航兜底**——`request.mode==='navigate'` 且离线未缓存时回退到已缓存的首页 App Shell（`caches.match('/')`），不再直接报「无法访问」。注意：dev 环境（`NODE_ENV!=='production'`）不执行预取。sw.js 版本升 2.12.6 以触发 PWA 更新检测。构建零错误（10 页面）。**本版本号 2.12.6（由 2.12.5 升上来）** | Jiahao Wu |
+| v2.12.7 (patch) | 2026-07-08 | **纠正 v2.12.6 的离线修复技术路径（用户指出逻辑错误：应用本身不含有病人，「逐个预取全部病人 RSC」前提不成立——首屏可能为空、且覆盖不全、且与「按 id 逐个预取」概念错误）。改用标准 App Shell 模式**：本应用数据全在 IndexedDB（客户端），`/patient/[id]` 对任意 id 只是**同一个通用空壳**，离线可用性本就不该依赖枚举病人。① 删除首页「逐个预取全部病人 RSC」循环，改为首次联网且已有病人时仅**播种一个通用壳**——`fetch('/patient/'+首个病人id)` 抓取任一病人路由 HTML 写入 SW 缓存（概念即 App Shell，而非病人枚举）；② `public/sw.js` 新增固定**通用壳键 `patient-shell`**：在线访问任意 `/patient/*` 导航或资源时，响应同时写入该键；离线导航 `/patient/*` 优先返回通用壳（与具体 id 无关，前端按 URL 的 id 从 IndexedDB 取数渲染），其次回退首页——使**任意病人（含断网后新导入）离线都可用**；③ SW `activate` 清理旧缓存时**保留通用壳键**（跨激活复用）。逻辑回归正确、与病人数量完全解耦。sw.js 版本升 2.12.7 触发 PWA 更新检测。构建零错误（10 页面）。**本版本号 2.12.7（由 2.12.6 升上来）** | Jiahao Wu |
 
 ---
 

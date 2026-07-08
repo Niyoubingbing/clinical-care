@@ -133,9 +133,9 @@ export function migrateRoundingOrder(raw: unknown): RoundingConfig {
 
 export function defaultQuickTodos(): QuickTodo[] {
   return [
-    { label: "换药", type: "换药", content: "换药" },
-    { label: "查血", type: "查血", content: "查血" },
-    { label: "术前准备", type: "开术前", content: "术前准备" },
+    { id: "qt-dressing", label: "换药", type: "换药", content: "换药" },
+    { id: "qt-blood", label: "查血", type: "查血", content: "查血" },
+    { id: "qt-preop", label: "术前准备", type: "开术前", content: "术前准备" },
   ];
 }
 
@@ -170,18 +170,35 @@ db.on("populate", () => {
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get(1);
   if (!s) return defaultSettings();
+  // 纯读：仅返回旧格式迁移后的视图，不在 querier 内写回，
+  // 消除「读里写」订阅回环（迁移写回由 ensureSettingsMigrated 一次性完成）。
   const migrated = migrateRoundingOrder(s.roundingOrder);
-  // 仅在旧格式（无 blocks 字段）时写回一次，使既有用户数据归一到新块模型。
+  return { ...s, roundingOrder: migrated };
+}
+
+// 一次性迁移：将旧格式 roundingOrder 与缺失 id 的 quickTodos 写回数据库。
+// 由模块级 flag 保证全应用仅执行一次（在 Providers 挂载时调用），
+// 避免每次 getSettings 读取都触发写回与订阅回环。
+let migrationDone = false;
+export async function ensureSettingsMigrated(): Promise<void> {
+  if (migrationDone) return;
+  migrationDone = true;
+  const s = await db.settings.get(1);
+  if (!s) return;
   const raw = s.roundingOrder as unknown;
   const isNewConfig =
     raw &&
     typeof raw === "object" &&
     !Array.isArray(raw) &&
     "blocks" in (raw as Record<string, unknown>);
-  if (!isNewConfig) {
-    await db.settings.put({ ...s, roundingOrder: migrated, id: 1 });
+  const quickTodos = (s.quickTodos ?? []).map((q, i) =>
+    q.id ? q : { ...q, id: `qt-${i}-${q.label}` }
+  );
+  const needsQuickMigration = (s.quickTodos ?? []).some((q) => !q.id);
+  if (!isNewConfig || needsQuickMigration) {
+    const migrated = migrateRoundingOrder(s.roundingOrder);
+    await db.settings.put({ ...s, roundingOrder: migrated, quickTodos, id: 1 });
   }
-  return { ...s, roundingOrder: migrated };
 }
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {

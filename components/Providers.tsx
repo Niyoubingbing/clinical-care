@@ -12,7 +12,7 @@ import React, {
 import { useLiveQuery } from "dexie-react-hooks";
 import { MotionConfig } from "framer-motion";
 import { db } from "@/lib/db";
-import { getSettings } from "@/lib/db";
+import { getSettings, ensureSettingsMigrated } from "@/lib/db";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
 import UpdateBanner from "@/components/UpdateBanner";
 
@@ -74,6 +74,12 @@ export default function Providers({ children }: { children: ReactNode }) {
   const settings = useLiveQuery(() => getSettings(), []);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // 一次性迁移旧数据（roundingOrder 块模型 / quickTodos id），仅执行一次，
+  // 消除 getSettings querier 内的「读里写」订阅回环（P0-3）。
+  useEffect(() => {
+    ensureSettingsMigrated().catch(() => {});
+  }, []);
+
   // 应用更新状态（PWA Service Worker 更新管理）
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [localVersion, setLocalVersion] = useState<string | null>(null);
@@ -115,16 +121,23 @@ export default function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // 本地开发环境（npm run dev）不注册 Service Worker：
+    // 本地开发环境（npm run dev）默认不注册 Service Worker：
     // SW 的 fetch 为 cache-first，会缓存 dev 模式下带 hash 的 JS chunk；
     // 一旦改代码 / 重启 dev，chunk hash 变化导致旧 chunk 取不到，整个 APP 白屏无法运行。
     // 同时主动注销可能残留的旧 SW（修复已被破坏的本地环境）。
+    // 但保留「离线联调开关」：localStorage 设置 'cc-dev-sw' === '1' 或 URL 含 ?sw=1
+    // 时仍注册 SW，以便在本地直接验证离线行为，问题不必只在 prod 暴露。
     if (process.env.NODE_ENV !== "production") {
-      navigator.serviceWorker
-        .getRegistrations()
-        .then((regs) => regs.forEach((r) => r.unregister()))
-        .catch(() => {});
-      return;
+      const params = new URLSearchParams(window.location.search);
+      const devEnabled =
+        localStorage.getItem("cc-dev-sw") === "1" || params.has("sw");
+      if (!devEnabled) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((regs) => regs.forEach((r) => r.unregister()))
+          .catch(() => {});
+        return;
+      }
     }
 
     // 读取本地版本（关于应用页展示 + 检查更新比对）

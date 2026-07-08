@@ -45,6 +45,7 @@ export interface Todo {
 }
 
 export interface QuickTodo {
+  id: string;
   label: string;
   type: string;
   content?: string;

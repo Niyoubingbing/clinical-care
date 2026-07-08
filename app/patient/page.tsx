@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
@@ -17,6 +17,7 @@ import { TodoListView } from "@/components/TodoListView";
 import TodoFormSheet from "@/components/TodoFormSheet";
 import PatientFormSheet from "@/components/PatientFormSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
 
 function sortTodos(todos: Todo[]): Todo[] {
@@ -30,15 +31,30 @@ function sortTodos(todos: Todo[]): Todo[] {
 }
 
 export default function PatientDetailPage() {
-  const params = useParams();
   const router = useRouter();
   const { toast } = useApp();
-  const id = String(params.id);
 
-  const patient = useLiveQuery(() => db.patients.get(id), [id]);
+  // 病人 id 来自客户端 store（sessionStorage 'cc:pid'），而非 URL 参数。
+  // 这样 /patient 是真正的预渲染静态文件，SW 在 install 阶段即可预缓存，
+  // 离线打开任意病人（含断网后新导入的）都稳，且客户端导航是平滑软导航。
+  const [patientId, setPatientId] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const pid =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("cc:pid")
+        : null;
+    setPatientId(pid);
+    setReady(true);
+  }, []);
+
+  const patient = useLiveQuery(
+    () => (patientId ? db.patients.get(patientId) : undefined),
+    [patientId]
+  );
   const todos = useLiveQuery(
-    () => db.todos.where("patientId").equals(id).toArray(),
-    [id]
+    () => (patientId ? db.todos.where("patientId").equals(patientId).toArray() : []),
+    [patientId]
   );
   const settings = useLiveQuery(() => getSettings(), []);
 
@@ -59,34 +75,58 @@ export default function PatientDetailPage() {
   const customGroups = settings?.customGroups ?? [];
 
   // 详情页一键切换分组（设置页自定义的分组）。
-  const switchGroup = async (
-    g: { name: string; color: string } | null
-  ) => {
-    await updatePatient(id, {
-      group: g?.name,
-      groupColor: g?.color,
-      updatedAt: Date.now(),
-    });
-    toast({
-      message: g ? `已切换到「${g.name}」` : "已取消分组",
-    });
-  };
+  const switchGroup = useCallback(
+    async (g: { name: string; color: string } | null) => {
+      if (!patientId) return;
+      await updatePatient(patientId, {
+        group: g?.name,
+        groupColor: g?.color,
+        updatedAt: Date.now(),
+      });
+      toast({
+        message: g ? `已切换到「${g.name}」` : "已取消分组",
+      });
+    },
+    [patientId, toast]
+  );
 
-  const onToggle = async (t: Todo) => {
-    await toggleTodo(t.id, t.status !== "completed");
-  };
+  const onToggle = useCallback(
+    async (t: Todo) => {
+      await toggleTodo(t.id, t.status !== "completed");
+    },
+    []
+  );
 
-  const onDelete = async (t: Todo) => {
-    await deleteTodo(t.id);
-    toast({
-      message: "已删除 · 撤销",
-      actionLabel: "撤销",
-      onAction: async () => {
-        await db.todos.add(t);
-        toast({ message: "已恢复" });
-      },
-    });
-  };
+  const onDelete = useCallback(
+    async (t: Todo) => {
+      await deleteTodo(t.id);
+      toast({
+        message: "已删除 · 撤销",
+        actionLabel: "撤销",
+        onAction: async () => {
+          await db.todos.add(t);
+          toast({ message: "已恢复" });
+        },
+      });
+    },
+    [toast]
+  );
+
+  const passFilter = useCallback(() => true, []);
+
+  if (!ready) {
+    // 首屏（含静态预渲染）先不渲染内容，待挂载后从 sessionStorage 读取 id，避免水合不一致。
+    return null;
+  }
+
+  if (!patientId) {
+    return (
+      <EmptyState
+        title="未选择病人"
+        hint="请从查房页选择一个病人查看详情"
+      />
+    );
+  }
 
   if (!patient) {
     return (
@@ -240,7 +280,7 @@ export default function PatientDetailPage() {
         <p className="mb-2 text-[13px] font-medium text-muted">待办</p>
         <TodoListView
           list={list}
-          passFilter={() => true}
+          passFilter={passFilter}
           onToggle={onToggle}
           onDelete={onDelete}
           patient={patient}

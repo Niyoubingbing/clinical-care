@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
 import { Patient, BedType } from "@/types";
@@ -16,6 +15,7 @@ function PatientCard({
   specialType,
   onOpen,
   onMenu,
+  animateEntry = true,
 }: {
   patient: Patient;
   status: PatientStatus;
@@ -24,6 +24,8 @@ function PatientCard({
   specialType?: string;
   onOpen: (p: Patient) => void;
   onMenu: (p: Patient) => void;
+  // 虚拟滚动场景下关闭进入动画，避免滚动时卡片反复重放动画。
+  animateEntry?: boolean;
 }) {
   const longPressed = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,12 +54,26 @@ function PatientCard({
       ? { boxShadow: "0 0 0 2px rgb(var(--special) / 0.55)" }
       : undefined;
 
+  const enterAnim = animateEntry
+    ? {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: 6 },
+      }
+    : {
+        initial: false as const,
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+      };
+
   return (
-    <Link
-      href={`/patient/${patient.id}`}
-      className="block"
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`查看 ${patient.name} 详情`}
+      className="block cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       onClick={(e) => {
-        // 长按已触发菜单：阻止 Link 导航（避免进入详情页）。
+        // 长按已触发菜单：阻止打开详情页。
         if (longPressed.current) {
           longPressed.current = false;
           e.preventDefault();
@@ -65,14 +81,18 @@ function PatientCard({
         }
         onOpen(patient);
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(patient);
+        }
+      }}
       onPointerDown={startPress}
       onPointerUp={endPress}
       onPointerLeave={endPress}
     >
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 6 }}
+        {...enterAnim}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         whileTap={{ scale: 0.98 }}
         className={`card-interactive flex items-center gap-3 p-3 ${
@@ -115,7 +135,9 @@ function PatientCard({
             {status.needDressing && (
               <span className="badge-danger">需换药</span>
             )}
-            {status.needBlood && <span className="badge-warning">需查血</span>}
+            {status.needBlood && (
+              <span className="badge-warning">需查血</span>
+            )}
             {status.overdue && <span className="badge-danger">已逾期</span>}
             {status.todayDue && <span className="badge-warning">今日到期</span>}
           </div>
@@ -133,8 +155,54 @@ function PatientCard({
           <MoreHorizontal size={20} />
         </button>
       </motion.div>
-    </Link>
+    </div>
   );
 }
 
-export default React.memo(PatientCard);
+// 自定义比较：仅当实际展示数据或回调引用变化时才重渲染，
+// 避免父级重渲染（如勾选某待办）导致未受影响的卡片连带重渲染（memo 命中）。
+function patientCardEqual(
+  a: {
+    patient: Patient;
+    status: PatientStatus;
+    todoCount: number;
+    bedType?: BedType;
+    specialType?: string;
+    onOpen: (p: Patient) => void;
+    onMenu: (p: Patient) => void;
+    animateEntry?: boolean;
+  },
+  b: {
+    patient: Patient;
+    status: PatientStatus;
+    todoCount: number;
+    bedType?: BedType;
+    specialType?: string;
+    onOpen: (p: Patient) => void;
+    onMenu: (p: Patient) => void;
+    animateEntry?: boolean;
+  }
+): boolean {
+  return (
+    a.onOpen === b.onOpen &&
+    a.onMenu === b.onMenu &&
+    a.todoCount === b.todoCount &&
+    a.bedType === b.bedType &&
+    a.specialType === b.specialType &&
+    a.animateEntry === b.animateEntry &&
+    a.status.needDressing === b.status.needDressing &&
+    a.status.needBlood === b.status.needBlood &&
+    a.status.todayDue === b.status.todayDue &&
+    a.status.overdue === b.status.overdue &&
+    a.patient.id === b.patient.id &&
+    a.patient.name === b.patient.name &&
+    a.patient.diagnosis === b.patient.diagnosis &&
+    a.patient.bedNumber === b.patient.bedNumber &&
+    a.patient.group === b.patient.group &&
+    a.patient.groupColor === b.patient.groupColor &&
+    a.patient.bedType === b.patient.bedType &&
+    a.patient.specialType === b.patient.specialType
+  );
+}
+
+export default React.memo(PatientCard, patientCardEqual);

@@ -1,6 +1,10 @@
-const APP_VERSION = "2.12.7";
+const APP_VERSION = "2.13.0";
 const CACHE = "clinical-care-v" + APP_VERSION;
-const ASSETS = ["/", "/manifest.json", "/icon.svg"];
+// 构建期由 scripts/gen-sw-precache.mjs 注入的全量预缓存清单（所有路由 HTML + /_next/static/*）。
+// 源文件中 PRECACHE_LIST 的赋值保留占位符，构建时由脚本替换为真实数组，以便可重复构建。
+// 默认值含核心路由壳：即便构建期注入脚本因故未执行（如部署平台跳过 npm 脚本链），
+// 首页 / 待办 / 设置 / 病人详情 仍可离线命中；完整清单由 gen-sw-precache.mjs 注入覆盖。
+const PRECACHE_LIST = /*__PRECACHE_LIST__*/["/", "/todos", "/settings", "/patient", "/manifest.json", "/icon.svg"];
 // 通用病人详情壳的固定缓存键：与具体 id 无关，离线打开「任意未在线访问过的病人」时兜底。
 const PATIENT_SHELL_KEY = CACHE + "::patient-shell";
 
@@ -13,7 +17,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(ASSETS))
+      .then((cache) => cache.addAll(PRECACHE_LIST))
       .catch(() => {})
   );
   // 注意：不调用 skipWaiting。新版本安装后进入 waiting 状态，由旧 Service Worker
@@ -52,7 +56,7 @@ async function cachePatientShell(cache, res) {
   }
 }
 
-// 整页导航：cache-first → 网络（写入缓存）→ 离线兜底。
+// 整页导航：优先命中预缓存（含 /patient 静态壳）→ 网络（写入缓存）→ 离线兜底。
 async function handleNavigate(request, url) {
   const cached = await caches.match(request, { cacheName: CACHE });
   if (cached) return cached;
@@ -68,8 +72,8 @@ async function handleNavigate(request, url) {
     }
     return res;
   } catch {
-    // 离线：病人详情路由优先用已缓存的通用壳（与具体 id 无关，前端按 URL 的 id 从
-    // IndexedDB 取数渲染）；否则回退到已缓存的首页 App Shell，避免「Vercel 网址无法访问」。
+    // 离线兜底：病人详情路由优先用已缓存的通用壳（与具体 id 无关，前端按 sessionStorage
+    // 的 id 从 IndexedDB 取数渲染）；否则回退到已缓存的首页 App Shell，避免「网址无法访问」。
     if (isPatientRoute(url.pathname)) {
       const shell = await caches.match(PATIENT_SHELL_KEY, { cacheName: CACHE });
       if (shell) return shell;
@@ -79,7 +83,7 @@ async function handleNavigate(request, url) {
   }
 }
 
-// RSC / 静态资源：cache-first，并在成功响应时写入运行时缓存。
+// 静态资源：cache-first，并在成功响应时写入运行时缓存。
 async function handleAsset(request, url) {
   const cached = await caches.match(request, { cacheName: CACHE });
   if (cached) return cached;
@@ -89,7 +93,7 @@ async function handleAsset(request, url) {
       const copy = res.clone();
       const cache = await caches.open(CACHE);
       cache.put(request, copy);
-      // 病人详情路由的 RSC/文档同样写入通用壳键（首页播种也走此分支）。
+      // 病人详情路由的文档同样写入通用壳键（首页播种也走此分支）。
       if (isPatientRoute(url.pathname)) {
         await cachePatientShell(cache, res);
       }

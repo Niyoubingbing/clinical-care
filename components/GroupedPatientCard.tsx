@@ -19,19 +19,24 @@ function GroupedPatientCard({
   bedInfoMap,
   onOpen,
   onMenu,
+  animateEntry = true,
 }: {
   items: GroupedItem[];
   bedInfoMap?: Map<string, BedInfo>;
   onOpen: (p: Patient) => void;
   onMenu: (p: Patient) => void;
+  // 虚拟滚动场景下关闭进入动画，避免滚动时卡片反复重放动画。
+  animateEntry?: boolean;
 }) {
   if (items.length === 0) return null;
   // 病房块：与单卡（白底 card）区分——采用彩色玻璃质感容器，
   // 主色→信息色渐变半透明底 + 磨砂模糊 + 左侧强调色条，内部白色病人卡「浮」其上。
+  const enterAnim = animateEntry
+    ? { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }
+    : { initial: false as const, animate: { opacity: 1 } };
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...enterAnim}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="relative overflow-hidden rounded-2xl border p-2"
       style={{
@@ -64,6 +69,7 @@ function GroupedPatientCard({
               specialType={info?.specialType}
               onOpen={onOpen}
               onMenu={onMenu}
+              animateEntry={animateEntry}
             />
           );
         })}
@@ -72,4 +78,47 @@ function GroupedPatientCard({
   );
 }
 
-export default React.memo(GroupedPatientCard);
+// 自定义比较：当分组内病人数据或回调引用未变化时，外层分组卡命中 memo，
+// 连同内层 PatientCard 一起跳过重渲染（勾选某待办时仅该待办所属病人卡重渲染）。
+function groupedEqual(
+  a: {
+    items: GroupedItem[];
+    bedInfoMap?: Map<string, BedInfo>;
+    onOpen: (p: Patient) => void;
+    onMenu: (p: Patient) => void;
+    animateEntry?: boolean;
+  },
+  b: {
+    items: GroupedItem[];
+    bedInfoMap?: Map<string, BedInfo>;
+    onOpen: (p: Patient) => void;
+    onMenu: (p: Patient) => void;
+    animateEntry?: boolean;
+  }
+): boolean {
+  if (a.onOpen !== b.onOpen) return false;
+  if (a.onMenu !== b.onMenu) return false;
+  if (a.bedInfoMap !== b.bedInfoMap) return false;
+  if (a.animateEntry !== b.animateEntry) return false;
+  if (a.items.length !== b.items.length) return false;
+  for (let i = 0; i < a.items.length; i++) {
+    const x = a.items[i];
+    const y = b.items[i];
+    if (x.patient.id !== y.patient.id) return false;
+    if (x.todoCount !== y.todoCount) return false;
+    if (x.patient.name !== y.patient.name) return false;
+    if (x.patient.diagnosis !== y.patient.diagnosis) return false;
+    if (x.patient.bedNumber !== y.patient.bedNumber) return false;
+    if (x.patient.group !== y.patient.group) return false;
+    if (x.patient.groupColor !== y.patient.groupColor) return false;
+    const sx = x.status;
+    const sy = y.status;
+    if (sx.needDressing !== sy.needDressing) return false;
+    if (sx.needBlood !== sy.needBlood) return false;
+    if (sx.todayDue !== sy.todayDue) return false;
+    if (sx.overdue !== sy.overdue) return false;
+  }
+  return true;
+}
+
+export default React.memo(GroupedPatientCard, groupedEqual);

@@ -1,0 +1,46 @@
+
+> clinical-care@2.12.7 prebuild
+> node scripts/sync-version.mjs
+
+[sync-version] version -> 2.12.7
+
+> clinical-care@2.12.7 build
+> next build && node scripts/gen-sw-precache.mjs
+
+   ▲ Next.js 15.5.20
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 1932ms
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/11) ...
+   Generating static pages (2/11) 
+   Generating static pages (5/11) 
+   Generating static pages (8/11) 
+ ✓ Generating static pages (11/11)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    9.07 kB         198 kB
+├ ○ /_not-found                            993 B         104 kB
+├ ○ /patient                             5.14 kB         194 kB
+├ ○ /settings                            4.31 kB         184 kB
+├ ○ /settings/bed-recognition            2.01 kB         179 kB
+├ ○ /settings/groups                      3.5 kB         180 kB
+├ ○ /settings/quick-todos                 2.9 kB         180 kB
+├ ○ /settings/rounding                   5.99 kB         183 kB
+└ ○ /todos                               4.94 kB         189 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-3a91f01e1c0f613e.js       46.3 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)             2 kB
+
+
+○  (Static)  prerendered as static content
+
+[gen-sw-precache] 已注入 49 个预缓存资源
+BUILD_EXIT=0
+LOG_WRITTEN

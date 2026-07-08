@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Plus, ClipboardList, ArrowUpDown } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/db";
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
@@ -38,30 +38,14 @@ export default function HomePage() {
   // 否则会闪一下「暂无病人」被误认为数据丢失。
   const loading = patientsQuery === undefined || settings === undefined;
 
-  // App Shell 模式（修正 v2.12.6「逐个预取病人 RSC」的错误路径）：
-  // 本应用数据全在 IndexedDB（客户端），/patient/[id] 对任意 id 只是「同一个通用空壳」，
-  // 离线可用性不依赖枚举病人。首次联网且已有病人时，抓取任意一个病人路由的 HTML 文档，
-  // 由 Service Worker 写入缓存（含固定通用壳键 patient-shell）。之后离线打开任意病人
-  // （含断网后新导入的）都由 SW 用该通用壳兜底，前端按 URL 的 id 从 IndexedDB 取数渲染。
-  // 只播种「一个」壳，而非逐个预取——这才是 App Shell 的正确做法。
-  const shellSeeded = useRef(false);
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return; // dev 不播种
-    if (shellSeeded.current) return;
-    if (!patients.length) return;
-    shellSeeded.current = true;
-    const seedId = patients[0].id;
-    fetch(`/patient/${seedId}`)
-      .then(() => {})
-      .catch(() => {});
-  }, [patients]);
-
   const [group, setGroup] = useState<string | null>(null);
 
   // 首页病人列表的展示方向（正/反序），与查房顺序设置解耦，持久化到 settings。
   const listDirection = settings?.listDirection ?? "forward";
-  const setListDirection = (dir: "forward" | "reverse") =>
-    updateSettings({ listDirection: dir });
+  const setListDirection = useCallback(
+    (dir: "forward" | "reverse") => updateSettings({ listDirection: dir }),
+    []
+  );
 
   const [addOpen, setAddOpen] = useState(false);
   const [todoOpen, setTodoOpen] = useState(false);
@@ -176,33 +160,67 @@ export default function HomePage() {
     return m;
   }, [patients, settings]);
 
-  // 导航交给 PatientCard 内的 <Link>（Next 自动视口预取动态路由），
-  // 这里只记录滚动位置，确保详情页返回时回到原位置。
-  const openDetail = (p: Patient) => {
-    sessionStorage.setItem("homeScroll", String(window.scrollY));
-  };
+  // 导航交给卡片的 onOpen 回调：写入病人 id 到客户端 store 并跳转静态 /patient 页。
+  const openDetail = useCallback(
+    (p: Patient) => {
+      // 记录当前滚动位置（详情页返回时由 router 滚动恢复），
+      // 并把病人 id 写入客户端 store，导航到静态 /patient 页（离线可用）。
+      sessionStorage.setItem("homeScroll", String(window.scrollY));
+      sessionStorage.setItem("cc:pid", p.id);
+      router.push("/patient");
+    },
+    [router]
+  );
 
-  const onReminderClick = () => {
+  const onMenu = useCallback((p: Patient) => setMenuPatient(p), []);
+
+  const onReminderClick = useCallback(() => {
     router.push(
       reminders.overdueTodos > 0
         ? "/todos?filter=overdue"
         : "/todos?filter=today"
     );
-  };
+  }, [router, reminders.overdueTodos]);
 
-  const doDelete = async (p: Patient) => {
-    const ptodos = todos.filter((t) => t.patientId === p.id);
-    await deletePatient(p.id);
-    toast({
-      message: "已删除 · 撤销",
-      actionLabel: "撤销",
-      onAction: async () => {
-        await db.patients.add(p);
-        if (ptodos.length) await db.todos.bulkAdd(ptodos);
-        toast({ message: "已恢复" });
-      },
-    });
-  };
+  const doDelete = useCallback(
+    async (p: Patient) => {
+      const ptodos = todos.filter((t) => t.patientId === p.id);
+      await deletePatient(p.id);
+      toast({
+        message: "已删除 · 撤销",
+        actionLabel: "撤销",
+        onAction: async () => {
+          await db.patients.add(p);
+          if (ptodos.length) await db.todos.bulkAdd(ptodos);
+          toast({ message: "已恢复" });
+        },
+      });
+    },
+    [todos, toast]
+  );
+
+  // 列表虚拟化（窗口滚动）：大病房（>50 病人）下消除滚动卡顿。
+  // 列表在文档中的纵向偏移用于虚拟化正确定位。
+  const listRef = useRef<HTMLDivElement>(null);
+  const [listOffset, setListOffset] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      if (listRef.current) {
+        const rect = listRef.current.getBoundingClientRect();
+        setListOffset(rect.top + window.scrollY);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [filtered.length]);
+
+  const virtualizer = useWindowVirtualizer({
+    count: filtered.length,
+    estimateSize: () => 68,
+    overscan: 10,
+    scrollMargin: listOffset,
+  });
 
   return (
     <div className="space-y-4">
@@ -286,31 +304,50 @@ export default function HomePage() {
           }
         />
       ) : (
-        <div className="space-y-2">
-          <AnimatePresence initial={false}>
-            {filtered.map((g) =>
-              g.type === "group" ? (
-                <GroupedPatientCard
-                  key={g.id}
-                  items={g.items}
-                  bedInfoMap={bedInfoMap}
-                  onOpen={openDetail}
-                  onMenu={(patient) => setMenuPatient(patient)}
-                />
-              ) : (
-                <PatientCard
-                  key={g.patient.id}
-                  patient={g.patient}
-                  todoCount={g.todoCount}
-                  status={g.status}
-                  bedType={bedInfoMap.get(g.patient.id)?.bedType}
-                  specialType={bedInfoMap.get(g.patient.id)?.specialType}
-                  onOpen={openDetail}
-                  onMenu={(patient) => setMenuPatient(patient)}
-                />
-              )
-            )}
-          </AnimatePresence>
+        <div
+          ref={listRef}
+          style={{ height: virtualizer.getTotalSize(), position: "relative" }}
+        >
+          {virtualizer.getVirtualItems().map((vi) => {
+            const g = filtered[vi.index];
+            const key = g.type === "group" ? g.id : g.patient.id;
+            return (
+              <div
+                key={key}
+                data-index={vi.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${vi.start - listOffset}px)`,
+                }}
+                className="pb-2"
+              >
+                {g.type === "group" ? (
+                  <GroupedPatientCard
+                    items={g.items}
+                    bedInfoMap={bedInfoMap}
+                    onOpen={openDetail}
+                    onMenu={onMenu}
+                    animateEntry={false}
+                  />
+                ) : (
+                  <PatientCard
+                    patient={g.patient}
+                    todoCount={g.todoCount}
+                    status={g.status}
+                    bedType={bedInfoMap.get(g.patient.id)?.bedType}
+                    specialType={bedInfoMap.get(g.patient.id)?.specialType}
+                    onOpen={openDetail}
+                    onMenu={onMenu}
+                    animateEntry={false}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

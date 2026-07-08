@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Reorder, useDragControls, type DragControls } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { GripVertical, X, Plus } from "lucide-react";
-import { getSettings, updateSettings } from "@/lib/db";
+import { getSettings, updateSettings, uid } from "@/lib/db";
 import { QuickTodo } from "@/types";
 import { useApp } from "@/components/Providers";
 
@@ -32,7 +32,7 @@ export default function QuickTodosPage() {
       toast({ message: "请输入标签" });
       return;
     }
-    commit([...list, { label: t, type: "其他", content: t }]);
+    commit([...list, { id: uid(), label: t, type: "其他", content: t }]);
     setLabel("");
   };
 
@@ -43,7 +43,9 @@ export default function QuickTodosPage() {
   };
 
   const onReorder = (ids: string[]) => {
-    const byId = new Map(list.map((item, i) => [`qt-${i}`, item]));
+    const byId = new Map(
+      list.map((item, i) => [item.id ?? `qt-${i}`, item] as const)
+    );
     const next = ids
       .map((id) => byId.get(id))
       .filter((q): q is QuickTodo => Boolean(q));
@@ -81,14 +83,14 @@ export default function QuickTodosPage() {
         {list.length > 0 && (
           <Reorder.Group
             axis="y"
-            values={list.map((_, i) => `qt-${i}`)}
+            values={list.map((qt, i) => qt.id ?? `qt-${i}`)}
             onReorder={onReorder}
             className="space-y-2"
           >
             {list.map((qt, i) => (
               <QuickTodoItem
-                key={`qt-${i}`}
-                id={`qt-${i}`}
+                key={qt.id ?? `qt-${i}`}
+                id={qt.id ?? `qt-${i}`}
                 item={qt}
                 onRemove={() => remove(i)}
               />
