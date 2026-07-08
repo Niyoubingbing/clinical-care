@@ -244,10 +244,10 @@ export default function RoundingPage() {
       )}
 
       <div className="flex gap-2 pt-1">
-        <button className="btn-secondary h-11 flex-1" onClick={addRoom}>
+        <button className="btn-secondary h-11 flex-1 whitespace-nowrap" onClick={addRoom}>
           <Plus size={16} /> 添加病房块
         </button>
-        <button className="btn-secondary h-11 flex-1" onClick={addExtra}>
+        <button className="btn-secondary h-11 flex-1 whitespace-nowrap" onClick={addExtra}>
           <Plus size={16} /> 添加真实加床块
         </button>
       </div>
