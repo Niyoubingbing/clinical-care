@@ -13,10 +13,10 @@ import { TodoListView } from "@/components/TodoListView";
 import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
 
-type Filter = "all" | "pending" | "today" | "overdue";
+type Filter = "pending" | "completed" | "today" | "overdue";
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "全部" },
   { key: "pending", label: "未完成" },
+  { key: "completed", label: "已完成" },
   { key: "today", label: "今天到期" },
   { key: "overdue", label: "已逾期" },
 ];
@@ -25,7 +25,10 @@ function TodosInner() {
   const router = useRouter();
   const { toast } = useApp();
   const sp = useSearchParams();
-  const initialFilter = (sp.get("filter") as Filter) || "all";
+  const validFilters: Filter[] = ["pending", "completed", "today", "overdue"];
+  const raw = sp.get("filter") as Filter | null;
+  // 默认只展示未完成；旧的 ?filter=all 链接（已无此筛选项）回退到未完成。
+  const initialFilter = raw && validFilters.includes(raw) ? raw : "pending";
 
   const [filter, setFilter] = useState<Filter>(initialFilter);
 
@@ -43,6 +46,16 @@ function TodosInner() {
     () => todos.filter((t) => !t.patientId),
     [todos]
   );
+
+  // 「通用待办」头部计数随当前筛选变化：未完成视图看进行中数，已完成视图看已完成数。
+  const generalCount = useMemo(
+    () =>
+      filter === "completed"
+        ? generalTodos.filter((t) => t.status === "completed").length
+        : generalTodos.filter((t) => t.status === "pending").length,
+    [filter, generalTodos]
+  );
+  const generalCountLabel = filter === "completed" ? "已完成" : "进行中";
 
   // 病人待办：按病人聚合为独立卡片。
   const patientGroups = useMemo(() => {
@@ -73,8 +86,8 @@ function TodosInner() {
   // 筛选条件：用 useCallback 稳定引用，确保传给 memo 化的 TodoListView 时命中 memo。
   const passFilter = useCallback(
     (t: Todo): boolean => {
-      if (filter === "all") return true;
       if (filter === "pending") return t.status === "pending";
+      if (filter === "completed") return t.status === "completed";
       if (filter === "today")
         return t.status === "pending" && dueLabel(t.dueDate).level === "today";
       if (filter === "overdue")
@@ -168,7 +181,7 @@ function TodosInner() {
               <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted">
                 通用待办
                 <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
-                  {generalTodos.filter((t) => t.status === "pending").length} 进行中
+                  {generalCount} {generalCountLabel}
                 </span>
               </p>
               <TodoListView
@@ -176,6 +189,7 @@ function TodosInner() {
                 passFilter={passFilter}
                 onToggle={onToggle}
                 onDelete={onDelete}
+                expandCompleted={filter === "completed"}
               />
             </section>
           )}
@@ -222,6 +236,7 @@ function TodosInner() {
                     onDelete={onDelete}
                     onOpen={onOpen}
                     patient={patient}
+                    expandCompleted={filter === "completed"}
                   />
                 </section>
               );

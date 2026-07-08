@@ -59,12 +59,20 @@ export default function TodoFormSheet({
       toast({ message: "请输入待办内容" });
       return;
     }
-    await addTodo({
-      patientId: patientId ?? null,
-      content: text,
-      type,
-      dueDate: dueDate || undefined,
-    });
+    // 通用待办（不关联病人）只存内容，不设置类型与目标日期。
+    if (patientId) {
+      await addTodo({
+        patientId,
+        content: text,
+        type,
+        dueDate: dueDate || undefined,
+      });
+    } else {
+      await addTodo({
+        patientId: null,
+        content: text,
+      });
+    }
     toast({
       message: patientId ? "待办已添加" : "通用待办已添加",
     });
@@ -86,46 +94,56 @@ export default function TodoFormSheet({
             className="input min-h-[88px] resize-none"
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            placeholder="如：星期二出院 / 后天换药 / 周四复查X光"
+            placeholder={
+              patientId
+                ? "如：星期二出院 / 后天换药 / 周四复查X光"
+                : "如：交班记录 / 写病历 / 周会"
+            }
           />
-          <p className="mt-1 text-[12px] text-muted">
-            {parse
-              ? `识别到时间：${parse.date}（${parse.label}）`
-              : "未识别到时间"}
-          </p>
+          {patientId && (
+            <p className="mt-1 text-[12px] text-muted">
+              {parse
+                ? `识别到时间：${parse.date}（${parse.label}）`
+                : "未识别到时间"}
+            </p>
+          )}
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-main">
-            类型
-          </label>
-          <select
-            className="input"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {TODO_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
+        {patientId && (
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-main">
+              类型
+            </label>
+            <select
+              className="input"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {TODO_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-main">
-            目标日期
-          </label>
-          <input
-            type="date"
-            className="input"
-            value={dueDate}
-            onChange={(e) => {
-              setDateTouched(true);
-              setDueDate(e.target.value);
-            }}
-          />
-        </div>
+        {patientId && (
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-main">
+              目标日期
+            </label>
+            <input
+              type="date"
+              className="input"
+              value={dueDate}
+              onChange={(e) => {
+                setDateTouched(true);
+                setDueDate(e.target.value);
+              }}
+            />
+          </div>
+        )}
 
         <button
           className="btn-primary h-12 w-full text-[15px]"

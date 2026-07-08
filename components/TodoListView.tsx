@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown } from "lucide-react";
 import { Todo, Patient } from "@/types";
-import { dueLabel } from "@/lib/time-parser";
 import SwipeableTodo from "@/components/SwipeableTodo";
 
 function sortTodos(todos: Todo[]): Todo[] {
@@ -29,6 +28,7 @@ function TodoListViewImpl({
   onDelete,
   onOpen,
   patient,
+  expandCompleted = false,
 }: {
   list: Todo[];
   passFilter: (t: Todo) => boolean;
@@ -36,8 +36,10 @@ function TodoListViewImpl({
   onDelete: (t: Todo) => void;
   onOpen?: (t: Todo) => void;
   patient?: Patient | null;
+  // 待办页「已完成」筛选下传 true：直接平铺已完成项，不再折叠（避免多一次点击）。
+  expandCompleted?: boolean;
 }) {
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(expandCompleted);
   const pending = useMemo(
     () => sortTodos(list.filter((t) => t.status === "pending" && passFilter(t))),
     [list, passFilter]
@@ -146,17 +148,19 @@ function TodoListViewImpl({
 
       {completed.length > 0 && (
         <div>
-          <button
-            type="button"
-            onClick={() => setShowCompleted((s) => !s)}
-            className="flex w-full items-center gap-1 px-1 py-1.5 text-[12px] font-medium text-muted transition hover:text-main"
-          >
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${showCompleted ? "" : "-rotate-90"}`}
-            />
-            已完成 {completed.length}
-          </button>
+          {!expandCompleted && (
+            <button
+              type="button"
+              onClick={() => setShowCompleted((s) => !s)}
+              className="flex w-full items-center gap-1 px-1 py-1.5 text-[12px] font-medium text-muted transition hover:text-main"
+            >
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showCompleted ? "" : "-rotate-90"}`}
+              />
+              已完成 {completed.length}
+            </button>
+          )}
           {showCompleted && !longList && (
             <AnimatePresence initial={false}>
               {completed.map((t) => (
