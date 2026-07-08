@@ -1,6 +1,13 @@
-const APP_VERSION = "2.12.6";
+const APP_VERSION = "2.12.7";
 const CACHE = "clinical-care-v" + APP_VERSION;
 const ASSETS = ["/", "/manifest.json", "/icon.svg"];
+// 通用病人详情壳的固定缓存键：与具体 id 无关，离线打开「任意未在线访问过的病人」时兜底。
+const PATIENT_SHELL_KEY = CACHE + "::patient-shell";
+
+// 判断是否为病人详情路由（/patient 或 /patient/xxx）。
+function isPatientRoute(pathname) {
+  return pathname === "/patient" || pathname.startsWith("/patient/");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -19,7 +26,12 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+        // 删除旧版本缓存，但保留当前版本的通用病人壳键（跨激活复用）。
+        Promise.all(
+          keys
+            .filter((k) => k !== CACHE && k !== PATIENT_SHELL_KEY)
+            .map((k) => caches.delete(k))
+        )
       )
       .then(() => self.clients.claim())
   );
@@ -31,50 +43,73 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// 把病人详情路由的响应同时写入「通用壳键」，供离线打开任意病人兜底。
+async function cachePatientShell(cache, res) {
+  try {
+    await cache.put(PATIENT_SHELL_KEY, res.clone());
+  } catch {
+    /* 忽略写入失败 */
+  }
+}
+
+// 整页导航：cache-first → 网络（写入缓存）→ 离线兜底。
+async function handleNavigate(request, url) {
+  const cached = await caches.match(request, { cacheName: CACHE });
+  if (cached) return cached;
+  try {
+    const res = await fetch(request);
+    if (res && res.status === 200) {
+      const copy = res.clone();
+      const cache = await caches.open(CACHE);
+      cache.put(request, copy);
+      if (isPatientRoute(url.pathname)) {
+        await cachePatientShell(cache, res);
+      }
+    }
+    return res;
+  } catch {
+    // 离线：病人详情路由优先用已缓存的通用壳（与具体 id 无关，前端按 URL 的 id 从
+    // IndexedDB 取数渲染）；否则回退到已缓存的首页 App Shell，避免「Vercel 网址无法访问」。
+    if (isPatientRoute(url.pathname)) {
+      const shell = await caches.match(PATIENT_SHELL_KEY, { cacheName: CACHE });
+      if (shell) return shell;
+    }
+    const home = await caches.match("/", { cacheName: CACHE });
+    return home || Response.error();
+  }
+}
+
+// RSC / 静态资源：cache-first，并在成功响应时写入运行时缓存。
+async function handleAsset(request, url) {
+  const cached = await caches.match(request, { cacheName: CACHE });
+  if (cached) return cached;
+  try {
+    const res = await fetch(request);
+    if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
+      const copy = res.clone();
+      const cache = await caches.open(CACHE);
+      cache.put(request, copy);
+      // 病人详情路由的 RSC/文档同样写入通用壳键（首页播种也走此分支）。
+      if (isPatientRoute(url.pathname)) {
+        await cachePatientShell(cache, res);
+      }
+    }
+    return res;
+  } catch {
+    return cached || Response.error();
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // 仅处理同源请求
 
-  // 整页导航（mode === "navigate"）：cache-first → 网络（写入缓存）→
-  // 离线且未缓存时回退到已缓存的首页 App Shell，避免「Vercel 网址无法访问」，
-  // 由前端 IndexedDB + 客户端路由继续渲染目标页面。
   if (request.mode === "navigate") {
-    event.respondWith(
-      caches.match(request, { cacheName: CACHE }).then((cached) => {
-        if (cached) return cached;
-        return fetch(request)
-          .then((res) => {
-            if (res && res.status === 200) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(request, copy));
-            }
-            return res;
-          })
-          .catch(() => caches.match("/", { cacheName: CACHE }));
-      })
-    );
+    event.respondWith(handleNavigate(request, url));
     return;
   }
 
-  // RSC / 静态资源：cache-first，并在成功响应时写入运行时缓存，
-  // 使「联网时打开过 / 预取的详情路由」在离线时可直接命中。
-  event.respondWith(
-    caches.match(request, { cacheName: CACHE }).then((cached) => {
-      // cache-first + 仅匹配当前版本缓存：旧版本期间始终返回已缓存内容，
-      // 且不会误命中 waiting 新 SW 已预缓存的资源，确保「旧版本完整运行」；
-      // 新版本激活后旧缓存被清除，首次请求即写入新缓存。
-      if (cached) return cached;
-      return fetch(request)
-        .then((res) => {
-          if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(request, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-    })
-  );
+  event.respondWith(handleAsset(request, url));
 });

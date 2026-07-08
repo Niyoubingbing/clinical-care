@@ -38,27 +38,23 @@ export default function HomePage() {
   // 否则会闪一下「暂无病人」被误认为数据丢失。
   const loading = patientsQuery === undefined || settings === undefined;
 
-  // 离线优先：首次联网加载后，后台分块预取「全部病人详情路由」的 RSC。
-  // 这样「联网加载一次后断网」也能打开任意病人详情页——否则未预取的动态路由
-  // (/patient/[id]) 在离线时客户端路由要去拉取 RSC 而失败，浏览器报「Vercel 网址无法访问」。
-  // 预取的 RSC 由 Service Worker 运行时缓存，离线导航直接命中缓存。
+  // App Shell 模式（修正 v2.12.6「逐个预取病人 RSC」的错误路径）：
+  // 本应用数据全在 IndexedDB（客户端），/patient/[id] 对任意 id 只是「同一个通用空壳」，
+  // 离线可用性不依赖枚举病人。首次联网且已有病人时，抓取任意一个病人路由的 HTML 文档，
+  // 由 Service Worker 写入缓存（含固定通用壳键 patient-shell）。之后离线打开任意病人
+  // （含断网后新导入的）都由 SW 用该通用壳兜底，前端按 URL 的 id 从 IndexedDB 取数渲染。
+  // 只播种「一个」壳，而非逐个预取——这才是 App Shell 的正确做法。
+  const shellSeeded = useRef(false);
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return; // dev 不预取
+    if (process.env.NODE_ENV !== "production") return; // dev 不播种
+    if (shellSeeded.current) return;
     if (!patients.length) return;
-    let i = 0;
-    const CHUNK = 10;
-    const timer = setInterval(() => {
-      for (let k = 0; k < CHUNK && i < patients.length; k++, i++) {
-        try {
-          router.prefetch(`/patient/${patients[i].id}`);
-        } catch {
-          /* 忽略单个预取失败 */
-        }
-      }
-      if (i >= patients.length) clearInterval(timer);
-    }, 250);
-    return () => clearInterval(timer);
-  }, [patients, router]);
+    shellSeeded.current = true;
+    const seedId = patients[0].id;
+    fetch(`/patient/${seedId}`)
+      .then(() => {})
+      .catch(() => {});
+  }, [patients]);
 
   const [group, setGroup] = useState<string | null>(null);
 
