@@ -115,6 +115,18 @@ export default function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
+    // 本地开发环境（npm run dev）不注册 Service Worker：
+    // SW 的 fetch 为 cache-first，会缓存 dev 模式下带 hash 的 JS chunk；
+    // 一旦改代码 / 重启 dev，chunk hash 变化导致旧 chunk 取不到，整个 APP 白屏无法运行。
+    // 同时主动注销可能残留的旧 SW（修复已被破坏的本地环境）。
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => regs.forEach((r) => r.unregister()))
+        .catch(() => {});
+      return;
+    }
+
     // 读取本地版本（关于应用页展示 + 检查更新比对）
     fetch("/version.json", { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : null))

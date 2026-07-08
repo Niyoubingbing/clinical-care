@@ -13,7 +13,7 @@ import { parseBed } from "@/lib/bed-parser";
 
 import QuickActions from "@/components/QuickActions";
 import QuickTodoBar from "@/components/QuickTodoBar";
-import SwipeableTodo from "@/components/SwipeableTodo";
+import { TodoListView } from "@/components/TodoListView";
 import TodoFormSheet from "@/components/TodoFormSheet";
 import PatientFormSheet from "@/components/PatientFormSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -237,25 +237,14 @@ export default function PatientDetailPage() {
       </div>
 
       <div>
-        <p className="mb-2 text-[13px] font-medium text-muted">
-          待办（{list.filter((t) => t.status === "pending").length} 进行中）
-        </p>
-        {list.length === 0 ? (
-          <p className="rounded-xl bg-card/50 px-4 py-8 text-center text-[13px] text-muted">
-            暂无待办
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {list.map((t) => (
-              <SwipeableTodo
-                key={t.id}
-                todo={t}
-                onToggle={onToggle}
-                onDelete={onDelete}
-              />
-            ))}
-          </div>
-        )}
+        <p className="mb-2 text-[13px] font-medium text-muted">待办</p>
+        <TodoListView
+          list={list}
+          passFilter={() => true}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          patient={patient}
+        />
       </div>
 
       <button
