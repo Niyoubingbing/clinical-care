@@ -1,4 +1,10 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "out"
+  "outputDirectory": "out",
+  "rewrites": [
+    { "source": "/todos", "destination": "/todos.html" },
+    { "source": "/settings", "destination": "/settings.html" },
+    { "source": "/settings/:path*", "destination": "/settings/:path*.html" },
+    { "source": "/patient/:path*", "destination": "/patient.html" }
+  ]
 }

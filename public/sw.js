@@ -62,18 +62,20 @@ async function handleNavigate(request, url) {
   if (cached) return cached;
   try {
     const res = await fetch(request);
-    if (res && res.status === 200) {
+    // 仅当响应正常（2xx）才缓存并返回；否则视为未命中，走下方兜底而非把错误页透传。
+    if (res && res.ok) {
       const copy = res.clone();
       const cache = await caches.open(CACHE);
       cache.put(request, copy);
       if (isPatientRoute(url.pathname)) {
         await cachePatientShell(cache, res);
       }
+      return res;
     }
-    return res;
+    throw new Error("navigate-bad-status-" + (res && res.status));
   } catch {
-    // 离线兜底：病人详情路由优先用已缓存的通用壳（与具体 id 无关，前端按 sessionStorage
-    // 的 id 从 IndexedDB 取数渲染）；否则回退到已缓存的首页 App Shell，避免「网址无法访问」。
+    // 离线/服务端错误兜底：病人详情路由优先用已缓存的通用壳（与具体 id 无关），
+    // 否则回退到已缓存的首页 App Shell，避免「网址无法访问 / 裸 404」。
     if (isPatientRoute(url.pathname)) {
       const shell = await caches.match(PATIENT_SHELL_KEY, { cacheName: CACHE });
       if (shell) return shell;
