@@ -134,8 +134,8 @@ export default function BatchImportSheet({
             <div className="text-warning">
               <p>跳过 {preview.skipped.length} 行：</p>
               <ul className="ml-4 list-disc">
-                {preview.skipped.slice(0, 5).map((s, i) => (
-                  <li key={i}>
+                {preview.skipped.slice(0, 5).map((s) => (
+                  <li key={s.line}>
                     第 {s.line} 行：{s.reason}
                   </li>
                 ))}

@@ -67,7 +67,7 @@ export function parseTime(text: string): ParsedTime | null {
     if (m) {
       const num = WEEKDAY[m[2]];
       if (num === undefined) continue;
-      let base = (num - todayWd + 7) % 7;
+      const base = (num - todayWd + 7) % 7;
       const days = base + add;
       const d = addDays(today, days);
       return {

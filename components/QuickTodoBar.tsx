@@ -35,9 +35,9 @@ export default function QuickTodoBar({ patientId }: { patientId: string }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {quickTodos.map((qt, i) => (
+      {quickTodos.map((qt) => (
         <button
-          key={i}
+          key={qt.id}
           onClick={() => onAdd(qt.label, qt.type, qt.content)}
           className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-[12px] font-medium text-main transition active:scale-95 hover:border-primary"
         >

@@ -1,5 +1,4 @@
 import { Patient, RoundingConfig, RoundingBlock } from "@/types";
-import { parseBed } from "./bed-parser";
 import { isFullBed, blockLabel } from "./rounding-edit";
 
 export interface OrderedPatient {

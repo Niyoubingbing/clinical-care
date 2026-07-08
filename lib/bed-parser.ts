@@ -13,6 +13,7 @@ export interface BedParseResult {
 }
 
 function trailingDigits(s: string): number | null {
+  if (!s) return null;
   const m = s.match(/(\d+)\D*$/);
   if (!m) return null;
   const n = parseInt(m[1], 10);
@@ -31,6 +32,17 @@ export function parseBed(
   template: string = DEFAULT_BED_TEMPLATE,
   specialMarks: string[] = DEFAULT_SPECIAL_MARKS
 ): BedParseResult {
+  if (!bedNumber) {
+    return {
+      bedNumber: bedNumber ?? "",
+      matched: false,
+      ward: "",
+      specialType: "",
+      bedBase: 0,
+      bedType: "real",
+    };
+  }
+
   const fallback: BedParseResult = {
     bedNumber,
     matched: false,
