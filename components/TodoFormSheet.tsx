@@ -3,20 +3,8 @@
 import { useEffect, useState } from "react";
 import BottomSheet from "./BottomSheet";
 import { useApp } from "./Providers";
-import { addTodo, todayStr } from "@/lib/db";
-import { parseTime } from "@/lib/time-parser";
-
-const TODO_TYPES = [
-  "换药",
-  "查血",
-  "开术前",
-  "明天出院",
-  "康复会诊",
-  "会诊",
-  "复查",
-  "开查血",
-  "其他",
-];
+import { addTodo } from "@/lib/db";
+import { parseTime, inferTodoType } from "@/lib/time-parser";
 
 export default function TodoFormSheet({
   open,
@@ -31,26 +19,18 @@ export default function TodoFormSheet({
 }) {
   const { toast } = useApp();
   const [content, setContent] = useState("");
-  const [type, setType] = useState("其他");
-  const [dueDate, setDueDate] = useState(todayStr());
-  const [dateTouched, setDateTouched] = useState(false);
   const [parse, setParse] = useState<ReturnType<typeof parseTime>>(null);
 
   useEffect(() => {
     if (open) {
       setContent("");
-      setType("其他");
-      setDueDate(todayStr());
-      setDateTouched(false);
       setParse(null);
     }
   }, [open]);
 
   const onContentChange = (v: string) => {
     setContent(v);
-    const p = parseTime(v);
-    setParse(p);
-    if (p && !dateTouched) setDueDate(p.date);
+    setParse(parseTime(v));
   };
 
   const submit = async () => {
@@ -59,20 +39,15 @@ export default function TodoFormSheet({
       toast({ message: "请输入待办内容" });
       return;
     }
-    // 通用待办（不关联病人）只存内容，不设置类型与目标日期。
-    if (patientId) {
-      await addTodo({
-        patientId,
-        content: text,
-        type,
-        dueDate: dueDate || undefined,
-      });
-    } else {
-      await addTodo({
-        patientId: null,
-        content: text,
-      });
-    }
+    // 病人与通用待办统一：只存内容 + 推断类型 + 解析出的日期，
+    // 不再区分两套字段（类型/目标日期由内容自动推断）。
+    const p = parseTime(text);
+    await addTodo({
+      patientId: patientId ?? null,
+      content: text,
+      type: inferTodoType(text),
+      dueDate: p?.date,
+    });
     toast({
       message: patientId ? "待办已添加" : "通用待办已添加",
     });
@@ -100,50 +75,12 @@ export default function TodoFormSheet({
                 : "如：交班记录 / 写病历 / 周会"
             }
           />
-          {patientId && (
-            <p className="mt-1 text-[12px] text-muted">
-              {parse
-                ? `识别到时间：${parse.date}（${parse.label}）`
-                : "未识别到时间"}
-            </p>
-          )}
+          <p className="mt-1 text-[12px] text-muted">
+            {parse
+              ? `识别到时间：${parse.date}（${parse.label}）`
+              : "未识别到时间"}
+          </p>
         </div>
-
-        {patientId && (
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-main">
-              类型
-            </label>
-            <select
-              className="input"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {TODO_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {patientId && (
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-main">
-              目标日期
-            </label>
-            <input
-              type="date"
-              className="input"
-              value={dueDate}
-              onChange={(e) => {
-                setDateTouched(true);
-                setDueDate(e.target.value);
-              }}
-            />
-          </div>
-        )}
 
         <button
           className="btn-primary h-12 w-full text-[15px]"

@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
-import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr } from "@/lib/db";
+import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo } from "@/types";
-import { dueLabel } from "@/lib/time-parser";
 import { patientStatus } from "@/lib/reminders";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 import { parseBed } from "@/lib/bed-parser";
@@ -163,7 +162,7 @@ export default function PatientDetailPage() {
     );
   }
 
-  const color = patient.groupColor || "#e2e8f0";
+  const color = patient.groupColor || DEFAULT_GROUP_COLOR;
 
   return (
     <div className="space-y-4">

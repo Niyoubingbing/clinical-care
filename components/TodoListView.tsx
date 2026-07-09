@@ -190,4 +190,3 @@ function TodoListViewImpl({
 }
 
 export const TodoListView = memo(TodoListViewImpl);
-export default TodoListView;

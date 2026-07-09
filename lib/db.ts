@@ -320,3 +320,6 @@ export function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
+
+// 默认分组颜色（病人未指定所属分组时的兜底色），统一单一来源。
+export const DEFAULT_GROUP_COLOR = "#e2e8f0";

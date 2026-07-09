@@ -1,3 +1,5 @@
+import type { TodoType } from "@/types";
+
 export interface ParsedTime {
   date: string; // YYYY-MM-DD
   label: "今明后天" | "星期几" | "具体日期";
@@ -106,6 +108,28 @@ export function parseTime(text: string): ParsedTime | null {
   }
 
   return null;
+}
+
+/**
+ * 从自由文本待办内容推断其类型。
+ * 命中关键词即返回对应 TodoType；均未命中返回「其他」。
+ * 用于新建待办时自动归类（如内容含「换药」即记为换药类，
+ * 从而保留「换药 → lastDressingChange 联动」逻辑），无需用户手动选择类型。
+ */
+export function inferTodoType(content: string): TodoType {
+  const map: [string, TodoType][] = [
+    ["开查血", "开查血"],
+    ["查血", "查血"],
+    ["换药", "换药"],
+    ["开术前", "开术前"],
+    ["术前", "开术前"],
+    ["出院", "出院"],
+    ["康复会诊", "康复会诊"],
+    ["会诊", "会诊"],
+    ["复查", "复查"],
+  ];
+  for (const [kw, t] of map) if (content.includes(kw)) return t;
+  return "其他";
 }
 
 export type DueLevel = "none" | "overdue" | "today" | "soon" | "future";

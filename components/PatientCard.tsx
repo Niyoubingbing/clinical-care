@@ -6,6 +6,7 @@ import { MoreHorizontal } from "lucide-react";
 import { Patient, BedType } from "@/types";
 import { PatientStatus } from "@/lib/reminders";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
+import { DEFAULT_GROUP_COLOR } from "@/lib/db";
 
 function PatientCard({
   patient,
@@ -40,7 +41,7 @@ function PatientCard({
     if (timer.current) clearTimeout(timer.current);
   };
 
-  const color = patient.groupColor || "#e2e8f0";
+  const color = patient.groupColor || DEFAULT_GROUP_COLOR;
   const dangerBorder = status.overdue || status.needDressing;
 
   // 合并「传入的实时解析值」与「已持久化的字段」，确保两种来源都能标识特殊床。

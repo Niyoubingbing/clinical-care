@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import BottomSheet from "./BottomSheet";
 import { useApp } from "./Providers";
-import { addPatient, updatePatient, getSettings } from "@/lib/db";
+import { addPatient, updatePatient, getSettings, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
 import { Patient } from "@/types";
 
@@ -24,7 +24,7 @@ export function PatientForm({
   const [name, setName] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [group, setGroup] = useState("");
-  const [groupColor, setGroupColor] = useState("#e2e8f0");
+  const [groupColor, setGroupColor] = useState(DEFAULT_GROUP_COLOR);
   const [surgeryDate, setSurgeryDate] = useState("");
   const [dressingFrequency, setDressingFrequency] = useState("");
   const [lastDressingChange, setLastDressingChange] = useState("");
@@ -36,7 +36,7 @@ export function PatientForm({
       setName(patient.name);
       setDiagnosis(patient.diagnosis);
       setGroup(patient.group ?? "");
-      setGroupColor(patient.groupColor ?? "#e2e8f0");
+      setGroupColor(patient.groupColor ?? DEFAULT_GROUP_COLOR);
       setSurgeryDate(patient.surgeryDate ?? "");
       setDressingFrequency(
         patient.dressingFrequency ? String(patient.dressingFrequency) : ""
@@ -48,7 +48,7 @@ export function PatientForm({
       setName("");
       setDiagnosis("");
       setGroup("");
-      setGroupColor("#e2e8f0");
+      setGroupColor(DEFAULT_GROUP_COLOR);
       setSurgeryDate("");
       setDressingFrequency("");
       setLastDressingChange("");

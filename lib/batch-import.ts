@@ -1,5 +1,6 @@
 import { Patient } from "@/types";
 import { parseBed, DEFAULT_BED_TEMPLATE, DEFAULT_SPECIAL_MARKS } from "./bed-parser";
+import { DEFAULT_GROUP_COLOR } from "./db";
 
 export interface RosterRow {
   bedNumber: string;
@@ -89,7 +90,7 @@ export async function applyRoster(
       bedNumber: row.bedNumber,
       name: row.name,
       diagnosis: row.diagnosis,
-      groupColor: "#e2e8f0",
+      groupColor: DEFAULT_GROUP_COLOR,
       ward: parsed.ward,
       bedBase: parsed.bedBase,
       bedType: parsed.bedType,

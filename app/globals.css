@@ -132,9 +132,6 @@
   .text-muted {
     color: rgb(var(--muted));
   }
-  .border-custom {
-    border-color: rgb(var(--border));
-  }
   .text-primary {
     color: rgb(var(--primary));
   }

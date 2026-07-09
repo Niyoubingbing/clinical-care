@@ -2,10 +2,9 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, todayStr } from "@/lib/db";
+import { db, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo, Patient } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
@@ -197,7 +196,7 @@ function TodosInner() {
           {/* 病人待办：每位病人一张独立卡片，单病人待办集中展示 */}
           <div className="space-y-3">
             {visiblePatientGroups.map(({ patient, items }) => {
-              const color = patient?.groupColor || "#e2e8f0";
+              const color = patient?.groupColor || DEFAULT_GROUP_COLOR;
               return (
                 <section key={patient?.id ?? "orphan"} className="card p-3">
                   <div className="mb-2 flex items-center gap-2">

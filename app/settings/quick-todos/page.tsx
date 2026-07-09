@@ -5,6 +5,7 @@ import { Reorder, useDragControls, type DragControls } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
 import { GripVertical, X, Plus } from "lucide-react";
 import { getSettings, updateSettings, uid } from "@/lib/db";
+import { inferTodoType } from "@/lib/time-parser";
 import { QuickTodo } from "@/types";
 import { useApp } from "@/components/Providers";
 
@@ -32,7 +33,7 @@ export default function QuickTodosPage() {
       toast({ message: "请输入标签" });
       return;
     }
-    commit([...list, { id: uid(), label: t, type: "其他", content: t }]);
+    commit([...list, { id: uid(), label: t, type: inferTodoType(t), content: t }]);
     setLabel("");
   };
 

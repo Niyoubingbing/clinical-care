@@ -105,7 +105,7 @@ export default function GroupsPage() {
               key={c}
               onClick={() => setColor(c)}
               className={`h-6 w-6 rounded-full border-2 transition ${
-                color === c ? "border-foreground/70" : "border-transparent"
+                color === c ? "border-primary" : "border-transparent"
               }`}
               style={{ backgroundColor: c }}
               aria-label={`选择颜色 ${c}`}
