@@ -19,7 +19,7 @@ export default function BatchImportSheet({
   const { toast } = useApp();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<RosterPreview | null>(null);
-  const [removeAbsent, setRemoveAbsent] = useState(false);
+  const [removeAbsent, setRemoveAbsent] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
