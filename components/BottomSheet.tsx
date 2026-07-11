@@ -30,21 +30,21 @@ export default function BottomSheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-2xl flex-col rounded-t-xl bg-card shadow-lg"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            className="liquid-sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex max-h-[85vh] w-[calc(100%-1rem)] max-w-2xl flex-col rounded-[30px]"
+            initial={{ y: "100%", scale: 0.96 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ y: "100%", scale: 0.96 }}
             transition={springSheet}
           >
             <div className="flex items-center justify-between px-5 pt-3">
-              <div className="mx-auto h-2 w-10 rounded-full bg-muted/15" />
+              <div className="mx-auto h-1.5 w-10 rounded-full bg-white/55 shadow-[0_1px_0_rgba(0,0,0,.12)]" />
             </div>
             {title && (
               <div className="flex items-center justify-between px-5 pb-2 pt-2">

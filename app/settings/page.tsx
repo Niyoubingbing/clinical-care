@@ -59,7 +59,7 @@ export default function SettingsPage() {
       const text = await readFileAsText(file);
       const data = parseClinicalJSON(text);
       setImportData(data);
-    } catch (err) {
+    } catch {
       toast({ message: "导入格式有误，请检查" });
     } finally {
       e.target.value = "";
@@ -94,8 +94,8 @@ export default function SettingsPage() {
                 onClick={() => setTheme(t.key)}
                 className={`flex flex-col items-center gap-1.5 rounded-xl py-3 transition active:scale-[0.97] ${
                   active
-                    ? "bg-primary text-white"
-                    : "bg-card border border-border/60 text-muted"
+                    ? "liquid-pill-active text-white"
+                    : "liquid-panel text-muted"
                 }`}
               >
                 <Icon size={20} />

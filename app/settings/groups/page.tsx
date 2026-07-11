@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Reorder, useDragControls, type DragControls } from "framer-motion";
+import { Reorder, useDragControls } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
-import { GripVertical, X, Plus, Check } from "lucide-react";
+import { GripVertical, X, Plus } from "lucide-react";
 import { getSettings, updateSettings, uid } from "@/lib/db";
 import { CustomGroup } from "@/types";
 import { useApp } from "@/components/Providers";
@@ -172,13 +172,14 @@ function GroupItem({
       dragControls={controls}
       className="card flex items-center gap-2 p-3 shadow-xs"
     >
-      <span
+      <button
+        type="button"
         onPointerDown={(e) => controls.start(e)}
         aria-label="拖拽排序"
         className="shrink-0 cursor-grab touch-none select-none text-muted active:cursor-grabbing"
       >
         <GripVertical size={18} />
-      </span>
+      </button>
 
       <label className="relative h-7 w-7 shrink-0 cursor-pointer rounded-full border border-border/60">
         <span

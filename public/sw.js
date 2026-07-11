@@ -1,4 +1,4 @@
-const APP_VERSION = "2.14.2";
+const APP_VERSION = "2.15.0";
 const CACHE = "clinical-care-v" + APP_VERSION;
 // 构建期由 scripts/gen-sw-precache.mjs 注入的全量预缓存清单（所有路由 HTML + /_next/static/*）。
 // 源文件中 PRECACHE_LIST 的赋值保留占位符，构建时由脚本替换为真实数组，以便可重复构建。

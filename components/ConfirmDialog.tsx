@@ -40,7 +40,7 @@ export default function ConfirmDialog({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="w-full max-w-sm rounded-xl bg-card p-5 shadow-xl"
+              className="liquid-dialog w-full max-w-sm rounded-[26px] p-5"
               initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}

@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="980" viewBox="0 0 2200 980">
+  <defs>
+    <style>
+      .bg { fill: #f6f1eb; }
+      .phone { fill: #fbf8f4; stroke: #e4d9cf; stroke-width: 2; }
+      .card { fill: #ffffff; stroke: #eadfd6; stroke-width: 1.5; }
+      .soft { fill: #f2ece6; }
+      .primary { fill: #b8674f; }
+      .danger { fill: #c84b4b; }
+      .warn { fill: #c8872c; }
+      .info { fill: #4b7f9f; }
+      .text { fill: #342f2b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .muted { fill: #8a7e75; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .white { fill: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+      .tiny { font-size: 18px; }
+      .small { font-size: 22px; }
+      .body { font-size: 25px; }
+      .title { font-size: 34px; font-weight: 700; }
+      .section { font-size: 22px; font-weight: 650; }
+      .label { font-size: 18px; font-weight: 650; }
+      .bold { font-weight: 700; }
+      .line { stroke: #eadfd6; stroke-width: 1.5; }
+      .shadow { filter: drop-shadow(0 8px 18px rgba(83, 58, 42, 0.08)); }
+    </style>
+  </defs>
+
+  <rect class="bg" width="2200" height="980"/>
+  <text x="60" y="56" class="text title">临床病人管理助手 UX 设计稿</text>
+  <text x="60" y="91" class="muted small">v2.14.3 后续改造方向：更安全的导入、更清晰的查房优先级、更可预览的设置</text>
+
+  <!-- Phone 1 -->
+  <g transform="translate(60 130)">
+    <rect class="phone shadow" x="0" y="0" width="390" height="780" rx="34"/>
+    <text x="24" y="58" class="text title">查房</text>
+    <rect class="card" x="188" y="26" width="82" height="42" rx="14"/><text x="205" y="54" class="primary small">+ 病人</text>
+    <rect class="card" x="282" y="26" width="84" height="42" rx="14"/><text x="296" y="54" class="primary small">待办</text>
+    <rect class="card" x="20" y="90" width="350" height="68" rx="18"/>
+    <text x="42" y="123" class="danger body bold">逾期 2</text><text x="128" y="123" class="muted body">· 今日 5 · 需换药 3</text>
+    <text x="42" y="145" class="muted tiny">点击查看待办</text>
+    <rect class="card" x="20" y="172" width="350" height="54" rx="16"/>
+    <text x="42" y="207" class="text small bold">每日小结</text><text x="144" y="207" class="muted small">今日暂无完成项</text><text x="344" y="207" class="muted small">⌄</text>
+    <g transform="translate(20 248)">
+      <rect class="primary" x="0" y="0" width="66" height="38" rx="19"/><text x="17" y="26" class="white tiny bold">全部</text>
+      <rect class="card" x="78" y="0" width="64" height="38" rx="19"/><text x="94" y="26" class="muted tiny">轻组</text>
+      <rect class="card" x="154" y="0" width="64" height="38" rx="19"/><text x="170" y="26" class="muted tiny">勇组</text>
+      <rect class="card" x="230" y="0" width="64" height="38" rx="19"/><text x="246" y="26" class="muted tiny">李组</text>
+    </g>
+    <text x="24" y="330" class="muted tiny">顺序：正向</text>
+    <rect class="card" x="20" y="350" width="350" height="96" rx="18"/>
+    <rect class="primary" x="38" y="370" width="54" height="54" rx="13"/><text x="49" y="404" class="white small bold">23</text>
+    <text x="108" y="392" class="text body bold">张三</text><text x="285" y="392" class="danger tiny bold">逾期 1</text>
+    <text x="108" y="421" class="muted small">胫骨骨折</text>
+    <rect class="soft" x="108" y="430" width="64" height="26" rx="8"/><text x="120" y="449" class="primary tiny">待办 2</text>
+    <rect class="card" x="20" y="460" width="350" height="96" rx="18"/>
+    <rect class="info" x="38" y="480" width="54" height="54" rx="13"/><text x="49" y="514" class="white small bold">24</text>
+    <text x="108" y="502" class="text body bold">李四</text><text x="285" y="502" class="warn tiny bold">今日</text>
+    <text x="108" y="531" class="muted small">取除内固定术后</text>
+    <rect class="soft" x="108" y="540" width="70" height="26" rx="8"/><text x="120" y="559" class="danger tiny">需换药</text>
+    <line class="line" x1="0" y1="700" x2="390" y2="700"/>
+    <text x="58" y="744" class="primary small bold">查房</text><text x="174" y="744" class="muted small">待办</text><text x="294" y="744" class="muted small">设置</text>
+  </g>
+
+  <!-- Phone 2 -->
+  <g transform="translate(486 130)">
+    <rect class="phone shadow" x="0" y="0" width="390" height="780" rx="34"/>
+    <text x="24" y="58" class="text title">添加病人</text>
+    <rect class="soft" x="22" y="86" width="346" height="48" rx="16"/>
+    <rect class="primary" x="198" y="90" width="164" height="40" rx="13"/><text x="242" y="117" class="white small bold">批量导入</text>
+    <text x="75" y="117" class="muted small">手动添加</text>
+    <text x="24" y="170" class="section text">粘贴名单</text>
+    <rect class="card" x="20" y="188" width="350" height="138" rx="18"/>
+    <text x="42" y="226" class="muted small">309W23 张三 胫骨骨折</text>
+    <text x="42" y="260" class="muted small">309W24 李四 术后换药</text>
+    <text x="42" y="294" class="muted small">309W25 王五 复查片</text>
+    <rect class="card" x="24" y="348" width="24" height="24" rx="6"/>
+    <text x="58" y="367" class="text small">同步移除未出现病人</text>
+    <text x="58" y="391" class="muted tiny">默认关闭，避免误删现有病人</text>
+    <rect class="primary" x="20" y="420" width="350" height="48" rx="16"/><text x="150" y="452" class="white small bold">预览导入</text>
+    <rect class="card" x="20" y="492" width="350" height="170" rx="18"/>
+    <text x="42" y="526" class="text small bold">预览</text>
+    <text x="98" y="526" class="muted small">新增 3 · 更新 18 · 移除 2</text>
+    <text x="42" y="560" class="primary tiny bold">新增</text><text x="88" y="560" class="text tiny">309W25 王五</text>
+    <text x="42" y="592" class="warn tiny bold">更新</text><text x="88" y="592" class="text tiny">309W23 张三 诊断变化</text>
+    <text x="42" y="624" class="danger tiny bold">移除</text><text x="88" y="624" class="text tiny">309W01 赵六</text><text x="262" y="624" class="danger tiny">待办 2</text>
+    <rect class="danger" x="20" y="682" width="350" height="50" rx="16"/><text x="142" y="715" class="white small bold">确认导入</text>
+  </g>
+
+  <!-- Phone 3 -->
+  <g transform="translate(912 130)">
+    <rect class="phone shadow" x="0" y="0" width="390" height="780" rx="34"/>
+    <text x="24" y="58" class="text title">待办</text>
+    <g transform="translate(20 88)">
+      <rect class="primary" x="0" y="0" width="88" height="40" rx="20"/><text x="14" y="27" class="white tiny bold">未完成 12</text>
+      <rect class="card" x="98" y="0" width="76" height="40" rx="20"/><text x="117" y="27" class="muted tiny">今天 5</text>
+      <rect class="card" x="184" y="0" width="76" height="40" rx="20"/><text x="203" y="27" class="muted tiny">逾期 2</text>
+      <rect class="card" x="270" y="0" width="88" height="40" rx="20"/><text x="284" y="27" class="muted tiny">已完成 18</text>
+    </g>
+    <rect class="card" x="20" y="158" width="350" height="138" rx="18"/>
+    <text x="42" y="192" class="text small bold">通用待办</text><text x="285" y="192" class="muted tiny">3 进行中</text>
+    <circle cx="50" cy="226" r="10" fill="none" stroke="#b8674f" stroke-width="2"/>
+    <text x="72" y="233" class="danger small">逾期 复查化验</text>
+    <circle cx="50" cy="264" r="10" fill="none" stroke="#b8674f" stroke-width="2"/>
+    <text x="72" y="271" class="text small">今天 通知家属</text>
+    <rect class="card" x="20" y="318" width="350" height="148" rx="18"/>
+    <text x="42" y="352" class="text small bold">309W23 张三</text><rect class="soft" x="166" y="334" width="48" height="26" rx="8"/><text x="176" y="353" class="primary tiny">勇组</text>
+    <circle cx="50" cy="390" r="10" fill="none" stroke="#b8674f" stroke-width="2"/>
+    <text x="72" y="397" class="text small">今天 复查片</text>
+    <circle cx="50" cy="428" r="10" fill="none" stroke="#b8674f" stroke-width="2"/>
+    <text x="72" y="435" class="text small">明早 换药</text>
+    <rect class="card" x="20" y="488" width="350" height="104" rx="18"/>
+    <text x="42" y="522" class="text small bold">309W24 李四</text><text x="285" y="522" class="danger tiny bold">逾期 1</text>
+    <circle cx="50" cy="560" r="10" fill="none" stroke="#c84b4b" stroke-width="2"/>
+    <text x="72" y="567" class="danger small">逾期 查血</text>
+    <line class="line" x1="0" y1="700" x2="390" y2="700"/>
+    <text x="58" y="744" class="muted small">查房</text><text x="174" y="744" class="primary small bold">待办</text><text x="294" y="744" class="muted small">设置</text>
+  </g>
+
+  <!-- Phone 4 -->
+  <g transform="translate(1338 130)">
+    <rect class="phone shadow" x="0" y="0" width="390" height="780" rx="34"/>
+    <text x="24" y="58" class="text title">设置</text>
+    <text x="24" y="104" class="muted small">日常工作</text>
+    <rect class="card" x="20" y="120" width="350" height="54" rx="16"/><text x="42" y="154" class="text small bold">查房顺序</text><text x="262" y="154" class="muted tiny">自定义</text>
+    <rect class="card" x="20" y="184" width="350" height="54" rx="16"/><text x="42" y="218" class="text small bold">床号识别</text><text x="272" y="218" class="muted tiny">已配置</text>
+    <rect class="card" x="20" y="248" width="350" height="54" rx="16"/><text x="42" y="282" class="text small bold">快捷待办</text><text x="278" y="282" class="muted tiny">6 个</text>
+    <rect class="card" x="20" y="312" width="350" height="54" rx="16"/><text x="42" y="346" class="text small bold">分组管理</text><text x="278" y="346" class="muted tiny">4 组</text>
+    <text x="24" y="404" class="muted small">显示</text>
+    <rect class="card" x="20" y="420" width="350" height="54" rx="16"/><text x="42" y="454" class="text small bold">主题</text><text x="294" y="454" class="muted tiny">系统</text>
+    <text x="24" y="512" class="muted small">数据与备份</text>
+    <rect class="card" x="20" y="528" width="350" height="54" rx="16"/><text x="42" y="562" class="text small bold">导出数据</text>
+    <rect class="card" x="20" y="592" width="350" height="54" rx="16"/><text x="42" y="626" class="text small bold">导入数据</text>
+    <rect class="card" x="20" y="656" width="350" height="54" rx="16"/><text x="42" y="690" class="danger small bold">清除全部数据</text>
+    <line class="line" x1="0" y1="720" x2="390" y2="720"/>
+    <text x="58" y="758" class="muted small">查房</text><text x="174" y="758" class="muted small">待办</text><text x="294" y="758" class="primary small bold">设置</text>
+  </g>
+
+  <!-- Phone 5 -->
+  <g transform="translate(1764 130)">
+    <rect class="phone shadow" x="0" y="0" width="390" height="780" rx="34"/>
+    <text x="24" y="58" class="text title">查房顺序</text>
+    <rect class="soft" x="20" y="88" width="350" height="48" rx="16"/>
+    <rect class="primary" x="246" y="92" width="118" height="40" rx="13"/><text x="271" y="119" class="white tiny bold">自定义</text>
+    <text x="42" y="119" class="muted tiny">默认规则</text><text x="146" y="119" class="muted tiny">基础规则</text>
+    <rect class="card" x="20" y="160" width="350" height="132" rx="18"/>
+    <text x="42" y="194" class="text small bold">预览</text><text x="278" y="194" class="muted tiny">前 5 个块</text>
+    <text x="42" y="226" class="text tiny">309W41：41 42 43</text>
+    <text x="42" y="256" class="text tiny">309W44：44</text>
+    <text x="42" y="286" class="warn tiny">J04：真实加床，归属 41-43</text>
+    <rect class="card" x="20" y="318" width="350" height="112" rx="18"/>
+    <text x="42" y="352" class="muted small">☰</text><text x="72" y="352" class="text small bold">病房块 309W41-43</text>
+    <rect class="soft" x="72" y="372" width="46" height="28" rx="8"/><text x="87" y="392" class="muted tiny">41</text>
+    <rect class="soft" x="128" y="372" width="46" height="28" rx="8"/><text x="143" y="392" class="muted tiny">42</text>
+    <rect class="soft" x="184" y="372" width="46" height="28" rx="8"/><text x="199" y="392" class="muted tiny">43</text>
+    <text x="278" y="392" class="primary tiny bold">+ 添加</text>
+    <rect class="card" x="20" y="446" width="350" height="112" rx="18"/>
+    <text x="42" y="480" class="muted small">☰</text><text x="72" y="480" class="text small bold">真实加床 J04</text>
+    <text x="72" y="514" class="muted tiny">归属：309W41-43</text>
+    <rect class="soft" x="250" y="492" width="84" height="28" rx="8"/><text x="264" y="512" class="warn tiny">需确认</text>
+    <rect class="card" x="20" y="574" width="350" height="70" rx="18"/>
+    <text x="42" y="606" class="text tiny bold">校验提醒</text>
+    <text x="42" y="632" class="danger tiny">重复床号、空块、未归属加床会阻止保存</text>
+    <rect class="primary" x="20" y="672" width="162" height="48" rx="16"/><text x="56" y="704" class="white tiny bold">添加病房块</text>
+    <rect class="card" x="192" y="672" width="178" height="48" rx="16"/><text x="222" y="704" class="primary tiny bold">添加真实加床</text>
+  </g>
+</svg>

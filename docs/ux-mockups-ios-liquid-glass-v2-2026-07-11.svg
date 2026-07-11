@@ -1,0 +1,317 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1080" viewBox="0 0 2400 1080">
+  <defs>
+    <radialGradient id="wallpaperA" cx="15%" cy="10%" r="60%">
+      <stop offset="0%" stop-color="#ffb79a"/>
+      <stop offset="38%" stop-color="#8ed7ff"/>
+      <stop offset="70%" stop-color="#dbe9ff"/>
+      <stop offset="100%" stop-color="#f8fbff"/>
+    </radialGradient>
+    <radialGradient id="wallpaperB" cx="85%" cy="8%" r="62%">
+      <stop offset="0%" stop-color="#b9a7ff" stop-opacity=".95"/>
+      <stop offset="40%" stop-color="#76ead7" stop-opacity=".72"/>
+      <stop offset="72%" stop-color="#fff1df" stop-opacity=".58"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="wallpaperC" cx="52%" cy="100%" r="70%">
+      <stop offset="0%" stop-color="#ffcf7c" stop-opacity=".85"/>
+      <stop offset="42%" stop-color="#ff8fab" stop-opacity=".42"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="phoneShell" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".44"/>
+      <stop offset="36%" stop-color="#ffffff" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="#2b405c" stop-opacity=".24"/>
+    </linearGradient>
+    <linearGradient id="phoneSurface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".28"/>
+      <stop offset="55%" stop-color="#e9f7ff" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#06131f" stop-opacity=".10"/>
+    </linearGradient>
+    <linearGradient id="glassFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".58"/>
+      <stop offset="20%" stop-color="#ffffff" stop-opacity=".20"/>
+      <stop offset="52%" stop-color="#9fdcff" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="#1a2d43" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="glassStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".96"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity=".48"/>
+      <stop offset="70%" stop-color="#8ccfff" stop-opacity=".36"/>
+      <stop offset="100%" stop-color="#0c1c2e" stop-opacity=".24"/>
+    </linearGradient>
+    <linearGradient id="glassHighlight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".90"/>
+      <stop offset="22%" stop-color="#ffffff" stop-opacity=".42"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="primaryGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffb48d"/>
+      <stop offset="50%" stop-color="#d36b5a"/>
+      <stop offset="100%" stop-color="#993b52"/>
+    </linearGradient>
+    <linearGradient id="blueGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9eeaff"/>
+      <stop offset="60%" stop-color="#4e98e8"/>
+      <stop offset="100%" stop-color="#3060a7"/>
+    </linearGradient>
+    <linearGradient id="dangerGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8c95"/>
+      <stop offset="100%" stop-color="#b51f47"/>
+    </linearGradient>
+    <linearGradient id="amberGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe09a"/>
+      <stop offset="100%" stop-color="#c8791d"/>
+    </linearGradient>
+
+    <filter id="wallpaperBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="38"/>
+    </filter>
+    <filter id="phoneShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="34" stdDeviation="34" flood-color="#24384d" flood-opacity=".24"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#ffffff" flood-opacity=".45"/>
+    </filter>
+    <filter id="glassShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#10253c" flood-opacity=".18"/>
+      <feDropShadow dx="0" dy="-1" stdDeviation="1" flood-color="#ffffff" flood-opacity=".82"/>
+    </filter>
+    <filter id="refract" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency=".018 .026" numOctaves="2" seed="11" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="blur"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComposite in="off" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+      <feFlood flood-color="#ffffff" flood-opacity=".55" result="white"/>
+      <feComposite in="white" in2="inner" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="glow"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      .headline { fill:#15202b; font: 780 38px -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","Microsoft YaHei",sans-serif; }
+      .sub { fill:#526272; font: 560 23px -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","Microsoft YaHei",sans-serif; }
+      .title { fill:#101923; font: 780 34px -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","Microsoft YaHei",sans-serif; }
+      .text { fill:#15202b; font: 680 22px -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","Microsoft YaHei",sans-serif; }
+      .muted { fill:#536575; font: 560 18px -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Microsoft YaHei",sans-serif; }
+      .tiny { fill:#536575; font: 700 15px -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Microsoft YaHei",sans-serif; }
+      .white { fill:#fff; font: 720 18px -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Microsoft YaHei",sans-serif; }
+      .glass { fill:url(#glassFill); stroke:url(#glassStroke); stroke-width:1.8; filter:url(#glassShadow); }
+      .glassLite { fill:#ffffff; fill-opacity:.20; stroke:#ffffff; stroke-opacity:.64; stroke-width:1.4; filter:url(#glassShadow); }
+      .glassPlain { fill:url(#glassFill); stroke:url(#glassStroke); stroke-width:1.5; }
+      .shine { fill:url(#glassHighlight); opacity:.82; }
+      .darkText { fill:#111923; }
+      .redText { fill:#ad2445; font: 760 15px -apple-system,BlinkMacSystemFont,"SF Pro Text","Microsoft YaHei",sans-serif; }
+      .warmText { fill:#a75d26; font: 760 15px -apple-system,BlinkMacSystemFont,"SF Pro Text","Microsoft YaHei",sans-serif; }
+    </style>
+
+    <clipPath id="phoneClip"><rect x="0" y="0" width="410" height="836" rx="44"/></clipPath>
+  </defs>
+
+  <rect width="2400" height="1080" fill="url(#wallpaperA)"/>
+  <rect width="2400" height="1080" fill="url(#wallpaperB)"/>
+  <rect width="2400" height="1080" fill="url(#wallpaperC)"/>
+  <g filter="url(#wallpaperBlur)" opacity=".72">
+    <path d="M-80 640 C230 490 390 880 690 710 C940 568 1030 240 1310 338 C1550 422 1598 744 1908 604 C2160 490 2220 226 2490 300 L2490 1160 L-80 1160 Z" fill="#7ad8ff"/>
+    <path d="M80 148 C314 36 430 252 676 164 C1018 44 1160 186 1370 102 C1620 0 1812 146 2040 96 C2200 60 2294 8 2440 74 L2440 -80 L80 -80 Z" fill="#ff9fb6" opacity=".72"/>
+    <path d="M620 980 C760 740 1020 760 1180 910 C1360 1080 1570 1010 1730 820 C1900 620 2160 690 2300 790 L2300 1160 L620 1160 Z" fill="#ffe083" opacity=".78"/>
+  </g>
+
+  <text x="72" y="72" class="headline">iOS Liquid Glass 视觉方向 V2</text>
+  <text x="72" y="112" class="sub">更强透明、折射、高光、内阴影：让背景真正“穿过”界面，而不是普通白卡片</text>
+
+  <!-- phone 1 -->
+  <g transform="translate(70 160)">
+    <rect width="410" height="836" rx="44" fill="url(#phoneShell)" stroke="#fff" stroke-opacity=".76" stroke-width="2.4" filter="url(#phoneShadow)"/>
+    <g clip-path="url(#phoneClip)">
+      <rect width="410" height="836" fill="url(#phoneSurface)"/>
+      <circle cx="60" cy="80" r="150" fill="#fff" opacity=".24" filter="url(#wallpaperBlur)"/>
+      <circle cx="330" cy="240" r="170" fill="#6be7ff" opacity=".22" filter="url(#wallpaperBlur)"/>
+      <circle cx="205" cy="710" r="230" fill="#ff9c78" opacity=".20" filter="url(#wallpaperBlur)"/>
+      <rect x="18" y="18" width="374" height="800" rx="34" fill="#fff" opacity=".04"/>
+    </g>
+    <text x="30" y="68" class="title">查房</text>
+    <rect x="206" y="30" width="84" height="42" rx="20" class="glassLite"/><text x="222" y="57" class="text" font-size="17">+ 病人</text>
+    <rect x="300" y="30" width="82" height="42" rx="20" class="glassLite"/><text x="318" y="57" class="text" font-size="17">待办</text>
+
+    <g filter="url(#refract)">
+      <rect x="26" y="100" width="358" height="76" rx="27" class="glass"/>
+      <path class="shine" d="M48 108 H210 C140 118 92 142 48 166 Z"/>
+    </g>
+    <text x="50" y="134" class="text">今日提醒</text>
+    <text x="154" y="134" class="redText" font-size="20">逾期 2</text>
+    <text x="220" y="134" class="muted">· 今日 5</text>
+    <text x="50" y="158" class="tiny">点击进入待办清单</text>
+
+    <rect x="26" y="194" width="358" height="58" rx="23" class="glass"/>
+    <path class="shine" d="M50 201 H210 C150 210 88 224 50 246 Z"/>
+    <text x="50" y="229" class="text">每日小结</text>
+    <text x="154" y="229" class="muted">今日暂无完成项</text>
+    <text x="350" y="229" class="muted">⌄</text>
+
+    <rect x="26" y="276" width="66" height="38" rx="19" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="43" y="301" class="white" font-size="15">全部</text>
+    <rect x="104" y="276" width="66" height="38" rx="19" class="glassLite"/><text x="121" y="301" class="tiny">轻组</text>
+    <rect x="182" y="276" width="66" height="38" rx="19" class="glassLite"/><text x="199" y="301" class="tiny">勇组</text>
+    <rect x="260" y="276" width="66" height="38" rx="19" class="glassLite"/><text x="277" y="301" class="tiny">李组</text>
+    <text x="32" y="354" class="tiny">顺序：正向</text>
+
+    <rect x="26" y="376" width="358" height="104" rx="30" class="glass"/>
+    <path class="shine" d="M50 386 H220 C142 399 82 424 50 463 Z"/>
+    <rect x="48" y="400" width="56" height="56" rx="19" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="62" y="435" class="white" font-size="22">23</text>
+    <text x="122" y="417" class="text">张三</text>
+    <rect x="300" y="398" width="60" height="30" rx="15" fill="url(#dangerGlass)" filter="url(#innerGlow)"/><text x="314" y="419" class="white" font-size="14">逾期</text>
+    <text x="122" y="446" class="muted">胫骨骨折</text>
+    <rect x="122" y="456" width="68" height="28" rx="14" class="glassLite"/><text x="137" y="475" class="tiny">待办 2</text>
+
+    <rect x="26" y="500" width="358" height="104" rx="30" class="glass"/>
+    <path class="shine" d="M50 510 H220 C142 523 82 548 50 587 Z"/>
+    <rect x="48" y="524" width="56" height="56" rx="19" fill="url(#blueGlass)" filter="url(#innerGlow)"/><text x="62" y="559" class="white" font-size="22">24</text>
+    <text x="122" y="541" class="text">李四</text>
+    <rect x="302" y="522" width="58" height="30" rx="15" fill="url(#amberGlass)" filter="url(#innerGlow)"/><text x="317" y="543" class="white" font-size="14">今日</text>
+    <text x="122" y="570" class="muted">取除内固定术后</text>
+    <rect x="122" y="580" width="72" height="28" rx="14" class="glassLite"/><text x="136" y="599" class="tiny">需换药</text>
+
+    <rect x="26" y="738" width="358" height="70" rx="31" class="glass"/>
+    <path class="shine" d="M52 746 H210 C148 757 91 773 52 799 Z"/>
+    <text x="70" y="782" class="text" font-size="18">查房</text><text x="184" y="782" class="muted">待办</text><text x="304" y="782" class="muted">设置</text>
+  </g>
+
+  <!-- phone 2 -->
+  <g transform="translate(528 160)">
+    <rect width="410" height="836" rx="44" fill="url(#phoneShell)" stroke="#fff" stroke-opacity=".76" stroke-width="2.4" filter="url(#phoneShadow)"/>
+    <g clip-path="url(#phoneClip)">
+      <rect width="410" height="836" fill="url(#phoneSurface)"/>
+      <circle cx="90" cy="160" r="180" fill="#6ee7ff" opacity=".22" filter="url(#wallpaperBlur)"/>
+      <circle cx="330" cy="620" r="240" fill="#ff9fb6" opacity=".20" filter="url(#wallpaperBlur)"/>
+    </g>
+    <text x="30" y="68" class="title">批量导入</text>
+    <rect x="26" y="100" width="358" height="54" rx="24" class="glass"/>
+    <rect x="210" y="106" width="166" height="42" rx="20" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="254" y="133" class="white">批量导入</text>
+    <text x="78" y="134" class="muted">手动添加</text>
+
+    <text x="32" y="194" class="text">粘贴名单</text>
+    <rect x="26" y="214" width="358" height="138" rx="30" class="glass"/>
+    <path class="shine" d="M52 224 H248 C164 240 88 272 52 336 Z"/>
+    <text x="52" y="256" class="muted">309W23 张三 胫骨骨折</text>
+    <text x="52" y="290" class="muted">309W24 李四 术后换药</text>
+    <text x="52" y="324" class="muted">309W25 王五 复查片</text>
+    <rect x="34" y="380" width="25" height="25" rx="8" class="glassLite"/>
+    <text x="70" y="400" class="text" font-size="19">同步移除未出现病人</text>
+    <text x="70" y="424" class="tiny">默认关闭，避免误删现有病人</text>
+    <rect x="26" y="458" width="358" height="54" rx="23" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="164" y="493" class="white" font-size="20">预览导入</text>
+
+    <rect x="26" y="542" width="358" height="182" rx="32" class="glass"/>
+    <path class="shine" d="M52 554 H236 C160 570 90 608 52 708 Z"/>
+    <text x="52" y="580" class="text">预览</text>
+    <text x="108" y="580" class="muted">新增 3 · 更新 18 · 移除 2</text>
+    <text x="52" y="618" class="tiny">新增</text><text x="102" y="618" class="muted">309W25 王五</text>
+    <text x="52" y="650" class="tiny">更新</text><text x="102" y="650" class="muted">309W23 张三</text>
+    <rect x="46" y="674" width="318" height="34" rx="17" fill="#fff" fill-opacity=".28" stroke="#fff" stroke-opacity=".55"/>
+    <text x="58" y="697" class="muted">移除 309W01 赵六</text>
+    <text x="270" y="697" class="redText">待办 2</text>
+    <rect x="26" y="750" width="358" height="54" rx="23" fill="url(#dangerGlass)" filter="url(#innerGlow)"/><text x="164" y="785" class="white" font-size="20">确认导入</text>
+  </g>
+
+  <!-- phone 3 -->
+  <g transform="translate(986 160)">
+    <rect width="410" height="836" rx="44" fill="url(#phoneShell)" stroke="#fff" stroke-opacity=".76" stroke-width="2.4" filter="url(#phoneShadow)"/>
+    <g clip-path="url(#phoneClip)">
+      <rect width="410" height="836" fill="url(#phoneSurface)"/>
+      <circle cx="70" cy="690" r="250" fill="#ffcc7b" opacity=".22" filter="url(#wallpaperBlur)"/>
+      <circle cx="330" cy="180" r="220" fill="#9ca8ff" opacity=".20" filter="url(#wallpaperBlur)"/>
+    </g>
+    <text x="30" y="68" class="title">待办</text>
+    <rect x="26" y="100" width="92" height="40" rx="20" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="43" y="126" class="white" font-size="14">未完成 12</text>
+    <rect x="128" y="100" width="74" height="40" rx="20" class="glassLite"/><text x="147" y="126" class="tiny">今天 5</text>
+    <rect x="212" y="100" width="74" height="40" rx="20" class="glassLite"/><text x="231" y="126" class="tiny">逾期 2</text>
+    <rect x="296" y="100" width="88" height="40" rx="20" class="glassLite"/><text x="310" y="126" class="tiny">已完成</text>
+    <rect x="26" y="170" width="358" height="140" rx="32" class="glass"/>
+    <path class="shine" d="M52 182 H230 C154 198 90 234 52 294 Z"/>
+    <text x="52" y="206" class="text">通用待办</text><text x="302" y="206" class="tiny">3 进行中</text>
+    <circle cx="58" cy="242" r="10" fill="none" stroke="#b23a48" stroke-width="2.2"/>
+    <text x="80" y="249" class="redText" font-size="20">逾期 复查化验</text>
+    <circle cx="58" cy="280" r="10" fill="none" stroke="#b86a45" stroke-width="2.2"/>
+    <text x="80" y="287" class="text" font-size="20">今天 通知家属</text>
+
+    <rect x="26" y="338" width="358" height="154" rx="32" class="glass"/>
+    <path class="shine" d="M52 350 H230 C154 366 90 402 52 476 Z"/>
+    <text x="52" y="374" class="text">309W23 张三</text>
+    <rect x="176" y="352" width="52" height="28" rx="14" class="glassLite"/><text x="190" y="371" class="tiny">勇组</text>
+    <circle cx="58" cy="412" r="10" fill="none" stroke="#b86a45" stroke-width="2.2"/>
+    <text x="80" y="419" class="text" font-size="20">今天 复查片</text>
+    <circle cx="58" cy="450" r="10" fill="none" stroke="#b86a45" stroke-width="2.2"/>
+    <text x="80" y="457" class="text" font-size="20">明早 换药</text>
+
+    <rect x="26" y="520" width="358" height="108" rx="32" class="glass"/>
+    <path class="shine" d="M52 532 H220 C148 548 92 576 52 614 Z"/>
+    <text x="52" y="556" class="text">309W24 李四</text>
+    <rect x="302" y="536" width="58" height="30" rx="15" fill="url(#dangerGlass)" filter="url(#innerGlow)"/><text x="316" y="557" class="white" font-size="14">逾期</text>
+    <circle cx="58" cy="594" r="10" fill="none" stroke="#b23a48" stroke-width="2.2"/>
+    <text x="80" y="601" class="redText" font-size="20">查血</text>
+    <rect x="26" y="738" width="358" height="70" rx="31" class="glass"/>
+    <text x="70" y="782" class="muted">查房</text><text x="184" y="782" class="text" font-size="18">待办</text><text x="304" y="782" class="muted">设置</text>
+  </g>
+
+  <!-- phone 4 -->
+  <g transform="translate(1444 160)">
+    <rect width="410" height="836" rx="44" fill="url(#phoneShell)" stroke="#fff" stroke-opacity=".76" stroke-width="2.4" filter="url(#phoneShadow)"/>
+    <g clip-path="url(#phoneClip)">
+      <rect width="410" height="836" fill="url(#phoneSurface)"/>
+      <circle cx="320" cy="135" r="220" fill="#80e7d7" opacity=".22" filter="url(#wallpaperBlur)"/>
+      <circle cx="120" cy="650" r="250" fill="#ff9fb6" opacity=".19" filter="url(#wallpaperBlur)"/>
+    </g>
+    <text x="30" y="68" class="title">设置</text>
+    <text x="32" y="116" class="tiny">日常工作</text>
+    <rect x="26" y="134" width="358" height="56" rx="24" class="glass"/><text x="52" y="169" class="text">查房顺序</text><text x="302" y="169" class="tiny">自定义</text>
+    <rect x="26" y="202" width="358" height="56" rx="24" class="glass"/><text x="52" y="237" class="text">床号识别</text><text x="306" y="237" class="tiny">已配置</text>
+    <rect x="26" y="270" width="358" height="56" rx="24" class="glass"/><text x="52" y="305" class="text">快捷待办</text><text x="326" y="305" class="tiny">6 个</text>
+    <rect x="26" y="338" width="358" height="56" rx="24" class="glass"/><text x="52" y="373" class="text">分组管理</text><text x="326" y="373" class="tiny">4 组</text>
+    <text x="32" y="436" class="tiny">显示</text>
+    <rect x="26" y="454" width="358" height="56" rx="24" class="glass"/><text x="52" y="489" class="text">主题</text><text x="334" y="489" class="tiny">系统</text>
+    <text x="32" y="552" class="tiny">数据与备份</text>
+    <rect x="26" y="570" width="358" height="56" rx="24" class="glass"/><text x="52" y="605" class="text">导出数据</text>
+    <rect x="26" y="638" width="358" height="56" rx="24" class="glass"/><text x="52" y="673" class="text">导入数据</text>
+    <rect x="26" y="706" width="358" height="56" rx="24" fill="#fff" fill-opacity=".25" stroke="#fff" stroke-opacity=".76" filter="url(#glassShadow)"/><text x="52" y="741" class="redText" font-size="20">清除全部数据</text>
+    <rect x="26" y="782" width="358" height="44" rx="22" class="glass"/>
+    <text x="70" y="811" class="muted">查房</text><text x="184" y="811" class="muted">待办</text><text x="304" y="811" class="text" font-size="18">设置</text>
+  </g>
+
+  <!-- phone 5 -->
+  <g transform="translate(1902 160)">
+    <rect width="410" height="836" rx="44" fill="url(#phoneShell)" stroke="#fff" stroke-opacity=".76" stroke-width="2.4" filter="url(#phoneShadow)"/>
+    <g clip-path="url(#phoneClip)">
+      <rect width="410" height="836" fill="url(#phoneSurface)"/>
+      <circle cx="100" cy="140" r="220" fill="#ffb38b" opacity=".20" filter="url(#wallpaperBlur)"/>
+      <circle cx="340" cy="650" r="260" fill="#85d7ff" opacity=".22" filter="url(#wallpaperBlur)"/>
+    </g>
+    <text x="30" y="68" class="title">查房顺序</text>
+    <rect x="26" y="100" width="358" height="54" rx="24" class="glass"/>
+    <text x="52" y="134" class="tiny">默认规则</text><text x="158" y="134" class="tiny">基础规则</text>
+    <rect x="256" y="106" width="120" height="42" rx="20" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="294" y="133" class="white" font-size="15">自定义</text>
+    <rect x="26" y="182" width="358" height="136" rx="32" class="glass"/>
+    <path class="shine" d="M52 194 H235 C158 210 90 250 52 300 Z"/>
+    <text x="52" y="218" class="text">预览</text><text x="306" y="218" class="tiny">前 5 个块</text>
+    <text x="52" y="252" class="muted">309W41：41 42 43</text>
+    <text x="52" y="282" class="muted">309W44：44</text>
+    <text x="52" y="310" class="warmText">J04：真实加床，归属 41-43</text>
+    <rect x="26" y="346" width="358" height="116" rx="32" class="glass"/>
+    <path class="shine" d="M52 358 H224 C150 374 90 406 52 446 Z"/>
+    <text x="52" y="382" class="muted">☰</text><text x="82" y="382" class="text">病房块 309W41-43</text>
+    <rect x="82" y="404" width="48" height="30" rx="14" class="glassLite"/><text x="98" y="424" class="tiny">41</text>
+    <rect x="140" y="404" width="48" height="30" rx="14" class="glassLite"/><text x="156" y="424" class="tiny">42</text>
+    <rect x="198" y="404" width="48" height="30" rx="14" class="glassLite"/><text x="214" y="424" class="tiny">43</text>
+    <text x="300" y="424" class="warmText">+ 添加</text>
+    <rect x="26" y="486" width="358" height="116" rx="32" class="glass"/>
+    <text x="52" y="522" class="muted">☰</text><text x="82" y="522" class="text">真实加床 J04</text>
+    <text x="82" y="558" class="muted">归属：309W41-43</text>
+    <rect x="280" y="536" width="74" height="30" rx="15" fill="url(#amberGlass)" filter="url(#innerGlow)"/><text x="294" y="557" class="white" font-size="14">需确认</text>
+    <rect x="26" y="630" width="358" height="76" rx="28" fill="#fff" fill-opacity=".24" stroke="#fff" stroke-opacity=".78" filter="url(#glassShadow)"/>
+    <text x="52" y="662" class="text" font-size="17">校验提醒</text>
+    <text x="52" y="688" class="redText">重复床号、空块会阻止保存</text>
+    <rect x="26" y="738" width="166" height="52" rx="23" fill="url(#primaryGlass)" filter="url(#innerGlow)"/><text x="65" y="773" class="white">添加病房块</text>
+    <rect x="204" y="738" width="180" height="52" rx="23" class="glass"/><text x="240" y="773" class="warmText" font-size="18">添加真实加床</text>
+  </g>
+</svg>

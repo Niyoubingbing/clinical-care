@@ -43,10 +43,11 @@ export function parseTime(text: string): ParsedTime | null {
     今日: 0,
     明天: 1,
     明日: 1,
+    明早: 1,
     后天: 2,
     后日: 2,
   };
-  for (const key of ["今天", "今日", "明天", "明日", "后天", "后日"]) {
+  for (const key of ["今天", "今日", "明天", "明日", "明早", "后天", "后日"]) {
     if (text.includes(key)) {
       const d = addDays(new Date(), relMap[key]);
       return {

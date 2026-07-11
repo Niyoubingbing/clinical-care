@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import NavBar from "@/components/NavBar";
+import LiquidGlassScene from "@/components/LiquidGlassScene";
 
 export const metadata: Metadata = {
   title: "临床病人管理助手",
@@ -21,7 +22,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#faf7f2" },
@@ -37,8 +37,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen">
+        <LiquidGlassScene />
         <Providers>
-          <main className="mx-auto w-full max-w-2xl px-4 pb-24 pt-5">
+          <main className="app-content mx-auto w-full max-w-2xl px-4 pb-28 pt-5">
             {children}
           </main>
           <NavBar />

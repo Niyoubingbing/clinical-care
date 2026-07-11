@@ -24,8 +24,8 @@ export default function NavBar() {
   }).length;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-lg safe-area-pb transform-gpu">
-      <div className="mx-auto flex max-w-2xl grid-cols-3">
+    <nav className="liquid-nav fixed inset-x-3 bottom-3 z-20 mx-auto max-w-[620px] safe-area-pb transform-gpu">
+      <div className="relative z-10 mx-auto flex grid-cols-3 px-1.5 py-1">
         {TABS.map((tab) => {
           const active =
             tab.href === "/"
@@ -37,11 +37,11 @@ export default function NavBar() {
               key={tab.href}
               href={tab.href}
               aria-label={tab.label}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition-transform active:scale-90"
+              className="group flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition-transform active:scale-90"
             >
               <span className="relative flex h-9 w-9 items-center justify-center rounded-xl">
                 {active && (
-                  <span className="absolute inset-0 rounded-xl bg-primary/15" />
+                  <span className="liquid-nav-active absolute inset-0 rounded-xl" />
                 )}
                 <Icon
                   size={22}

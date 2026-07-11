@@ -1,0 +1,8 @@
+_reference_liquid_glass_webgl
+docs
+test-results
+tests
+qa_*
+*.log
+.github
+.workbuddy

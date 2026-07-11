@@ -10,6 +10,9 @@ import {
   applyRoster,
   RosterPreview,
 } from "@/lib/batch-import";
+import type { Todo } from "@/types";
+
+const EMPTY_TODOS: Todo[] = [];
 
 export default function BatchImportSheet({
   onClose,
@@ -23,12 +26,20 @@ export default function BatchImportSheet({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
-  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
+  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? EMPTY_TODOS;
   const settings = useLiveQuery(() => getSettings(), []);
 
+  const pendingTodoCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const todo of todos) {
+      if (todo.patientId && todo.status === "pending") {
+        counts.set(todo.patientId, (counts.get(todo.patientId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [todos]);
   const pendingCountOf = (patientId: string) =>
-    todos.filter((t) => t.patientId === patientId && t.status === "pending")
-      .length;
+    pendingTodoCounts.get(patientId) ?? 0;
 
   const runPreview = () => {
     if (!text.trim()) {
@@ -41,9 +52,9 @@ export default function BatchImportSheet({
   const removeHasPending = useMemo(
     () =>
       preview
-        ? preview.toRemove.some((p) => pendingCountOf(p.id) > 0)
+        ? preview.toRemove.some((p) => (pendingTodoCounts.get(p.id) ?? 0) > 0)
         : false,
-    [preview, todos]
+    [preview, pendingTodoCounts]
   );
 
   const doApply = async () => {

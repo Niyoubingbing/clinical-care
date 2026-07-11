@@ -7,3 +7,6 @@ out
 *.local
 .DS_Store
 npm-debug.log*
+_reference_liquid_glass_webgl/
+
+.vercel

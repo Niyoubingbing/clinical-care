@@ -96,7 +96,7 @@ function PatientCard({
         {...enterAnim}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         whileTap={{ scale: 0.98 }}
-        className={`card-interactive flex items-center gap-3 p-3 ${
+        className={`card-interactive relative z-10 flex items-center gap-3 p-3 ${
           dangerBorder ? "border-danger/30" : ""
         }`}
       >

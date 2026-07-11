@@ -70,6 +70,12 @@ describe("parseTime", () => {
     expect(r?.date).toBe(offset(1));
   });
 
+  it("parses 明早 as tomorrow", () => {
+    const r = parseTime("明早查房");
+    expect(r?.label).toBe("今明后天");
+    expect(r?.date).toBe(offset(1));
+  });
+
   it("parses 下周三 as a weekday", () => {
     const r = parseTime("下周三复查");
     expect(r?.label).toBe("星期几");

@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { MotionConfig } from "framer-motion";
-import { db } from "@/lib/db";
 import { getSettings, ensureSettingsMigrated } from "@/lib/db";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
 import UpdateBanner from "@/components/UpdateBanner";

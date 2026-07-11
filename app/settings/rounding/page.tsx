@@ -11,12 +11,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getSettings, updateSettings, defaultRoundingConfig, db } from "@/lib/db";
+import { getSettings, updateSettings, defaultRoundingConfig } from "@/lib/db";
 import {
   basicRuleFromCounts,
   exportConfigText,
   importConfigText,
-  blockLabel,
   normalizeBeds,
   isFullBed,
 } from "@/lib/rounding-edit";
@@ -289,13 +288,14 @@ export default function RoundingPage() {
 
 function DragHandle({ controls }: { controls: DragControls }) {
   return (
-    <span
+    <button
+      type="button"
       onPointerDown={(e) => controls.start(e)}
       aria-label="拖拽排序"
       className="mt-1 shrink-0 cursor-grab touch-none select-none text-muted active:cursor-grabbing"
     >
       <GripVertical size={18} />
-    </span>
+    </button>
   );
 }
 
@@ -352,7 +352,7 @@ function BlockCard({
           {isRoom && ward && <span className="text-[12px] text-muted">{ward}</span>}
           <span className="text-[11px] text-muted">共 {block.beds.length} 床</span>
           {!isRoom && block.beds.length === 0 && (
-            <span className="text-[11px] text-muted/70">（待添加床号）</span>
+            <span className="text-[11px] text-muted">（待添加床号）</span>
           )}
         </div>
 
@@ -373,7 +373,7 @@ function BlockCard({
             </span>
           ))}
           {block.beds.length === 0 && (
-            <span className="text-[12px] text-muted/60">尚无床号</span>
+            <span className="text-[12px] text-muted">尚无床号</span>
           )}
         </div>
 
@@ -393,7 +393,7 @@ function BlockCard({
         </div>
 
         {isRoom && (
-          <p className="mt-1.5 text-[11px] text-muted/70">
+          <p className="mt-1.5 text-[11px] text-muted">
             基础床号，升序；病房块内可单独增删（如某房仅 2 床，去掉 03）。
           </p>
         )}

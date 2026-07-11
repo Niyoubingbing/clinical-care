@@ -9,7 +9,7 @@ import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
 import { buildDailySummary } from "@/lib/summary";
-import { Patient, BedType } from "@/types";
+import { Patient, BedType, Todo } from "@/types";
 import { parseBed } from "@/lib/bed-parser";
 
 import PatientCard from "@/components/PatientCard";
@@ -25,14 +25,17 @@ import BottomSheet from "@/components/BottomSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useApp } from "@/components/Providers";
 
+const EMPTY_PATIENTS: Patient[] = [];
+const EMPTY_TODOS: Todo[] = [];
+
 export default function HomePage() {
   const router = useRouter();
   const { toast } = useApp();
 
   const patientsQuery = useLiveQuery(() => db.patients.toArray(), []);
-  const patients = patientsQuery ?? [];
+  const patients = patientsQuery ?? EMPTY_PATIENTS;
   const todosQuery = useLiveQuery(() => db.todos.toArray(), []);
-  const todos = todosQuery ?? [];
+  const todos = todosQuery ?? EMPTY_TODOS;
   const settings = useLiveQuery(() => getSettings(), []);
   // 切回首页时 useLiveQuery 首帧返回 undefined，需与「真的为空」区分，
   // 否则会闪一下「暂无病人」被误认为数据丢失。
@@ -273,15 +276,15 @@ export default function HomePage() {
 
       {/* 列表顺序：正序/反序（首页病人列表展示，不改动查房顺序设置） */}
       <div className="flex items-center justify-between">
-        <span className="text-[12px] text-muted">列表顺序</span>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-alt p-1">
+        <span className="relative z-10 text-[12px] text-muted">列表顺序</span>
+        <div className="liquid-pill grid grid-cols-2 gap-1 p-1">
           {(["forward", "reverse"] as const).map((d) => (
             <button
               key={d}
               onClick={() => setListDirection(d)}
               className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition ${
                 listDirection === d
-                  ? "bg-primary text-white"
+                  ? "bg-primary liquid-pill-active text-white"
                   : "text-muted"
               }`}
             >

@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo, Patient } from "@/types";
@@ -13,6 +12,8 @@ import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
 
 type Filter = "pending" | "completed" | "today" | "overdue";
+const EMPTY_TODOS: Todo[] = [];
+const EMPTY_PATIENTS: Patient[] = [];
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "pending", label: "未完成" },
   { key: "completed", label: "已完成" },
@@ -31,8 +32,8 @@ function TodosInner() {
 
   const [filter, setFilter] = useState<Filter>(initialFilter);
 
-  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
-  const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
+  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? EMPTY_TODOS;
+  const patients = useLiveQuery(() => db.patients.toArray(), []) ?? EMPTY_PATIENTS;
   const today = todayStr();
 
   const patientMap = useMemo(
@@ -160,8 +161,8 @@ function TodosInner() {
             key={f.key}
             className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
               filter === f.key
-                ? "bg-primary text-white"
-                : "border border-border/60 bg-card text-muted"
+                ? "liquid-pill-active text-white"
+                : "liquid-pill text-muted"
             }`}
             onClick={() => setFilter(f.key)}
           >
@@ -176,7 +177,7 @@ function TodosInner() {
         <>
           {/* 通用待办：永远置顶 + 大边框方块 */}
           {generalTodos.some(passFilter) && (
-            <section className="rounded-2xl border-2 border-border/50 bg-card/40 p-4">
+            <section className="liquid-panel rounded-[24px] p-4">
               <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted">
                 通用待办
                 <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
