@@ -30,7 +30,7 @@ export default function BottomSheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-slate-950/30"
+            className="fixed inset-0 z-40 bg-[#0b0e16]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -44,7 +44,7 @@ export default function BottomSheet({
             transition={springSheet}
           >
             <div className="flex items-center justify-between px-5 pt-3">
-              <div className="mx-auto h-1.5 w-10 rounded-full bg-white/55 shadow-[0_1px_0_rgba(0,0,0,.12)]" />
+              <div className="mx-auto h-1.5 w-10 rounded-full bg-[#cbd5e1]" />
             </div>
             {title && (
               <div className="flex items-center justify-between px-5 pb-2 pt-2">

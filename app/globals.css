@@ -5,72 +5,63 @@
 @layer base {
   :root {
     /* ===================================================================
-       Claude 风格基础调色板（channel 形式，供 Tailwind 主题色使用）
-       说明：Tailwind 的 colors 映射为 rgb(var(--x) / <alpha-value>)，
-       因此这里必须保持 "R G B" 通道写法（不能写成 #hex），否则
-       bg-surface / border-border / bg-primary 等工具类会失效。
-       数值已对齐下方「显式 Token」的含义。
+       Claude (Anthropic) 真实调色板 —— 暖奶油底 + 陶土橙强调（暖中性）。
+       通道写法 "R G B" 供 Tailwind rgb(var(--x)/<alpha-value>) 使用。
+       品牌原色 #d97757 配白字仅 3.1:1（不达标 WCAG AA），故强调色加深到
+       #b5532f（白字 4.95:1，AA），保留橙家族。语义色同步按暖系做 AA 可达加深。
        =================================================================== */
-    --surface: 255 255 255; /* 纯白表面（= spec --surface:#ffffff） */
+    --surface: 255 255 255;            /* 纯白表面 */
     --card: 255 255 255;
-    --main: 31 35 48; /* 主文字（= spec --text:#1f2330） */
-    --muted: 91 100 115; /* 次要文字（= spec --text-muted:#5b6473，加深至 ≥5:1 白底对比，WCAG AA） */
-    --border: 15 23 42; /* 1px 边框通道值（border-border 使用，light 下原为未定义→现补为发丝线） */
-    /* 强调色已加深至与白色文字 ≥5:1（WCAG 2.1 AA）。原 #6b5cff 仅 4.25~4.57:1，
-       激活药丸（.liquid-pill-active / 首页「列表顺序」）白字对比不达标。 */
-    --primary: 88 72 214; /* #5848d6，白字对比 6.34:1 */
-    --primary-hover: 74 60 196; /* #4a3cc4，白字对比 ~9:1 */
-    --success: 28 107 56; /* #1c6b38，徽章/文字加深以保对比 */
-    --warning: 125 83 20; /* #7d5314，原 #8b5b15 在 bg-warning/15 上仅 4.25:1 */
-    --danger: 168 56 56; /* #a83838，白字按钮与徽章均达标 */
-    --special: 122 73 18; /* #7a4912，与 warning 同等级加深 */
-    --info: 33 105 135;
-    --surface-alt: 241 243 245;
+    --main: 20 20 19;                  /* #141413 主文字（暖近黑） */
+    --muted: 94 93 89;                 /* #5e5d59 次级文字（暖灰，白底 6.5:1，AA） */
+    --border: 20 20 19;                /* 1px 边框通道 */
+    --primary: 181 83 47;              /* #b5532f 加深陶土橙（白字 4.95:1，AA） */
+    --primary-hover: 161 73 41;        /* #a14929 */
+    --success: 95 122 69;              /* #5f7a45 加深橄榄绿（白字 4.8:1） */
+    --warning: 156 95 23;              /* #9c5f17 加深琥珀（白字 5.2:1） */
+    --danger: 178 59 50;               /* #b23b32 加深红（白字 5.9:1） */
+    --special: 156 74 38;             /* #9c4a26 深赭（特殊） */
+    --info: 63 111 156;                /* #3f6f9c 加深雾蓝（白字 5.3:1） */
+    --surface-alt: 240 238 230;        /* #f0eee6 奶油次级底 */
 
-    /* ===================================================================
-       Claude 风格显式 Token（便于统一微调，见任务规范）
-       - 与上方 channel 调色板语义一致，仅命名更语义化，方便后续一处修改。
-       - hairline / border-strong 用 rgba 写法（不和 Tailwind 的
-         border-border 通道变量冲突）。
-       =================================================================== */
-    --bg: #f7f8fa;
-    --surface-2: #f1f3f5;
-    --hairline: rgba(15, 23, 42, 0.1);
-    --border-strong: rgba(15, 23, 42, 0.16);
-    --text: #1f2330;
-    --text-muted: #5b6473; /* 加深至 ≥5:1 白底对比（WCAG AA） */
-    --accent: #5848d6; /* Claude 式蓝紫强调色（已加深至 ≥5:1 白字对比） */
-    --accent-soft: rgba(88, 72, 214, 0.12);
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-    --shadow-md: 0 2px 8px rgba(15, 23, 42, 0.08);
+    /* 显式 Token（Claude 暖中性） */
+    --bg: #faf9f5;                     /* 暖奶油主背景（Claude 标识） */
+    --surface-2: #f0eee6;              /* 奶油次级表面 */
+    --hairline: #e8e6dc;               /* 暖奶油发丝线边框 */
+    --border-strong: #d8d4c6;          /* 更明显的暖边框 */
+    --text: #141413;
+    --text-muted: #5e5d59;
+    --accent: #b5532f;                 /* Claude 橙（加深以达 AA） */
+    --accent-soft: rgba(181, 83, 47, 0.12);
+    --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.06);
+    --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.08);
     --radius: 14px;
   }
 
   .dark {
-    /* 暗色模式：保持同样的「干净、克制」范式，仅翻转明度。
-       强调色同样加深，确保暗色下激活药丸白字 ≥5:1。 */
-    --surface: 17 21 31;
-    --card: 24 30 44;
-    --main: 233 238 247;
-    --muted: 156 168 188;
-    --border: 255 255 255; /* 通道值：dark 下作为白色发丝线 */
-    --primary: 95 80 224; /* #5f50e0，暗色白字对比 5.67:1 */
-    --primary-hover: 80 66 200; /* #5042c8 */
-    --success: 105 165 115;
-    --warning: 210 160 80;
-    --danger: 168 80 80; /* #a85050，暗色白字确认按钮 ≥5:1 */
-    --special: 214 152 64;
-    --info: 86 160 200;
-    --surface-alt: 34 40 56;
+    /* 暗色：暖炭灰，仅翻转明度，强调色提亮橙以保白字对比 */
+    --surface: 48 48 46;               /* #30302e 暖炭灰表面 */
+    --card: 40 40 38;                  /* #282826 */
+    --main: 250 249 245;               /* #faf9f5 暖白文字 */
+    --muted: 176 174 165;             /* #b0aea5 */
+    --border: 255 255 255;
+    --primary: 224 140 105;            /* #e08c69 暗色提亮橙（白字达标） */
+    --primary-hover: 217 119 87;        /* #d97757 */
+    --success: 150 170 120;
+    --warning: 210 160 90;
+    --danger: 214 100 95;
+    --special: 200 140 90;
+    --info: 140 175 215;
+    --surface-alt: 40 40 38;
 
-    --bg: #0b0e16;
-    --surface-2: #1b2130;
-    --hairline: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.18);
-    --text: #e9eef7;
-    --text-muted: #9ca8bc;
-    --accent: #5f50e0; /* 暗色强调色（加深至 ≥5:1 白字对比） */
-    --accent-soft: rgba(95, 80, 224, 0.16);
+    --bg: #141413;                     /* 深炭黑 */
+    --surface-2: #30302e;
+    --hairline: #3d3d3a;
+    --border-strong: #4d4c48;
+    --text: #faf9f5;
+    --text-muted: #b0aea5;
+    --accent: #e08c69;
+    --accent-soft: rgba(224, 140, 105, 0.16);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
@@ -195,14 +186,22 @@
   }
 
   /* ============================ 导航栏 ============================== */
-  /* 干净白底胶囊 + 1px 发丝线 + 柔和阴影。
+  /* 全站唯一磨砂玻璃浮层：半透明白底 + backdrop-filter 模糊。
      注意：定位由组件 Tailwind 的 `fixed` 提供，此处**不**写 position，
      否则会覆盖 fixed 导致导航栏脱离固定定位（旧版 Bug 之一）。 */
   .liquid-nav {
-    background: var(--surface);
+    background: rgba(250, 249, 245, 0.72);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
     border: 1px solid var(--hairline);
     border-radius: 16px;
     box-shadow: var(--shadow-md);
+  }
+  .dark .liquid-nav {
+    background: rgba(48, 48, 46, 0.7);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    border: 1px solid var(--hairline);
   }
   .liquid-nav-active {
     background: var(--accent-soft);
@@ -272,7 +271,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
+  background: linear-gradient(180deg, #faf9f5 0%, #f0eee6 100%);
 }
 
 /* ====================== 无障碍：减少动态 ======================
