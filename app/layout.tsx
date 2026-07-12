@@ -36,6 +36,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* 首屏防闪：在渲染前根据系统配色偏好立即给 <html> 加 dark 类，
+            避免 system-dark 用户先白屏再切暗。已显式选择 light/dark 的用户
+            由 Providers 在设置加载后正确套用（SSR 不可同步读 Dexie）。 */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var m=window.matchMedia('(prefers-color-scheme: dark)');var d=m.matches;var r=document.documentElement;if(d)r.classList.add('dark');r.style.colorScheme=d?'dark':'light';}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className="min-h-screen">
         <LiquidGlassScene />
         <Providers>

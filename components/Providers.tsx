@@ -61,12 +61,16 @@ export function useApp() {
 
 function applyThemeClass(theme: Theme) {
   const root = document.documentElement;
+  let isDark = false;
   if (theme === "system") {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    root.classList.toggle("dark", mq.matches);
+    isDark = mq.matches;
   } else {
-    root.classList.toggle("dark", theme === "dark");
+    isDark = theme === "dark";
   }
+  root.classList.toggle("dark", isDark);
+  // 同步原生 color-scheme，适配原生滚动条 / 日期选择器等控件外观。
+  root.style.colorScheme = isDark ? "dark" : "light";
 }
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -110,11 +114,6 @@ export default function Providers({ children }: { children: ReactNode }) {
       return () => mq.removeEventListener("change", handler);
     }
   }, [settings]);
-
-  // Apply theme immediately to avoid flash (before settings load, respect system)
-  useEffect(() => {
-    applyThemeClass("system");
-  }, []);
 
   // Register service worker + 管理更新生命周期
   useEffect(() => {

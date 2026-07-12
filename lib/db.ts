@@ -155,7 +155,7 @@ export function defaultSettings(): Settings {
     listDirection: "forward",
     quickTodos: defaultQuickTodos(),
     customGroups: defaultCustomGroups(),
-    theme: "system",
+    theme: "light",
     bedTemplate: "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$",
     specialMarks: ["J", "YZ"],
   };
@@ -195,9 +195,18 @@ export async function ensureSettingsMigrated(): Promise<void> {
     q.id ? q : { ...q, id: `qt-${i}-${q.label}` }
   );
   const needsQuickMigration = (s.quickTodos ?? []).some((q) => !q.id);
-  if (!isNewConfig || needsQuickMigration) {
+  // 一次性迁移：旧版默认/未显式选择的 theme==="system" 翻为 "light"，
+  // 消除暗色设备被迫进暗色 UI 的体感崩坏。已显式选过 dark/light 的用户不受影响。
+  const needsThemeMigration = s.theme === "system";
+  if (!isNewConfig || needsQuickMigration || needsThemeMigration) {
     const migrated = migrateRoundingOrder(s.roundingOrder);
-    await db.settings.put({ ...s, roundingOrder: migrated, quickTodos, id: 1 });
+    await db.settings.put({
+      ...s,
+      roundingOrder: migrated,
+      quickTodos,
+      theme: needsThemeMigration ? "light" : s.theme,
+      id: 1,
+    });
   }
 }
 
@@ -296,8 +305,10 @@ export async function clearAllData(): Promise<void> {
     await db.settings.put({
       id: 1,
       roundingOrder: s?.roundingOrder ?? defaultRoundingConfig(),
+      listDirection: s?.listDirection ?? "forward",
       quickTodos: s?.quickTodos ?? defaultQuickTodos(),
-      theme: s?.theme ?? "system",
+      customGroups: s?.customGroups ?? defaultCustomGroups(),
+      theme: s?.theme ?? "light",
       bedTemplate: s?.bedTemplate,
       specialMarks: s?.specialMarks,
     });

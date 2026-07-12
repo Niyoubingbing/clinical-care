@@ -27,7 +27,7 @@ export default function ConfirmDialog({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[60] bg-[#0b0e16]"
+            className="fixed inset-0 z-[60] bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
