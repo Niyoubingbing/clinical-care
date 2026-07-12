@@ -4,37 +4,75 @@
 
 @layer base {
   :root {
-    --surface: 238 244 255;
+    /* ===================================================================
+       Claude 风格基础调色板（channel 形式，供 Tailwind 主题色使用）
+       说明：Tailwind 的 colors 映射为 rgb(var(--x) / <alpha-value>)，
+       因此这里必须保持 "R G B" 通道写法（不能写成 #hex），否则
+       bg-surface / border-border / bg-primary 等工具类会失效。
+       数值已对齐下方「显式 Token」的含义。
+       =================================================================== */
+    --surface: 255 255 255; /* 纯白表面（= spec --surface:#ffffff） */
     --card: 255 255 255;
-    --main: 23 34 54;
-    --muted: 92 107 132;
-    --border: 255 255 255;
-    --primary: 36 96 212;
-    --primary-hover: 24 73 176;
-    --success: 39 115 62;
-    --warning: 139 91 21;
-    --danger: 185 65 65;
-    --special: 136 82 23;
+    --main: 31 35 48; /* 主文字（= spec --text:#1f2330） */
+    --muted: 91 100 115; /* 次要文字（= spec --text-muted:#5b6473，加深至 ≥5:1 白底对比，WCAG AA） */
+    --border: 15 23 42; /* 1px 边框通道值（border-border 使用，light 下原为未定义→现补为发丝线） */
+    /* 强调色已加深至与白色文字 ≥5:1（WCAG 2.1 AA）。原 #6b5cff 仅 4.25~4.57:1，
+       激活药丸（.liquid-pill-active / 首页「列表顺序」）白字对比不达标。 */
+    --primary: 88 72 214; /* #5848d6，白字对比 6.34:1 */
+    --primary-hover: 74 60 196; /* #4a3cc4，白字对比 ~9:1 */
+    --success: 28 107 56; /* #1c6b38，徽章/文字加深以保对比 */
+    --warning: 125 83 20; /* #7d5314，原 #8b5b15 在 bg-warning/15 上仅 4.25:1 */
+    --danger: 168 56 56; /* #a83838，白字按钮与徽章均达标 */
+    --special: 122 73 18; /* #7a4912，与 warning 同等级加深 */
     --info: 33 105 135;
-    --surface-alt: 225 235 251;
-    --glass-pointer-x: 50vw;
-    --glass-pointer-y: 35vh;
+    --surface-alt: 241 243 245;
+
+    /* ===================================================================
+       Claude 风格显式 Token（便于统一微调，见任务规范）
+       - 与上方 channel 调色板语义一致，仅命名更语义化，方便后续一处修改。
+       - hairline / border-strong 用 rgba 写法（不和 Tailwind 的
+         border-border 通道变量冲突）。
+       =================================================================== */
+    --bg: #f7f8fa;
+    --surface-2: #f1f3f5;
+    --hairline: rgba(15, 23, 42, 0.1);
+    --border-strong: rgba(15, 23, 42, 0.16);
+    --text: #1f2330;
+    --text-muted: #5b6473; /* 加深至 ≥5:1 白底对比（WCAG AA） */
+    --accent: #5848d6; /* Claude 式蓝紫强调色（已加深至 ≥5:1 白字对比） */
+    --accent-soft: rgba(88, 72, 214, 0.12);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 2px 8px rgba(15, 23, 42, 0.08);
+    --radius: 14px;
   }
 
   .dark {
-    --surface: 9 15 29;
-    --card: 20 30 50;
-    --main: 242 247 255;
-    --muted: 153 169 194;
-    --border: 255 255 255;
-    --primary: 91 156 255;
-    --primary-hover: 117 173 255;
+    /* 暗色模式：保持同样的「干净、克制」范式，仅翻转明度。
+       强调色同样加深，确保暗色下激活药丸白字 ≥5:1。 */
+    --surface: 17 21 31;
+    --card: 24 30 44;
+    --main: 233 238 247;
+    --muted: 156 168 188;
+    --border: 255 255 255; /* 通道值：dark 下作为白色发丝线 */
+    --primary: 95 80 224; /* #5f50e0，暗色白字对比 5.67:1 */
+    --primary-hover: 80 66 200; /* #5042c8 */
     --success: 105 165 115;
     --warning: 210 160 80;
-    --danger: 200 95 95;
+    --danger: 168 80 80; /* #a85050，暗色白字确认按钮 ≥5:1 */
     --special: 214 152 64;
     --info: 86 160 200;
-    --surface-alt: 24 36 59;
+    --surface-alt: 34 40 56;
+
+    --bg: #0b0e16;
+    --surface-2: #1b2130;
+    --hairline: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text: #e9eef7;
+    --text-muted: #9ca8bc;
+    --accent: #5f50e0; /* 暗色强调色（加深至 ≥5:1 白字对比） */
+    --accent-soft: rgba(95, 80, 224, 0.16);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
 
   html {
@@ -44,7 +82,7 @@
   body {
     @apply text-main antialiased;
     min-height: 100dvh;
-    background: rgb(var(--surface));
+    background: var(--bg);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -62,76 +100,71 @@
 }
 
 @layer components {
+  /* ============================ 表单输入 ============================ */
   .input {
     @apply w-full rounded-xl border px-4 py-3 text-main outline-none transition;
-    border-color: rgb(255 255 255 / 0.7);
-    background: rgb(var(--card) / 0.42);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.72),
-      0 5px 18px rgb(31 66 120 / 0.08);
-    backdrop-filter: blur(22px) saturate(1.55);
-    -webkit-backdrop-filter: blur(22px) saturate(1.55);
+    background: var(--surface);
+    border-color: var(--hairline);
+    box-shadow: var(--shadow-sm);
   }
   .input:focus {
-    @apply border-primary;
-    box-shadow:
-      0 0 0 2px rgb(var(--primary) / 0.28),
-      0 0 18px 1px rgb(var(--primary) / 0.2),
-      inset 0 1px 0 rgb(255 255 255 / 0.82);
+    border-color: var(--accent);
+    /* 克制的辉光（非玻璃光晕） */
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .input::placeholder {
-    color: rgb(var(--muted) / 0.85);
+    color: var(--text-muted);
   }
 
+  /* ============================== 按钮 ============================== */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 text-white font-medium transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
-    box-shadow: 0 1px 3px rgba(35, 32, 28, 0.06);
+    box-shadow: var(--shadow-sm);
   }
   .btn-primary:hover {
     @apply bg-primary-hover;
   }
-  .dark .btn-primary,
-  .dark .bg-primary.text-white {
-    color: rgb(var(--surface));
-  }
-  .dark .text-primary,
-  .dark .btn-secondary {
-    color: rgb(230 165 125);
+  .dark .btn-primary {
+    color: #ffffff;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 font-medium text-primary transition active:scale-[0.97];
-    border-color: rgb(255 255 255 / 0.72);
-    background: linear-gradient(145deg, rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.28));
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.9),
-      inset 0 -1px 2px rgb(95 133 190 / 0.16),
-      0 1px 2px rgb(40 76 131 / 0.1),
-      0 8px 22px rgb(40 76 131 / 0.12);
-    backdrop-filter: blur(22px) saturate(1.6);
-    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 font-medium transition active:scale-[0.97];
+    background: var(--surface-2);
+    border-color: var(--hairline);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
   }
   .btn-secondary:hover {
-    @apply border-primary;
+    border-color: var(--accent);
     transform: translateY(-1px);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.95),
-      inset 0 -1px 2px rgb(95 133 190 / 0.2),
-      0 2px 5px rgb(40 76 131 / 0.12),
-      0 12px 26px rgb(40 76 131 / 0.16);
+    box-shadow: var(--shadow-md);
   }
   .btn-secondary:active {
     transform: translateY(0) scale(0.97);
   }
 
+  /* ============================== 卡片 ============================== */
+  /* 实白、不透明、1px 发丝线、单层克制阴影。彻底去掉毛玻璃/镜面高光。 */
   .card {
-    @apply rounded-xl border;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
   }
-
   .card-interactive {
-    @apply card transition;
+    transition:
+      box-shadow 150ms ease,
+      transform 150ms ease,
+      border-color 150ms ease;
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
+  /* ============================== 徽章 ============================== */
+  /* 保留语义色，仅清理透明度写法（无玻璃/阴影）。色值已加深以保 WCAG AA 对比。 */
   .badge {
     @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-tight;
   }
@@ -160,32 +193,65 @@
     color: rgb(var(--special));
     background-color: rgb(var(--special) / 0.12);
   }
+
+  /* ============================ 导航栏 ============================== */
+  /* 干净白底胶囊 + 1px 发丝线 + 柔和阴影。
+     注意：定位由组件 Tailwind 的 `fixed` 提供，此处**不**写 position，
+     否则会覆盖 fixed 导致导航栏脱离固定定位（旧版 Bug 之一）。 */
+  .liquid-nav {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+  }
+  .liquid-nav-active {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+  }
+
+  /* =========================== 药丸切换 ============================= */
+  .liquid-pill {
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+  }
+  .liquid-pill-active {
+    background: var(--accent);
+    border: 1px solid transparent;
+    color: #ffffff;
+  }
+
+  /* ====================== 面板 / 抽屉 / 对话框 ====================== */
+  .liquid-panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .liquid-sheet {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 6px);
+  }
+  .liquid-dialog {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 @layer utilities {
-  .bg-surface {
-    background-color: rgb(var(--surface));
-  }
-  .text-main {
-    color: rgb(var(--main));
-  }
-  .bg-card {
-    background-color: rgb(var(--card) / 0.56);
-    backdrop-filter: blur(22px) saturate(1.55);
-    -webkit-backdrop-filter: blur(22px) saturate(1.55);
-  }
-  .text-muted {
-    color: rgb(var(--muted));
-  }
-  .text-primary {
-    color: rgb(var(--primary));
-  }
-  .bg-primary {
-    background-color: rgb(var(--primary));
-  }
-  .bg-primary-hover {
-    background-color: rgb(var(--primary-hover));
-  }
+  /* 注意：bg-surface / text-main / text-muted / text-primary / bg-primary /
+     bg-primary-hover / bg-card / bg-surface-alt 等颜色工具类已由 Tailwind 依据
+     theme.extend.colors 自动生成（并正确支持 <alpha-value>）。此处**不再手写**，
+     因为手写规则中的 <alpha-value> 占位符不会被 Tailwind 替换，会生成无效 CSS
+     —— 这正是首轮 .bg-primary 背景透明、首页「列表顺序」激活药丸对比度不达标
+     （1.11:1）的根因。交由 Tailwind 生成即可获得正确且支持透明度的版本。 */
+
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -198,375 +264,19 @@
   }
 }
 
-.bg-surface-alt {
-  background-color: rgb(var(--surface-alt) / 0.55) !important;
-  backdrop-filter: blur(18px) saturate(1.45);
-  -webkit-backdrop-filter: blur(18px) saturate(1.45);
-}
-
-/* =========================================================================
-   LIQUID GLASS SYSTEM
-   Hybrid architecture: DOM/React structure is preserved; the visual glass
-   is layered via CSS (translucent volume + backdrop blur + refractive rim)
-   plus a WebGL background (LiquidGlassScene) that supplies the moving,
-   caustic, pointer-lit backdrop that the blur samples.
-   ========================================================================= */
-
-/* Fixed WebGL/orb background. z-index:-1 keeps it strictly BEHIND all app
-   content (including non-positioned text such as the "列表顺序" label) while
-   staying above the body background. This is the root-cause fix for the
-   Vercel "missing text" bug: previously the opaque canvas sat at z-index:0
-   and painted over non-positioned content. */
+/* ====================== 全局静态背景（替代 WebGL） ======================
+   固定定位、置于内容之下（z-index:-1）、无 canvas / 无 shader / 无动画。
+   从根上保证非定位文字（如首页「列表顺序」）在任意部署下都可见。 */
 .liquid-scene {
   position: fixed;
   inset: 0;
   z-index: -1;
-  overflow: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 12% 4%, rgb(255 255 255 / 0.96), transparent 30%),
-    linear-gradient(145deg, #e5f3ff 0%, #f4efff 42%, #e8fbf7 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
 }
 
-.liquid-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* Slow ambient colour wash over the canvas — gives the whole scene a
-   gentle "breathing" pulse without touching layout or forcing repaints
-   beyond opacity (compositor-friendly). */
-.liquid-scene::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgb(120 170 255 / 0.12), transparent 60%),
-    radial-gradient(120% 80% at 50% 100%, rgb(255 150 210 / 0.10), transparent 60%);
-  mix-blend-mode: screen;
-  animation: ambient-breath 34s ease-in-out infinite;
-}
-
-.dark .liquid-canvas {
-  filter: brightness(0.32) saturate(0.82) hue-rotate(12deg);
-}
-
-.dark .liquid-scene {
-  background:
-    radial-gradient(circle at 12% 4%, rgb(75 112 181 / 0.28), transparent 34%),
-    linear-gradient(145deg, #07101f 0%, #10172a 48%, #0a1d25 100%);
-}
-
-/* Floating orbs — transform-only animation (compositor-friendly). */
-.liquid-orb {
-  position: absolute;
-  border-radius: 999px;
-  opacity: 0.18;
-  filter: blur(2px) saturate(1.2);
-  will-change: transform;
-  animation: liquid-float 18s ease-in-out infinite alternate;
-}
-
-.liquid-orb-a {
-  width: min(75vw, 560px);
-  aspect-ratio: 1;
-  left: -24%;
-  top: 9%;
-  background: radial-gradient(circle at 62% 38%, #77e7ff 0 12%, #5988ff 40%, #7b5cff 68%, transparent 72%);
-  box-shadow: 0 0 90px rgb(74 134 255 / 0.34);
-}
-
-.liquid-orb-b {
-  width: min(68vw, 480px);
-  aspect-ratio: 1;
-  right: -25%;
-  top: 37%;
-  animation-delay: -7s;
-  animation-duration: 22s;
-  background: radial-gradient(circle at 40% 35%, #ffe77b 0 8%, #ff9d78 34%, #f263c7 62%, transparent 70%);
-  box-shadow: 0 0 100px rgb(246 97 181 / 0.3);
-}
-
-.liquid-orb-c {
-  width: min(55vw, 390px);
-  aspect-ratio: 1;
-  left: 31%;
-  bottom: -25%;
-  animation-delay: -13s;
-  background: radial-gradient(circle at 42% 36%, #c5ffde 0 11%, #53e0c4 42%, #4d8fff 70%, transparent 74%);
-  box-shadow: 0 0 85px rgb(55 210 189 / 0.3);
-}
-
-.liquid-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.18;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
-}
-
-.liquid-filters {
-  position: absolute;
-}
-
-/* Pointer-tracking light on the content layer. z-index:-1 keeps it behind
-   all app content (so it never covers text) but above the WebGL scene,
-   producing a soft glow that the glass cards blur through. */
-.app-content::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(500px circle at var(--glass-pointer-x) var(--glass-pointer-y), rgb(255 255 255 / 0.22), transparent 58%);
-}
-
-/* -------------------------------------------------------------------------
-   Shared glass shell: cards, panels, dialogs, sheets, nav.
-   - Stronger translucency (≈0.35–0.45) than before.
-   - Higher backdrop blur (32px) for a thicker glass feel.
-   - Layered box-shadow: top inner highlight (light refracting off the rim),
-     subtle bottom inner dark line (glass thickness), the diagonal RGB edge
-     (chromatic-aberration style border) and soft drop shadow.
-   - `isolation: isolate` contains the refractive ::before/::after so their
-     z-index never leaks out and traps overlays.
-   ------------------------------------------------------------------------- */
-.card,
-.liquid-panel,
-.liquid-dialog,
-.liquid-sheet,
-.liquid-nav {
-  isolation: isolate;
-  border: 1px solid rgb(255 255 255 / 0.62);
-  background:
-    linear-gradient(152deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.22) 46%, rgb(214 233 255 / 0.16) 100%),
-    radial-gradient(240px circle at var(--glass-pointer-x) var(--glass-pointer-y), rgb(255 255 255 / 0.34), transparent 72%);
-  background-blend-mode: screen, normal;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.95),
-    inset 0 0 0 1px rgb(255 255 255 / 0.05),
-    inset 0 -1.5px 1px rgb(80 112 172 / 0.22),
-    -1px 0 0 rgb(120 165 255 / 0.14),
-    1px 0 0 rgb(255 150 215 / 0.12),
-    0 16px 40px rgb(26 56 110 / 0.16),
-    0 2px 8px rgb(26 56 110 / 0.08);
-  backdrop-filter: blur(32px) saturate(1.8) brightness(1.02);
-  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.02);
-}
-
-.card,
-.liquid-panel {
-  border-radius: 22px;
-}
-
-/* Decorative specular sheen behind the content (z-index:-1 keeps text
-   crisp). Warp filter is applied only on hover so the static scroll path
-   stays cheap (no per-card SVG filter) while hover "refracts" the glass. */
-.card::before,
-.liquid-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0.6;
-  background:
-    radial-gradient(150px 80px at 16% -8%, rgb(255 255 255 / 0.9), transparent 70%),
-    radial-gradient(120px 70px at 90% 112%, rgb(120 170 255 / 0.22), transparent 72%);
-}
-
-.card:hover::before,
-.liquid-panel:hover::before {
-  opacity: 0.9;
-  filter: url(#liquid-glass-warp);
-}
-
-.card-interactive {
-  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
-}
-
-.card:hover,
-.card-interactive:hover {
-  border-color: rgb(255 255 255 / 0.92);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.98),
-    inset 0 -1.5px 1px rgb(68 107 180 / 0.24),
-    -1px 0 0 rgb(120 165 255 / 0.2),
-    1px 0 0 rgb(255 150 215 / 0.18),
-    0 20px 48px rgb(26 56 110 / 0.2),
-    0 2px 8px rgb(26 56 110 / 0.1);
-}
-
-.liquid-panel {
-  overflow: hidden;
-}
-
-/* Covering sheen for panels/dialogs/sheets/nav (children are raised above
-   it). The warp filter gives the edge a living, liquid ripple. */
-.liquid-panel::after,
-.liquid-dialog::after,
-.liquid-sheet::after,
-.liquid-nav::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0.55;
-  background:
-    radial-gradient(150px 74px at 18% -6%, rgb(255 255 255 / 0.86), transparent 72%),
-    radial-gradient(110px 64px at 88% 112%, rgb(83 155 255 / 0.22), transparent 72%);
-  filter: url(#liquid-glass-warp);
-}
-
-.liquid-dialog > *,
-.liquid-sheet > *,
-.liquid-nav > *,
-.liquid-panel > * {
-  position: relative;
-  z-index: 1;
-}
-
-.liquid-nav {
-  overflow: hidden;
-  border-radius: 32px;
-  background: linear-gradient(155deg, rgb(255 255 255 / 0.68), rgb(228 241 255 / 0.3));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.96),
-    inset 0 -1px 0 rgb(60 94 150 / 0.16),
-    0 1px 0 rgb(255 255 255 / 0.5),
-    0 18px 44px rgb(26 55 105 / 0.24),
-    0 3px 10px rgb(26 55 105 / 0.12);
-}
-
-/* Active tab / active pill: vivid blue→purple glass with a top inner
-   highlight arc. */
-.liquid-nav-active,
-.liquid-pill-active {
-  position: relative;
-  isolation: isolate;
-  border: 1px solid rgb(255 255 255 / 0.6);
-  background:
-    radial-gradient(circle at 32% 6%, rgb(255 255 255 / 0.5), transparent 44%),
-    linear-gradient(145deg, #6aa6ff 0%, #3f6fe6 48%, #5b46e0 100%);
-  box-shadow:
-    inset 0 1px 1px rgb(255 255 255 / 0.78),
-    inset 0 -1px 1px rgb(28 48 150 / 0.4),
-    0 5px 14px rgb(48 95 210 / 0.34);
-}
-
-/* Colourful chromatic-refraction sheen behind the active label text. */
-.liquid-nav-active::before,
-.liquid-pill-active::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0.85;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.3), transparent 42%);
-  filter: url(#liquid-glass-chroma);
-}
-
-.liquid-pill,
-.liquid-pill-active {
-  border-radius: 999px;
-  backdrop-filter: blur(22px) saturate(1.7);
-  -webkit-backdrop-filter: blur(22px) saturate(1.7);
-}
-
-.liquid-pill {
-  border: 1px solid rgb(255 255 255 / 0.72);
-  background: linear-gradient(145deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.22));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.86), 0 6px 16px rgb(35 67 116 / 0.1);
-}
-
-.liquid-sheet {
-  overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom, 6px);
-  background: linear-gradient(155deg, rgb(255 255 255 / 0.76), rgb(236 246 255 / 0.44));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.96), 0 28px 80px rgb(13 30 59 / 0.36);
-  backdrop-filter: blur(40px) saturate(1.8);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8);
-}
-
-.liquid-dialog {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(150deg, rgb(255 255 255 / 0.82), rgb(237 245 255 / 0.48));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.98), 0 28px 75px rgb(13 30 59 / 0.34);
-  backdrop-filter: blur(38px) saturate(1.8);
-  -webkit-backdrop-filter: blur(38px) saturate(1.8);
-}
-
-/* Drag handle bar for sheet / dialog tops. */
-.liquid-sheet-handle,
-.liquid-dialog-handle {
-  background: rgb(255 255 255 / 0.55);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
-}
-
-.dark .card,
-.dark .liquid-panel,
-.dark .liquid-dialog,
-.dark .liquid-sheet,
-.dark .liquid-nav {
-  border-color: rgb(255 255 255 / 0.16);
-  background: linear-gradient(150deg, rgb(54 74 110 / 0.5), rgb(18 30 52 / 0.42) 55%, rgb(10 22 38 / 0.38));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.22),
-    inset 0 -1.5px 1px rgb(0 0 0 / 0.34),
-    -1px 0 0 rgb(120 165 255 / 0.1),
-    1px 0 0 rgb(255 150 215 / 0.08),
-    0 18px 48px rgb(0 0 0 / 0.36);
-}
-
-.dark .liquid-pill,
-.dark .btn-secondary,
-.dark .input {
-  border-color: rgb(255 255 255 / 0.16);
-  background: linear-gradient(145deg, rgb(64 84 120 / 0.46), rgb(16 27 48 / 0.4));
-}
-
-@keyframes ambient-breath {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes liquid-float {
-  from {
-    transform: translate3d(-2%, -2%, 0) rotate(-4deg) scale(1);
-  }
-  to {
-    transform: translate3d(8%, 7%, 0) rotate(9deg) scale(1.08);
-  }
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .card,
-  .liquid-panel,
-  .liquid-dialog,
-  .liquid-sheet,
-  .liquid-nav,
-  .liquid-pill,
-  .btn-secondary,
-  .input {
-    background: rgb(var(--card) / 0.94);
-  }
-}
-
+/* ====================== 无障碍：减少动态 ======================
+   Claude 风格本身几乎无动画，reduced-motion 下进一步确保无闪烁/位移。 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -574,9 +284,5 @@
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
-  }
-
-  .liquid-orb {
-    animation: none !important;
   }
 }

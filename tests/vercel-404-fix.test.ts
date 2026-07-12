@@ -11,8 +11,9 @@
 
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { test, expect } from "vitest";
+import { describe, test, expect } from "vitest";
 
+describe("vercel.json + sw.js clean-URL 404 regression", () => {
 // ---------------------------------------------------------------------------
 // Test 1: vercel.json validity + rewrite-rule completeness (static assertions)
 // ---------------------------------------------------------------------------
@@ -153,4 +154,5 @@ test("sw handleNavigate: 404 from server is NOT passed through (patient route)",
   const result = await ctx.hn(req, url);
   expect(result, "patient route must not return the raw 404 response object").not.toBe(bad404);
   expect(result.status, "patient fallback must not have status 404").not.toBe(404);
+});
 });

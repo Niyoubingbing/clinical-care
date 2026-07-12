@@ -208,7 +208,7 @@ export default function RoundingPage() {
               />
             </label>
           </div>
-          <p className="text-[11px] text-muted/70">
+          <p className="text-[11px] text-muted">
             病房数 = ceil(普通病床数 ÷ 平均病房床数)，块内基础床号连续、可增删。
           </p>
           <button className="btn-primary h-10 w-full" onClick={generateBasic}>

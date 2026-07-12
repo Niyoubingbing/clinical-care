@@ -1,7 +1,7 @@
 {
-  "ttfbMs": 33,
-  "domContentLoadedMs": 144,
-  "loadMs": 288,
-  "fcpMs": 212,
-  "wallMs": 485
+  "ttfbMs": 8,
+  "domContentLoadedMs": 55,
+  "loadMs": 215,
+  "fcpMs": 140,
+  "wallMs": 317
 }

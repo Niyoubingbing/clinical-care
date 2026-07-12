@@ -29,8 +29,8 @@ function GroupedPatientCard({
   animateEntry?: boolean;
 }) {
   if (items.length === 0) return null;
-  // 病房块：与单卡（白底 card）区分——采用彩色玻璃质感容器，
-  // 主色→信息色渐变半透明底 + 磨砂模糊 + 左侧强调色条，内部白色病人卡「浮」其上。
+  // 病房块：与单卡（白底 card）区分——采用主色→信息色柔和渐变底 + 1px 发丝边框 +
+  // 克制阴影 + 左侧强调色条，内部白色病人卡「浮」其上。无磨砂模糊（干净 Claude 风格）。
   const enterAnim = animateEntry
     ? { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }
     : { initial: false as const, animate: { opacity: 1 } };
@@ -44,8 +44,6 @@ function GroupedPatientCard({
           "linear-gradient(135deg, rgb(var(--primary) / 0.10) 0%, rgb(var(--info) / 0.06) 100%)",
         borderColor: "rgb(var(--primary) / 0.25)",
         boxShadow: "0 2px 12px rgb(var(--primary) / 0.07)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
       }}
     >
       <span

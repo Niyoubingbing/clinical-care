@@ -30,7 +30,7 @@ export default function BottomSheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-md"
+            className="fixed inset-0 z-40 bg-slate-950/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
