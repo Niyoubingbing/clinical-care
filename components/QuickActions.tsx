@@ -2,7 +2,7 @@
 
 import { Droplet, TestTube, Plus } from "lucide-react";
 import { useApp } from "./Providers";
-import { addTodo, todayStr } from "@/lib/db";
+import { addTodo, todayStr, db } from "@/lib/db";
 
 export default function QuickActions({
   patientId,
@@ -14,6 +14,20 @@ export default function QuickActions({
   const { toast } = useApp();
 
   const addDressing = async () => {
+    const exists = await db.todos
+      .where("patientId")
+      .equals(patientId)
+      .filter(
+        (t) =>
+          t.type === "换药" &&
+          t.dueDate === todayStr() &&
+          t.status === "pending"
+      )
+      .first();
+    if (exists) {
+      toast({ message: "今日换药待办已存在" });
+      return;
+    }
     await addTodo({
       patientId,
       content: "换药",

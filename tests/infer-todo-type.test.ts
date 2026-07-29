@@ -3,7 +3,7 @@ import { inferTodoType } from "@/lib/time-parser";
 
 // 聚焦单元测试：验证新建待办时由内容自动推断类型（inferTodoType）。
 // 这是「简化新建待办表单」后唯一决定待办 type 的路径，
-// 直接影响「换药 → lastDressingChange 联动」等临床规则是否仍生效。
+// 新建待办时由内容自动推断 type；新模型下换药由「手术日计划」驱动，不再联动 lastDressingChange。
 describe("inferTodoType", () => {
   it('含"换药" → "换药"', () => {
     expect(inferTodoType("明天换药")).toBe("换药");

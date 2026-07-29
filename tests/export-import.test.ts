@@ -2,10 +2,19 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   parseClinicalJSON,
   importClinicalData,
+  readFileAsText,
+  MAX_IMPORT_FILE_BYTES,
   type ParsedClinical,
 } from "@/lib/export-import";
 import { db } from "@/lib/db";
 import type { Patient, Todo } from "@/types";
+
+describe("readFileAsText", () => {
+  it("rejects oversized imports before allocating a FileReader", async () => {
+    const oversized = { size: MAX_IMPORT_FILE_BYTES + 1 } as File;
+    await expect(readFileAsText(oversized)).rejects.toThrow("10MB");
+  });
+});
 
 function mkPatient(id: string, extra: Partial<Patient> = {}): Patient {
   return {

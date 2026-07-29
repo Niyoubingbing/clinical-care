@@ -7,6 +7,7 @@ import { GripVertical, X, Plus } from "lucide-react";
 import { getSettings, updateSettings, uid } from "@/lib/db";
 import { CustomGroup } from "@/types";
 import { useApp } from "@/components/Providers";
+import SubpageHeader from "@/components/SubpageHeader";
 
 const PALETTE = [
   "#fecaca", "#fde68a", "#bbf7d0", "#bfdbfe",
@@ -68,11 +69,11 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-[20px] font-semibold text-main">分组管理</h1>
-      <p className="text-[12px] text-muted">
-        自定义查房分组。在病人详情页可一键切换到这里定义的分组。
-      </p>
+    <div className="space-y-5">
+      <SubpageHeader
+        title="分组管理"
+        description="维护查房分组、颜色和显示顺序。"
+      />
 
       <div className="card p-3">
         <div className="flex items-end gap-2">

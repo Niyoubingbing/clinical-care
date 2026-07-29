@@ -11,7 +11,8 @@ import React, {
 } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { MotionConfig } from "framer-motion";
-import { getSettings, ensureSettingsMigrated } from "@/lib/db";
+import { getSettings, ensureSettingsMigrated, db, todayStr } from "@/lib/db";
+import { ensureTodaysDressingTodos } from "@/lib/dressing";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
 import UpdateBanner from "@/components/UpdateBanner";
 
@@ -82,6 +83,35 @@ export default function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     ensureSettingsMigrated().catch(() => {});
   }, []);
+
+  // 挂载且设置已加载后，按「手术日计划」补齐今日换药待办（幂等）。
+  // 同时监听页面可见（从后台/锁屏切回）再次补齐，确保当天换药待办不遗漏。
+  const dressingInitRef = useRef(false);
+  useEffect(() => {
+    if (!settings) return;
+    const run = async () => {
+      if (dressingInitRef.current) return;
+      dressingInitRef.current = true;
+      try {
+        await ensureTodaysDressingTodos(
+          await db.patients.toArray(),
+          await getSettings(),
+          await db.todos.toArray(),
+          todayStr()
+        );
+      } catch {
+        // 静默失败，不影响其它功能
+      } finally {
+        dressingInitRef.current = false;
+      }
+    };
+    void run();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void run();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [settings]);
 
   // 应用更新状态（PWA Service Worker 更新管理）
   const [updateState, setUpdateState] = useState<UpdateState>("idle");

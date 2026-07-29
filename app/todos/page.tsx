@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
+import { db, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo, Patient } from "@/types";
 import { dueLabel } from "@/lib/time-parser";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
@@ -34,7 +34,6 @@ function TodosInner() {
 
   const todos = useLiveQuery(() => db.todos.toArray(), []) ?? EMPTY_TODOS;
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? EMPTY_PATIENTS;
-  const today = todayStr();
 
   const patientMap = useMemo(
     () => new Map(patients.map((p) => [p.id, p])),
@@ -104,22 +103,13 @@ function TodosInner() {
     [patientGroups, passFilter]
   );
 
-  const onToggle = useCallback(
-    async (t: Todo) => {
-      const done = t.status === "completed";
-      if (!done && t.type === "换药" && t.patientId) {
-        await db.patients.update(t.patientId, {
-          lastDressingChange: today,
-          updatedAt: Date.now(),
-        });
-      }
-      await db.todos.update(t.id, {
-        status: done ? "pending" : "completed",
-        completedAt: done ? undefined : Date.now(),
-      });
-    },
-    [today]
-  );
+  const onToggle = useCallback(async (t: Todo) => {
+    const done = t.status === "completed";
+    await db.todos.update(t.id, {
+      status: done ? "pending" : "completed",
+      completedAt: done ? undefined : Date.now(),
+    });
+  }, []);
 
   const onDelete = useCallback(
     async (t: Todo) => {
@@ -155,14 +145,14 @@ function TodosInner() {
     <div className="space-y-4">
       <h1 className="text-[20px] font-semibold text-main">待办</h1>
 
-      <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4">
+      <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4">
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
+            className={`filter-chip shrink-0 px-3 py-1.5 text-[12px] font-medium transition ${
               filter === f.key
-                ? "liquid-pill-active text-white"
-                : "liquid-pill text-muted"
+                ? "filter-chip-active"
+                : "text-muted"
             }`}
             onClick={() => setFilter(f.key)}
           >
@@ -177,10 +167,10 @@ function TodosInner() {
         <>
           {/* 通用待办：永远置顶 + 大边框方块 */}
           {generalTodos.some(passFilter) && (
-            <section className="liquid-panel rounded-[24px] p-4">
+            <section className="liquid-panel p-4">
               <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted">
                 通用待办
-                <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
+                <span className="rounded-md bg-surface-alt px-2 py-0.5 text-[11px] font-normal text-muted">
                   {generalCount} {generalCountLabel}
                 </span>
               </p>

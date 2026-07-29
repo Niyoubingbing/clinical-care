@@ -1,6 +1,8 @@
 import { Patient, Todo } from "@/types";
 import { db, clearAllData } from "./db";
 
+export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
+
 export function downloadJSON(filename: string, data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
@@ -33,6 +35,9 @@ export function exportClinicalData(
 }
 
 export function readFileAsText(file: File): Promise<string> {
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    return Promise.reject(new Error("导入文件不能超过 10MB"));
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));

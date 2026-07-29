@@ -158,6 +158,8 @@ export function defaultSettings(): Settings {
     theme: "light",
     bedTemplate: "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$",
     specialMarks: ["J", "YZ"],
+    dressingSchedule: { earlyInterval: 2, laterInterval: 3, maxDay: 14 },
+    showVirtualBeds: true,
   };
 }
 
@@ -198,21 +200,46 @@ export async function ensureSettingsMigrated(): Promise<void> {
   // 一次性迁移：旧版默认/未显式选择的 theme==="system" 翻为 "light"，
   // 消除暗色设备被迫进暗色 UI 的体感崩坏。已显式选过 dark/light 的用户不受影响。
   const needsThemeMigration = s.theme === "system";
-  if (!isNewConfig || needsQuickMigration || needsThemeMigration) {
+  // 旧数据可能缺失 v2.17 新增的 dressingSchedule / showVirtualBeds 字段，需回补默认值。
+  const needsDressingBackfill =
+    !s.dressingSchedule ||
+    typeof s.dressingSchedule.earlyInterval !== "number" ||
+    typeof s.dressingSchedule.laterInterval !== "number" ||
+    typeof s.dressingSchedule.maxDay !== "number" ||
+    s.showVirtualBeds === undefined;
+  if (
+    !isNewConfig ||
+    needsQuickMigration ||
+    needsThemeMigration ||
+    needsDressingBackfill
+  ) {
     const migrated = migrateRoundingOrder(s.roundingOrder);
     await db.settings.put({
       ...s,
       roundingOrder: migrated,
       quickTodos,
       theme: needsThemeMigration ? "light" : s.theme,
+      dressingSchedule: s.dressingSchedule ?? {
+        earlyInterval: 2,
+        laterInterval: 3,
+        maxDay: 14,
+      },
+      showVirtualBeds: s.showVirtualBeds ?? true,
       id: 1,
     });
   }
 }
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
-  const current = await getSettings();
-  await db.settings.put({ ...current, ...patch, id: 1 });
+  // Serialize read-modify-write updates so two settings screens saving at the
+  // same time cannot silently overwrite one another's fields.
+  await db.transaction("rw", db.settings, async () => {
+    const stored = await db.settings.get(1);
+    const current = stored
+      ? { ...stored, roundingOrder: migrateRoundingOrder(stored.roundingOrder) }
+      : defaultSettings();
+    await db.settings.put({ ...current, ...patch, id: 1 });
+  });
 }
 
 // ---- Patients ----
@@ -271,19 +298,12 @@ export async function toggleTodo(
 ): Promise<void> {
   const todo = await db.todos.get(id);
   if (!todo) return;
-  if (completed) {
-    await db.todos.update(id, {
-      status: "completed",
-      completedAt: Date.now(),
-    });
-    // PRD 4.7: completing a 换药 todo updates lastDressingChange to today
-    if (todo.type === "换药" && todo.patientId) {
-      await db.patients.update(todo.patientId, {
-        lastDressingChange: todayStr(),
-        updatedAt: Date.now(),
+    if (completed) {
+      await db.todos.update(id, {
+        status: "completed",
+        completedAt: Date.now(),
       });
-    }
-  } else {
+    } else {
     await db.todos.update(id, {
       status: "pending",
       completedAt: undefined,
@@ -311,6 +331,12 @@ export async function clearAllData(): Promise<void> {
       theme: s?.theme ?? "light",
       bedTemplate: s?.bedTemplate,
       specialMarks: s?.specialMarks,
+      dressingSchedule: s?.dressingSchedule ?? {
+        earlyInterval: 2,
+        laterInterval: 3,
+        maxDay: 14,
+      },
+      showVirtualBeds: s?.showVirtualBeds ?? true,
     });
   });
 }

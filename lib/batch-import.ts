@@ -1,6 +1,12 @@
 import { Patient } from "@/types";
 import { parseBed, DEFAULT_BED_TEMPLATE, DEFAULT_SPECIAL_MARKS } from "./bed-parser";
-import { DEFAULT_GROUP_COLOR } from "./db";
+import {
+  DEFAULT_GROUP_COLOR,
+  addPatient,
+  updatePatient,
+  deletePatient,
+  db,
+} from "./db";
 
 export interface RosterRow {
   bedNumber: string;
@@ -27,7 +33,7 @@ export function analyzeRoster(
   removeAbsent: boolean
 ): RosterPreview {
   const lines = text.split(/\r?\n/);
-  const valid: RosterRow[] = [];
+  const parsedRows: RosterRow[] = [];
   const skipped: { line: number; raw: string; reason: string }[] = [];
 
   lines.forEach((raw, idx) => {
@@ -51,8 +57,15 @@ export function analyzeRoster(
       skipped.push({ line: idx + 1, raw, reason: "缺少姓名" });
       return;
     }
-    valid.push({ bedNumber, name, diagnosis: rest.join(" ") });
+    parsedRows.push({ bedNumber, name, diagnosis: rest.join(" ") });
   });
+
+  // A pasted roster can contain the same patient more than once. Keep the
+  // last occurrence (the freshest row) so one import never creates duplicate
+  // patients or performs multiple conflicting updates for the same name.
+  const latestByName = new Map<string, RosterRow>();
+  for (const row of parsedRows) latestByName.set(row.name, row);
+  const valid = Array.from(latestByName.values());
 
   const nameSet = new Set(valid.map((r) => r.name));
   const existingByName = new Map(existing.map((p) => [p.name, p]));
@@ -78,44 +91,44 @@ export async function applyRoster(
   template: string = DEFAULT_BED_TEMPLATE,
   specialMarks: string[] = DEFAULT_SPECIAL_MARKS
 ): Promise<{ added: number; updated: number; removed: number }> {
-  const { addPatient, updatePatient, deletePatient } = await import("./db");
-
   let added = 0;
   let updated = 0;
   let removed = 0;
 
-  for (const row of preview.toAdd) {
-    const parsed = parseBed(row.bedNumber, template, specialMarks);
-    await addPatient({
-      bedNumber: row.bedNumber,
-      name: row.name,
-      diagnosis: row.diagnosis,
-      groupColor: DEFAULT_GROUP_COLOR,
-      ward: parsed.ward,
-      bedBase: parsed.bedBase,
-      bedType: parsed.bedType,
-      specialType: parsed.specialType,
-    });
-    added++;
-  }
+  await db.transaction("rw", db.patients, db.todos, async () => {
+    for (const row of preview.toAdd) {
+      const parsed = parseBed(row.bedNumber, template, specialMarks);
+      await addPatient({
+        bedNumber: row.bedNumber,
+        name: row.name,
+        diagnosis: row.diagnosis,
+        groupColor: DEFAULT_GROUP_COLOR,
+        ward: parsed.ward,
+        bedBase: parsed.bedBase,
+        bedType: parsed.bedType,
+        specialType: parsed.specialType,
+      });
+      added++;
+    }
 
-  for (const { existing, row } of preview.toUpdate) {
-    const parsed = parseBed(row.bedNumber, template, specialMarks);
-    await updatePatient(existing.id, {
-      bedNumber: row.bedNumber,
-      diagnosis: row.diagnosis,
-      ward: parsed.ward,
-      bedBase: parsed.bedBase,
-      bedType: parsed.bedType,
-      specialType: parsed.specialType,
-    });
-    updated++;
-  }
+    for (const { existing, row } of preview.toUpdate) {
+      const parsed = parseBed(row.bedNumber, template, specialMarks);
+      await updatePatient(existing.id, {
+        bedNumber: row.bedNumber,
+        diagnosis: row.diagnosis,
+        ward: parsed.ward,
+        bedBase: parsed.bedBase,
+        bedType: parsed.bedType,
+        specialType: parsed.specialType,
+      });
+      updated++;
+    }
 
-  for (const p of preview.toRemove) {
-    await deletePatient(p.id);
-    removed++;
-  }
+    for (const p of preview.toRemove) {
+      await deletePatient(p.id);
+      removed++;
+    }
+  });
 
   return { added, updated, removed };
 }

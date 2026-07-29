@@ -27,7 +27,7 @@ import {
 } from "@/lib/export-import";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useApp } from "@/components/Providers";
-import { Theme } from "@/types";
+import { Theme, DressingSchedule } from "@/types";
 
 const THEMES: { key: Theme; label: string; icon: typeof Sun }[] = [
   { key: "light", label: "浅色", icon: Sun },
@@ -46,6 +46,21 @@ export default function SettingsPage() {
   const [clearOpen, setClearOpen] = useState(false);
 
   const setTheme = (theme: Theme) => updateSettings({ theme });
+
+  const updateSchedule = (patch: Partial<DressingSchedule>) => {
+    if (!settings) return;
+    const next: DressingSchedule = { ...settings.dressingSchedule, ...patch };
+    if (
+      Number.isInteger(next.earlyInterval) &&
+      next.earlyInterval >= 1 &&
+      Number.isInteger(next.laterInterval) &&
+      next.laterInterval >= 1 &&
+      Number.isInteger(next.maxDay) &&
+      next.maxDay >= 1
+    ) {
+      updateSettings({ dressingSchedule: next });
+    }
+  };
 
   const onExport = () => {
     exportClinicalData(patients, todos);
@@ -113,23 +128,50 @@ export default function SettingsPage() {
         <EntryLink href="/settings/groups" icon={Users} label="分组管理" />
       </Section>
 
+      <Section title="换药规则">
+        <div className="card space-y-3 p-3">
+          <div className="grid grid-cols-3 gap-2">
+            <NumberField
+              label="前期间隔(天)"
+              value={settings?.dressingSchedule.earlyInterval}
+              onChange={(v) => updateSchedule({ earlyInterval: v })}
+            />
+            <NumberField
+              label="后期间隔(天)"
+              value={settings?.dressingSchedule.laterInterval}
+              onChange={(v) => updateSchedule({ laterInterval: v })}
+            />
+            <NumberField
+              label="截止(术后天数)"
+              value={settings?.dressingSchedule.maxDay}
+              onChange={(v) => updateSchedule({ maxDay: v })}
+            />
+          </div>
+          <p className="text-[12px] leading-relaxed text-muted">
+            换药日：术后第 {settings?.dressingSchedule.earlyInterval ?? 2} 天开始，之后每{" "}
+            {settings?.dressingSchedule.laterInterval ?? 3} 天一次，至术后第{" "}
+            {settings?.dressingSchedule.maxDay ?? 14} 天。例如 2 / 3 / 14 → 第 2、5、8、11、14 天。
+          </p>
+        </div>
+      </Section>
+
       <Section title="数据管理">
         <button
-          className="flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-main shadow-xs"
+          className="settings-row text-left text-[14px] text-main"
           onClick={onExport}
         >
           <Download size={18} className="text-primary" />
           导出数据
         </button>
         <button
-          className="flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-main shadow-xs"
+          className="settings-row text-left text-[14px] text-main"
           onClick={() => fileRef.current?.click()}
         >
           <Upload size={18} className="text-primary" />
           导入数据
         </button>
         <button
-          className="flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-danger shadow-xs"
+          className="settings-row text-left text-[14px] text-danger"
           onClick={() => setClearOpen(true)}
         >
           <Trash2 size={18} />
@@ -252,11 +294,37 @@ function EntryLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl bg-card p-3 text-left text-[14px] text-main shadow-xs transition active:scale-[0.98]"
+      className="settings-row text-left text-[14px] text-main transition active:scale-[0.99]"
     >
       <Icon size={18} className="text-primary" />
       <span className="flex-1">{label}</span>
       <ArrowRight size={16} className="text-muted" />
     </Link>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] text-muted">{label}</span>
+      <input
+        type="number"
+        min={1}
+        className="input"
+        value={value ?? ""}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          if (Number.isInteger(n) && n >= 1) onChange(n);
+        }}
+      />
+    </label>
   );
 }

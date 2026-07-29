@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/noto-sans-sc";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import NavBar from "@/components/NavBar";
@@ -51,7 +52,7 @@ export default function RootLayout({
       <body className="min-h-screen">
         <LiquidGlassScene />
         <Providers>
-          <main className="app-content mx-auto w-full max-w-2xl px-4 pb-28 pt-5">
+          <main className="app-content mx-auto w-full max-w-2xl px-4 pb-20 pt-5">
             {children}
           </main>
           <NavBar />

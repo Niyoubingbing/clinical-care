@@ -20,6 +20,7 @@ export default function TodoFormSheet({
   const { toast } = useApp();
   const [content, setContent] = useState("");
   const [parse, setParse] = useState<ReturnType<typeof parseTime>>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -34,6 +35,7 @@ export default function TodoFormSheet({
   };
 
   const submit = async () => {
+    if (saving) return;
     const text = content.trim();
     if (!text) {
       toast({ message: "请输入待办内容" });
@@ -41,17 +43,24 @@ export default function TodoFormSheet({
     }
     // 病人与通用待办统一：只存内容 + 推断类型 + 解析出的日期，
     // 不再区分两套字段（类型/目标日期由内容自动推断）。
-    const p = parseTime(text);
-    await addTodo({
-      patientId: patientId ?? null,
-      content: text,
-      type: inferTodoType(text),
-      dueDate: p?.date,
-    });
-    toast({
-      message: patientId ? "待办已添加" : "通用待办已添加",
-    });
-    onClose();
+    setSaving(true);
+    try {
+      const p = parseTime(text);
+      await addTodo({
+        patientId: patientId ?? null,
+        content: text,
+        type: inferTodoType(text),
+        dueDate: p?.date,
+      });
+      toast({
+        message: patientId ? "待办已添加" : "通用待办已添加",
+      });
+      onClose();
+    } catch {
+      toast({ message: "待办添加失败，请重试" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -85,8 +94,9 @@ export default function TodoFormSheet({
         <button
           className="btn-primary h-12 w-full text-[15px]"
           onClick={submit}
+          disabled={saving}
         >
-          确定
+          {saving ? "添加中…" : "确定"}
         </button>
       </div>
     </BottomSheet>

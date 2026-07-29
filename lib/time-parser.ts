@@ -114,8 +114,9 @@ export function parseTime(text: string): ParsedTime | null {
 /**
  * 从自由文本待办内容推断其类型。
  * 命中关键词即返回对应 TodoType；均未命中返回「其他」。
- * 用于新建待办时自动归类（如内容含「换药」即记为换药类，
- * 从而保留「换药 → lastDressingChange 联动」逻辑），无需用户手动选择类型。
+ * 用于新建待办时自动归类（如内容含「换药」即记为换药类），
+ * 无需用户手动选择类型。换药类待办会参与「需换药」状态与换药提醒的计算
+ * （换药计划与提醒由 DressingSchedule / 自动生成逻辑驱动）。
  */
 export function inferTodoType(content: string): TodoType {
   const map: [string, TodoType][] = [

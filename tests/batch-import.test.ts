@@ -64,4 +64,17 @@ describe("analyzeRoster - removeAbsent", () => {
     expect(preview.toAdd[0].name).toBe("王五");
     expect(preview.toRemove).toHaveLength(0);
   });
+
+  it("keeps only the last row when an incoming roster repeats a name", () => {
+    const preview = analyzeRoster(
+      "309W01 张三 初始诊断\n309W08 张三 最新诊断",
+      [],
+      false
+    );
+
+    expect(preview.valid).toHaveLength(1);
+    expect(preview.toAdd).toEqual([
+      { bedNumber: "309W08", name: "张三", diagnosis: "最新诊断" },
+    ]);
+  });
 });

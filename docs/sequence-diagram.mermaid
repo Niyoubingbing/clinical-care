@@ -1,0 +1,47 @@
+sequenceDiagram
+  actor U as 用户/系统
+  participant P as Providers
+  participant DB as Dexie
+  participant D as lib/dressing
+  participant T as todos 表
+
+  Note over P: 挂载时 与 visibilitychange→visible 触发（复用既有监听）
+  P->>DB: getSettings() / patients.toArray() / todos.toArray()
+  DB-->>P: settings, patients, todos
+  P->>D: ensureTodaysDressingTodos(patients, settings.dressingSchedule, todos, today)
+  loop 每个有 surgeryDate 的病人
+    D->>D: postOpDay(surgeryDate, today)
+    D->>D: dressingDays(schedule) 是否含今日(postOpDay)
+    alt 今日是换药日 且 未完成
+      D->>D: key = dressingTodoKey(p.id, today)
+      D->>T: 查是否已存在同 key 的 换药 todo
+      T-->>D: 无
+      D->>DB: addTodo({patientId, type:"换药", content:"换药", dueDate:today})
+      DB-->>T: 新增待办
+    else 非换药日 / 已存在同 key
+      D-->>D: 跳过（不补建历史日）
+    end
+  end
+  D-->>P: resolve
+  Note over P: useLiveQuery 自动重渲染 首页/详情，徽标刷新
+
+---
+
+sequenceDiagram
+  participant H as app/page.tsx
+  participant LQ as useLiveQuery
+  participant DB as Dexie
+  participant R as lib/reminders
+  participant D as lib/dressing
+  participant C as PatientCard
+
+  H->>LQ: patients / todos / settings
+  LQ->>DB: toArray()
+  DB-->>H: 数据
+  H->>R: patientStatus(p, todos, today, settings.dressingSchedule)  // 逐病人
+  R->>D: resolveSchedule / postOpDay / dressingDays / dressingInfo
+  D-->>R: {postOpDay, dressingToday, nextInDays, ...}
+  R-->>H: PatientStatus(含新字段)
+  H->>H: 依 settings.showVirtualBeds 过滤虚拟床(保持正/反序)
+  H->>C: patient + status(含 postOpDay) + bedType
+  C-->>U: 显示「术后第 N 天」「需换药」徽标

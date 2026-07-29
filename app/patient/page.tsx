@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo } from "@/types";
 import { patientStatus } from "@/lib/reminders";
+import { resolveSchedule, dressingInfo } from "@/lib/dressing";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 import { parseBed } from "@/lib/bed-parser";
 
@@ -18,6 +19,7 @@ import PatientFormSheet from "@/components/PatientFormSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
+import SubpageHeader from "@/components/SubpageHeader";
 
 function sortTodos(todos: Todo[]): Todo[] {
   return [...todos].sort((a, b) => {
@@ -63,7 +65,19 @@ export default function PatientDetailPage() {
 
   const today = todayStr();
   const list = sortTodos(todos ?? []);
-  const status = patient ? patientStatus(patient, todos ?? [], today) : null;
+  const status = patient
+    ? patientStatus(
+        patient,
+        todos ?? [],
+        today,
+        settings ? resolveSchedule(patient, settings) : undefined
+      )
+    : null;
+  const dressInfo =
+    patient && settings
+      ? dressingInfo(patient, resolveSchedule(patient, settings), todos ?? [], today)
+      : null;
+  const hasSurgery = !!patient?.surgeryDate;
 
   // 解析当前病人床号，用于详情页头部标识特殊类型床（加床 / 虚拟）。
   const parsedBed = useMemo(
@@ -166,30 +180,20 @@ export default function PatientDetailPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center gap-2">
-        <button
-          aria-label="返回"
-          onClick={() => router.back()}
-          className="rounded-lg p-1.5 text-muted hover:bg-surface-alt"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[18px] font-semibold text-main">
-            {patient.name}
-          </h1>
-          {patient.group && (
-            <span className="text-[12px] text-muted">{patient.group}</span>
-          )}
-        </div>
-        <button
-          aria-label="编辑"
-          onClick={() => setEditOpen(true)}
-          className="rounded-lg p-2 text-muted hover:bg-surface-alt"
-        >
-          <Pencil size={18} />
-        </button>
-      </header>
+      <SubpageHeader
+        title={patient.name}
+        description={patient.group || "病人详情"}
+        backHref="/"
+        action={
+          <button
+            aria-label="编辑"
+            onClick={() => setEditOpen(true)}
+            className="subpage-back"
+          >
+            <Pencil size={17} />
+          </button>
+        }
+      />
 
       <div className="card p-4">
         <div className="flex items-start gap-3">
@@ -204,7 +208,7 @@ export default function PatientDetailPage() {
               {patient.bedNumber} · {patient.diagnosis}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {parsedBed?.bedType === "virtual" && (
+              {patient.bedType === "virtual" && (
                 <span className="badge-virtual">虚拟床</span>
               )}
               {parsedBed?.bedType === "extra-real" && (
@@ -221,8 +225,28 @@ export default function PatientDetailPage() {
 
         <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-[12px]">
           <Info label="手术日期" value={patient.surgeryDate} />
-          <Info label="换药频率" value={patient.dressingFrequency ? `${patient.dressingFrequency} 天` : undefined} />
-          <Info label="上次换药" value={patient.lastDressingChange} />
+          {dressInfo && hasSurgery && dressInfo.postOpDay !== null && (
+            <Info
+              label="术后"
+              value={
+                dressInfo.postOpDay >= 0
+                  ? `术后第 ${dressInfo.postOpDay} 天`
+                  : `术前第 ${-dressInfo.postOpDay} 天`
+              }
+            />
+          )}
+          {dressInfo && hasSurgery && (
+            <Info
+              label="距下次换药"
+              value={
+                dressInfo.nextInDays === 0
+                  ? "今日换药"
+                  : dressInfo.nextInDays !== null
+                    ? `距下次换药 ${dressInfo.nextInDays} 天`
+                    : "换药计划已完成(已超14天)"
+              }
+            />
+          )}
           <Info label="查血日" value={patient.bloodTestDay} />
         </dl>
       </div>
@@ -235,10 +259,10 @@ export default function PatientDetailPage() {
             <button
               type="button"
               onClick={() => switchGroup(null)}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] ${
+              className={`filter-chip flex items-center gap-1.5 px-3 py-1.5 text-[12px] ${
                 !patient.group
                   ? "border-primary text-primary"
-                  : "border-border/60 text-muted"
+                  : "text-muted"
               }`}
             >
               无
@@ -250,10 +274,10 @@ export default function PatientDetailPage() {
                   key={g.id}
                   type="button"
                   onClick={() => switchGroup({ name: g.name, color: g.color })}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition ${
+                  className={`filter-chip flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition ${
                     active
                       ? "border-primary text-primary"
-                      : "border-border/60 text-muted"
+                      : "text-muted"
                   }`}
                 >
                   <span

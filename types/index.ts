@@ -14,6 +14,12 @@ export type TodoType =
   | "开查血"
   | "其他";
 
+export interface DressingSchedule {
+  earlyInterval: number; // 首个换药日（术后天数）
+  laterInterval: number; // 之后每次换药间隔（天）
+  maxDay: number; // 截止（术后天数），超过此天数不再安排换药
+}
+
 export interface Patient {
   id: string;
   bedNumber: string;
@@ -22,7 +28,10 @@ export interface Patient {
   group?: string;
   groupColor?: string;
   surgeryDate?: string;
+  dressingSchedule?: DressingSchedule; // 每病人换药间隔覆盖；不设置则继承 Settings.dressingSchedule
+  // @deprecated 不再参与计算，仅保留字段以兼容存量导入/导出数据
   dressingFrequency?: number;
+  // @deprecated 不再参与计算，仅保留字段以兼容存量导入/导出数据
   lastDressingChange?: string;
   bloodTestDay?: string;
   ward?: string;
@@ -78,4 +87,6 @@ export interface Settings {
   theme: Theme;
   bedTemplate?: string;
   specialMarks?: string[];
+  dressingSchedule: DressingSchedule; // 默认换药间隔（被 Patient.dressingSchedule 覆盖）
+  showVirtualBeds?: boolean; // 是否在首页列表展示虚拟床（默认 true）
 }

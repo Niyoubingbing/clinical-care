@@ -1,6 +1,6 @@
 {
   "name": "clinical-care",
-  "version": "2.15.0",
+  "version": "2.17.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.2.10",
     "@tanstack/react-virtual": "^3.14.5",
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",

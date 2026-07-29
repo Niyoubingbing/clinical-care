@@ -6,6 +6,7 @@ import { db, getSettings, updateSettings, updatePatient } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
 import { BedType } from "@/types";
 import { useApp } from "@/components/Providers";
+import SubpageHeader from "@/components/SubpageHeader";
 
 export default function BedRecognitionPage() {
   const { toast } = useApp();
@@ -61,8 +62,11 @@ export default function BedRecognitionPage() {
   const setRoom = (id: string, room: string) => updatePatient(id, { room });
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-[20px] font-semibold text-main">床号识别</h1>
+    <div className="space-y-5">
+      <SubpageHeader
+        title="床号识别"
+        description="配置床号解析规则，并校正特殊床位类型。"
+      />
 
       <div className="card space-y-3 p-3">
         <div>

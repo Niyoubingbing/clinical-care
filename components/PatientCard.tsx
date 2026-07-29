@@ -17,6 +17,7 @@ function PatientCard({
   onOpen,
   onMenu,
   animateEntry = true,
+  embedded = false,
 }: {
   patient: Patient;
   status: PatientStatus;
@@ -27,6 +28,7 @@ function PatientCard({
   onMenu: (p: Patient) => void;
   // 虚拟滚动场景下关闭进入动画，避免滚动时卡片反复重放动画。
   animateEntry?: boolean;
+  embedded?: boolean;
 }) {
   const longPressed = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,7 +74,9 @@ function PatientCard({
       role="button"
       tabIndex={0}
       aria-label={`查看 ${patient.name} 详情`}
-      className="block cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      className={`block cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+        embedded ? "rounded-none" : "rounded-2xl"
+      }`}
       onClick={(e) => {
         // 长按已触发菜单：阻止打开详情页。
         if (longPressed.current) {
@@ -96,12 +100,12 @@ function PatientCard({
         {...enterAnim}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         whileTap={{ scale: 0.98 }}
-        className={`card-interactive relative z-10 flex items-center gap-3 p-3 ${
-          dangerBorder ? "border-danger/30" : ""
-        }`}
+        className={`relative z-10 flex items-center gap-3 px-4 py-3.5 ${
+          embedded ? "patient-card-embedded" : "patient-card card-interactive"
+        } ${dangerBorder ? "patient-card-alert" : ""}`}
       >
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-[14px] font-bold"
           style={{ backgroundColor: color, color: contrastTextColor(color), ...bedRingStyle }}
         >
           {bedBlockLabel(patient.bedNumber)}
@@ -129,6 +133,13 @@ function PatientCard({
             {todoCount > 0 && (
               <span className="badge-primary">待办 {todoCount}</span>
             )}
+            {status.postOpDay !== null && (
+              <span className="badge-info">
+                {status.postOpDay >= 0
+                  ? `术后第${status.postOpDay}天`
+                  : `术前第${-status.postOpDay}天`}
+              </span>
+            )}
             {isVirtual && <span className="badge-virtual">虚拟床</span>}
             {isExtra && (
               <span className="badge-special">{st ? `加床·${st}` : "加床"}</span>
@@ -146,7 +157,7 @@ function PatientCard({
 
         <button
           aria-label="更多操作"
-          className="shrink-0 rounded-lg p-1.5 text-muted opacity-60 transition hover:bg-surface-alt hover:opacity-100"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted opacity-60 transition hover:bg-surface-alt hover:opacity-100"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -172,6 +183,7 @@ function patientCardEqual(
     onOpen: (p: Patient) => void;
     onMenu: (p: Patient) => void;
     animateEntry?: boolean;
+    embedded?: boolean;
   },
   b: {
     patient: Patient;
@@ -182,6 +194,7 @@ function patientCardEqual(
     onOpen: (p: Patient) => void;
     onMenu: (p: Patient) => void;
     animateEntry?: boolean;
+    embedded?: boolean;
   }
 ): boolean {
   return (
@@ -191,10 +204,12 @@ function patientCardEqual(
     a.bedType === b.bedType &&
     a.specialType === b.specialType &&
     a.animateEntry === b.animateEntry &&
+    a.embedded === b.embedded &&
     a.status.needDressing === b.status.needDressing &&
     a.status.needBlood === b.status.needBlood &&
     a.status.todayDue === b.status.todayDue &&
     a.status.overdue === b.status.overdue &&
+    a.status.postOpDay === b.status.postOpDay &&
     a.patient.id === b.patient.id &&
     a.patient.name === b.patient.name &&
     a.patient.diagnosis === b.patient.diagnosis &&

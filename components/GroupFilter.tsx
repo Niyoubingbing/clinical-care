@@ -11,12 +11,12 @@ export default function GroupFilter({
 }) {
   if (groups.length === 0) return null;
   return (
-    <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
       <button
-        className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
+        className={`filter-chip shrink-0 px-3 py-1.5 text-[12px] font-medium transition ${
             selected === null
-            ? "liquid-pill-active text-white"
-            : "liquid-pill text-muted"
+            ? "filter-chip-active"
+            : "text-muted"
         }`}
         onClick={() => onChange(null)}
       >
@@ -25,10 +25,10 @@ export default function GroupFilter({
       {groups.map((g) => (
         <button
           key={g}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
+          className={`filter-chip shrink-0 px-3 py-1.5 text-[12px] font-medium transition ${
             selected === g
-              ? "liquid-pill-active text-white"
-              : "liquid-pill text-muted"
+              ? "filter-chip-active"
+              : "text-muted"
           }`}
           onClick={() => onChange(g)}
         >

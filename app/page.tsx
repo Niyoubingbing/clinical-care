@@ -8,9 +8,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/db";
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
+import { resolveSchedule } from "@/lib/dressing";
 import { buildDailySummary } from "@/lib/summary";
 import { Patient, BedType, Todo } from "@/types";
 import { parseBed } from "@/lib/bed-parser";
+import { filterHomeRows } from "@/lib/home-filter";
 
 import PatientCard from "@/components/PatientCard";
 import GroupedPatientCard, { GroupedItem } from "@/components/GroupedPatientCard";
@@ -79,11 +81,17 @@ export default function HomePage() {
     type Row =
       | { type: "group"; id: string; items: GroupedItem[] }
       | { type: "single"; patient: Patient; todoCount: number; status: PatientStatus };
+    if (!settings) return [] as Row[];
     const out: Row[] = [];
     let cur: { id: string; items: GroupedItem[] } | null = null;
     for (const op of ordered) {
       const todoCount = pendingTodoCount(op.patient, todos);
-      const status = patientStatus(op.patient, todos, today);
+      const status = patientStatus(
+        op.patient,
+        todos,
+        today,
+        resolveSchedule(op.patient, settings)
+      );
       if (op.groupId) {
         if (cur && cur.id === op.groupId) {
           cur.items.push({ patient: op.patient, todoCount, status });
@@ -100,16 +108,13 @@ export default function HomePage() {
       }
     }
     return out;
-  }, [ordered, todos, today]);
+  }, [ordered, todos, today, settings]);
 
+  // 虚拟床隐藏 + 分组筛选：抽离为纯函数（见 lib/home-filter），便于组件外单测。
+  // 虚拟床判定以人工写入的 Patient.bedType==="virtual" 为准（parseBed 只返回 real/extra-real）。
   const filtered = useMemo(
-    () =>
-      rows.filter((g) =>
-        g.type === "single"
-          ? group === null || g.patient.group === group
-          : g.items.some((it) => group === null || it.patient.group === group)
-      ),
-    [rows, group]
+    () => filterHomeRows(rows, group, settings?.showVirtualBeds ?? true),
+    [rows, group, settings]
   );
 
   // 从详情页返回时恢复列表滚动位置。
@@ -143,8 +148,8 @@ export default function HomePage() {
   }, []);
 
   const reminders = useMemo(
-    () => computeReminders(patients, todos, today),
-    [patients, todos, today]
+    () => computeReminders(patients, todos, today, settings?.dressingSchedule),
+    [patients, todos, today, settings?.dressingSchedule]
   );
 
   const summary = useMemo(
@@ -204,6 +209,7 @@ export default function HomePage() {
 
   // 列表虚拟化（窗口滚动）：大病房（>50 病人）下消除滚动卡顿。
   // 列表在文档中的纵向偏移用于虚拟化正确定位。
+  const shouldVirtualize = filtered.length > 50;
   const listRef = useRef<HTMLDivElement>(null);
   const [listOffset, setListOffset] = useState(0);
   useEffect(() => {
@@ -219,11 +225,54 @@ export default function HomePage() {
   }, [filtered.length]);
 
   const virtualizer = useWindowVirtualizer({
-    count: filtered.length,
+    count: shouldVirtualize ? filtered.length : 0,
     estimateSize: () => 68,
     overscan: 10,
     scrollMargin: listOffset,
   });
+
+  useEffect(() => {
+    if (!shouldVirtualize) return;
+    let cancelled = false;
+    const remeasure = () => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        if (listRef.current) {
+          const rect = listRef.current.getBoundingClientRect();
+          setListOffset(rect.top + window.scrollY);
+        }
+        virtualizer.measure();
+      });
+    };
+    document.fonts?.ready.then(remeasure);
+    document.fonts?.addEventListener("loadingdone", remeasure);
+    return () => {
+      cancelled = true;
+      document.fonts?.removeEventListener("loadingdone", remeasure);
+    };
+  }, [shouldVirtualize, virtualizer, filtered.length]);
+
+  const renderRow = (g: (typeof filtered)[number]) =>
+    g.type === "group" ? (
+      <GroupedPatientCard
+        items={g.items}
+        bedInfoMap={bedInfoMap}
+        onOpen={openDetail}
+        onMenu={onMenu}
+        animateEntry={false}
+      />
+    ) : (
+      <PatientCard
+        patient={g.patient}
+        todoCount={g.todoCount}
+        status={g.status}
+        bedType={bedInfoMap.get(g.patient.id)?.bedType}
+        specialType={bedInfoMap.get(g.patient.id)?.specialType}
+        onOpen={openDetail}
+        onMenu={onMenu}
+        animateEntry={false}
+      />
+    );
 
   return (
     <div className="space-y-4">
@@ -277,19 +326,38 @@ export default function HomePage() {
       {/* 列表顺序：正序/反序（首页病人列表展示，不改动查房顺序设置） */}
       <div className="flex items-center justify-between">
         <span className="relative z-10 text-[12px] text-muted">列表顺序</span>
-        <div className="liquid-pill grid grid-cols-2 gap-1 p-1">
+        <div className="flex gap-1.5">
           {(["forward", "reverse"] as const).map((d) => (
             <button
               key={d}
               onClick={() => setListDirection(d)}
-              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition ${
+              className={`sort-button flex h-9 items-center gap-1.5 px-3 text-[12px] font-medium transition ${
                 listDirection === d
-                  ? "bg-primary liquid-pill-active text-white"
+                  ? "sort-button-active"
                   : "text-muted"
               }`}
             >
               <ArrowUpDown size={13} />
               {d === "forward" ? "正序" : "反序"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="relative z-10 text-[12px] text-muted">虚拟床</span>
+        <div className="flex gap-1.5">
+          {([true, false] as const).map((v) => (
+            <button
+              key={String(v)}
+              onClick={() => updateSettings({ showVirtualBeds: v })}
+              className={`sort-button flex h-9 items-center gap-1.5 px-3 text-[12px] font-medium transition ${
+                (settings?.showVirtualBeds ?? true) === v
+                  ? "sort-button-active"
+                  : "text-muted"
+              }`}
+            >
+              {v ? "显示" : "隐藏"}
             </button>
           ))}
         </div>
@@ -306,7 +374,7 @@ export default function HomePage() {
                 : "试试切换分组筛选"
           }
         />
-      ) : (
+      ) : shouldVirtualize ? (
         <div
           ref={listRef}
           style={{ height: virtualizer.getTotalSize(), position: "relative" }}
@@ -328,28 +396,16 @@ export default function HomePage() {
                 }}
                 className="pb-2"
               >
-                {g.type === "group" ? (
-                  <GroupedPatientCard
-                    items={g.items}
-                    bedInfoMap={bedInfoMap}
-                    onOpen={openDetail}
-                    onMenu={onMenu}
-                    animateEntry={false}
-                  />
-                ) : (
-                  <PatientCard
-                    patient={g.patient}
-                    todoCount={g.todoCount}
-                    status={g.status}
-                    bedType={bedInfoMap.get(g.patient.id)?.bedType}
-                    specialType={bedInfoMap.get(g.patient.id)?.specialType}
-                    onOpen={openDetail}
-                    onMenu={onMenu}
-                    animateEntry={false}
-                  />
-                )}
+                {renderRow(g)}
               </div>
             );
+          })}
+        </div>
+      ) : (
+        <div ref={listRef} className="space-y-2">
+          {filtered.map((g) => {
+            const key = g.type === "group" ? g.id : g.patient.id;
+            return <div key={key}>{renderRow(g)}</div>;
           })}
         </div>
       )}

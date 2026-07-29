@@ -8,6 +8,7 @@ import { getSettings, updateSettings, uid } from "@/lib/db";
 import { inferTodoType } from "@/lib/time-parser";
 import { QuickTodo } from "@/types";
 import { useApp } from "@/components/Providers";
+import SubpageHeader from "@/components/SubpageHeader";
 
 export default function QuickTodosPage() {
   const { toast } = useApp();
@@ -54,8 +55,11 @@ export default function QuickTodosPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-[20px] font-semibold text-main">快捷待办</h1>
+    <div className="space-y-5">
+      <SubpageHeader
+        title="快捷待办"
+        description="维护病人详情页中常用的待办操作。"
+      />
 
       <div className="card p-3">
         <div className="flex items-end gap-2">

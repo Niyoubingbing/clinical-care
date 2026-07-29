@@ -83,18 +83,32 @@ export function importConfigText(text: string): RoundingConfig | null {
   ) {
     return null;
   }
-  const c = obj as RoundingConfig;
-  const ruleType: RoundingConfig["ruleType"] = ["default", "basic", "custom"].includes(
-    c.ruleType
-  )
-    ? c.ruleType
-    : "custom";
-  const blocks: RoundingBlock[] = c.blocks.map((b) => ({
-    id: b.id || uid(),
-    kind: b.kind === "extra" ? "extra" : "room",
-    ward: b.kind === "room" ? b.ward : undefined,
-    beds: normalizeBeds(b.beds ?? []),
-  }));
+  const c = obj as Partial<RoundingConfig>;
+  const ruleType: RoundingConfig["ruleType"] =
+    c.ruleType === "default" || c.ruleType === "basic" || c.ruleType === "custom"
+      ? c.ruleType
+      : "custom";
+  const blocks: RoundingBlock[] = [];
+  for (const rawBlock of c.blocks ?? []) {
+    if (!rawBlock || typeof rawBlock !== "object") return null;
+    const block = rawBlock as Partial<RoundingBlock>;
+    if (!Array.isArray(block.beds) || !block.beds.every((bed) => typeof bed === "string")) {
+      return null;
+    }
+    const id = typeof block.id === "string" && block.id ? block.id : uid();
+    if (block.kind === "extra") {
+      blocks.push({ id, kind: "extra", beds: normalizeBeds(block.beds) });
+    } else if (block.kind === "room") {
+      blocks.push({
+        id,
+        kind: "room",
+        ward: typeof block.ward === "string" ? block.ward : undefined,
+        beds: normalizeBeds(block.beds),
+      });
+    } else {
+      return null;
+    }
+  }
   return {
     ruleType,
     regularBedCount: c.regularBedCount,

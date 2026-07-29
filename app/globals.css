@@ -8,15 +8,15 @@
        Claude (Anthropic) 真实调色板 —— 暖奶油底 + 陶土橙强调（暖中性）。
        通道写法 "R G B" 供 Tailwind rgb(var(--x)/<alpha-value>) 使用。
        品牌原色 #d97757 配白字仅 3.1:1（不达标 WCAG AA），故强调色加深到
-       #b5532f（白字 4.95:1，AA），保留橙家族。语义色同步按暖系做 AA 可达加深。
+       #a94929（白字 5.7:1，AA），保留橙家族。语义色同步按暖系做 AA 可达加深。
        =================================================================== */
     --surface: 255 255 255;            /* 纯白表面 */
     --card: 255 255 255;
     --main: 20 20 19;                  /* #141413 主文字（暖近黑） */
     --muted: 94 93 89;                 /* #5e5d59 次级文字（暖灰，白底 6.5:1，AA） */
     --border: 20 20 19;                /* 1px 边框通道 */
-    --primary: 181 83 47;              /* #b5532f 加深陶土橙（白字 4.95:1，AA） */
-    --primary-hover: 161 73 41;        /* #a14929 */
+    --primary: 169 73 41;              /* #a94929 深陶土橙（白字 5.7:1，AA） */
+    --primary-hover: 148 62 34;        /* #943e22 */
     --success: 95 122 69;              /* #5f7a45 加深橄榄绿（白字 4.8:1） */
     --warning: 156 95 23;              /* #9c5f17 加深琥珀（白字 5.2:1） */
     --danger: 178 59 50;               /* #b23b32 加深红（白字 5.9:1） */
@@ -31,8 +31,8 @@
     --border-strong: #d8d4c6;          /* 更明显的暖边框 */
     --text: #141413;
     --text-muted: #5e5d59;
-    --accent: #b5532f;                 /* Claude 橙（加深以达 AA） */
-    --accent-soft: rgba(181, 83, 47, 0.12);
+    --accent: #a94929;                 /* Claude 深陶土橙（小字号亦达 AA） */
+    --accent-soft: rgba(169, 73, 41, 0.12);
     --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.06);
     --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.08);
     --radius: 14px;
@@ -46,8 +46,8 @@
     --main: 250 249 245;               /* #faf9f5 暖白文字 */
     --muted: 176 174 165;             /* #b0aea5 */
     --border: 255 255 255;
-    --primary: 181 83 47;              /* #b5532f 同浅色加深陶土橙（白字 4.95:1，AA） */
-    --primary-hover: 161 73 41;        /* #a14929 */
+    --primary: 169 73 41;              /* #a94929 同浅色深陶土橙 */
+    --primary-hover: 148 62 34;        /* #943e22 */
     --success: 95 122 69;              /* #5f7a45 加深橄榄绿（白字 4.8:1） */
     --warning: 156 95 23;              /* #9c5f17 加深琥珀（白字 5.2:1） */
     --danger: 178 59 50;               /* #b23b32 加深红（白字 5.9:1） */
@@ -61,8 +61,8 @@
     --border-strong: #4d4c48;
     --text: #faf9f5;
     --text-muted: #b0aea5;
-    --accent: #b5532f;                 /* 加深橙（白字 4.95:1，AA） */
-    --accent-soft: rgba(181, 83, 47, 0.16);
+    --accent: #a94929;
+    --accent-soft: rgba(169, 73, 41, 0.16);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
@@ -72,7 +72,7 @@
   }
 
   body {
-    @apply text-main antialiased;
+    @apply font-sans text-main antialiased;
     min-height: 100dvh;
     background: var(--bg);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -95,7 +95,7 @@
   /* ============================ 表单输入 ============================ */
   .input {
     @apply w-full rounded-xl border px-4 py-3 text-main outline-none transition;
-    background: var(--surface);
+    background: rgb(var(--surface));
     border-color: var(--hairline);
     box-shadow: var(--shadow-sm);
   }
@@ -136,7 +136,7 @@
   /* ============================== 卡片 ============================== */
   /* 实白、不透明、1px 发丝线、单层克制阴影。彻底去掉毛玻璃/镜面高光。 */
   .card {
-    background: var(--surface);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
@@ -150,6 +150,28 @@
   .card-interactive:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
+  }
+
+  .patient-card {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .patient-card-embedded {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+  .patient-card-alert {
+    box-shadow: inset 3px 0 0 rgb(var(--danger) / 0.72);
+  }
+  .patient-cluster {
+    overflow: hidden;
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
   }
 
   /* ============================== 徽章 ============================== */
@@ -182,35 +204,34 @@
     color: rgb(var(--special));
     background-color: rgb(var(--special) / 0.12);
   }
+  .badge-info {
+    @apply badge;
+    color: rgb(var(--info));
+    background-color: rgb(var(--info) / 0.12);
+  }
 
   /* ============================ 导航栏 ============================== */
-  /* 全站唯一磨砂玻璃浮层：半透明白底 + backdrop-filter 模糊。
-     注意：定位由组件 Tailwind 的 `fixed` 提供，此处**不**写 position，
-     否则会覆盖 fixed 导致导航栏脱离固定定位（旧版 Bug 之一）。 */
+  /* 紧凑实体导航：只保留暖白表面与克制阴影，不再占据整条屏幕宽度。 */
   .liquid-nav {
-    background: rgba(250, 249, 245, 0.72);
-    -webkit-backdrop-filter: blur(14px) saturate(150%);
-    backdrop-filter: blur(14px) saturate(150%);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
-    border-radius: 16px;
+    border-radius: 18px;
     box-shadow: var(--shadow-md);
   }
   .dark .liquid-nav {
-    background: rgba(48, 48, 46, 0.7);
-    -webkit-backdrop-filter: blur(14px) saturate(150%);
-    backdrop-filter: blur(14px) saturate(150%);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
   }
   .liquid-nav-active {
     background: var(--accent-soft);
-    border: 1px solid var(--accent);
+    color: var(--accent);
   }
 
   /* =========================== 药丸切换 ============================= */
   .liquid-pill {
     background: var(--surface-2);
     border: 1px solid var(--hairline);
-    border-radius: 999px;
+    border-radius: 10px;
   }
   .liquid-pill-active {
     background: var(--accent);
@@ -218,15 +239,60 @@
     color: #ffffff;
   }
 
+  .filter-chip,
+  .sort-button {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    box-shadow: 0 1px 1px rgba(20, 20, 19, 0.03);
+  }
+  .filter-chip-active,
+  .sort-button-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .subpage-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .subpage-back {
+    display: inline-flex;
+    height: 40px;
+    width: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hairline);
+    border-radius: 11px;
+    background: rgb(var(--surface));
+    color: rgb(var(--muted));
+    box-shadow: var(--shadow-sm);
+  }
+  .settings-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 11px 13px;
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    background: rgb(var(--surface));
+    box-shadow: var(--shadow-sm);
+  }
+
   /* ====================== 面板 / 抽屉 / 对话框 ====================== */
   .liquid-panel {
-    background: var(--surface);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
   }
   .liquid-sheet {
-    background: var(--surface);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
@@ -234,7 +300,7 @@
     padding-bottom: env(safe-area-inset-bottom, 6px);
   }
   .liquid-dialog {
-    background: var(--surface);
+    background: rgb(var(--surface));
     border: 1px solid var(--hairline);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);

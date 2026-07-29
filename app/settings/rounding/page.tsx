@@ -21,6 +21,7 @@ import {
 } from "@/lib/rounding-edit";
 import { RoundingConfig, RoundingBlock } from "@/types";
 import { useApp } from "@/components/Providers";
+import SubpageHeader from "@/components/SubpageHeader";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -144,19 +145,22 @@ export default function RoundingPage() {
   const ruleType = config.ruleType;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[20px] font-semibold text-main">查房顺序</h1>
-        <button
-          onClick={() => {
-            save(defaultRoundingConfig());
-            toast({ message: "已恢复默认规则" });
-          }}
-          className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] text-muted hover:bg-surface-alt"
-        >
-          <RotateCcw size={16} /> 恢复默认
-        </button>
-      </div>
+    <div className="space-y-5">
+      <SubpageHeader
+        title="查房顺序"
+        description="设置病房块、加床和实际查房路线。"
+        action={
+          <button
+            onClick={() => {
+              save(defaultRoundingConfig());
+              toast({ message: "已恢复默认规则" });
+            }}
+            className="flex h-10 items-center gap-1 rounded-[10px] border border-border/10 bg-card px-2.5 text-[12px] text-muted"
+          >
+            <RotateCcw size={15} /> 恢复
+          </button>
+        }
+      />
 
       {/* 规则态三态 */}
       <div className="grid grid-cols-3 gap-2">
@@ -344,7 +348,9 @@ function BlockCard({
         <div className="flex items-center gap-2">
           <span
             className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
-              isRoom ? "bg-primary/10 text-primary" : "bg-warning/15 text-warning"
+              isRoom
+                ? "bg-primary/5 text-primary-hover dark:bg-primary/20 dark:text-[#f4aa8d]"
+                : "bg-warning/5 text-[#7a470f] dark:bg-warning/20 dark:text-[#f0bb72]"
             }`}
           >
             {isRoom ? "病房块" : "真实加床块"}

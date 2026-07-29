@@ -33,6 +33,9 @@ test.describe('页面加载冒烟 + 视觉截图', () => {
       await page.goto(p.path);
       // NavBar（全局 <nav>）可见即代表页面框架已挂载、路由已渲染
       await expect(page.getByRole('navigation')).toBeVisible();
+      if (p.path.startsWith('/settings/')) {
+        await expect(page.getByRole('link', { name: '返回' })).toBeVisible();
+      }
       await page.screenshot({
         path: path.join(SHOTS, `${p.name}.png`),
         fullPage: true,

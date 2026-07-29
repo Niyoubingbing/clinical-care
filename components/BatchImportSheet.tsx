@@ -24,6 +24,7 @@ export default function BatchImportSheet({
   const [preview, setPreview] = useState<RosterPreview | null>(null);
   const [removeAbsent, setRemoveAbsent] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
 
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
   const todos = useLiveQuery(() => db.todos.toArray(), []) ?? EMPTY_TODOS;
@@ -58,17 +59,24 @@ export default function BatchImportSheet({
   );
 
   const doApply = async () => {
-    if (!preview || !settings) return;
-    const res = await applyRoster(
-      preview,
-      settings.bedTemplate,
-      settings.specialMarks
-    );
-    toast({
-      message: `新增 ${res.added} 人、更新 ${res.updated} 人、删除 ${res.removed} 人`,
-    });
-    setPreview(null);
-    onClose();
+    if (!preview || !settings || applying) return;
+    setApplying(true);
+    try {
+      const res = await applyRoster(
+        preview,
+        settings.bedTemplate,
+        settings.specialMarks
+      );
+      toast({
+        message: `新增 ${res.added} 人、更新 ${res.updated} 人、删除 ${res.removed} 人`,
+      });
+      setPreview(null);
+      onClose();
+    } catch {
+      toast({ message: "批量导入失败，请检查内容后重试" });
+    } finally {
+      setApplying(false);
+    }
   };
 
   const onConfirmClick = () => {
@@ -113,10 +121,10 @@ export default function BatchImportSheet({
         </button>
         <button
           className="btn-primary h-11 flex-1"
-          disabled={!preview}
+          disabled={!preview || applying}
           onClick={onConfirmClick}
         >
-          确认导入
+          {applying ? "导入中…" : "确认导入"}
         </button>
       </div>
 

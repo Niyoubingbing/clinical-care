@@ -24,8 +24,8 @@ export default function NavBar() {
   }).length;
 
   return (
-    <nav className="liquid-nav fixed inset-x-3 bottom-3 z-20 mx-auto max-w-[620px] safe-area-pb transform-gpu">
-      <div className="relative z-10 mx-auto flex grid-cols-3 px-1.5 py-1">
+    <nav className="liquid-nav fixed inset-x-4 bottom-2 z-20 mx-auto max-w-[380px] safe-area-pb transform-gpu">
+      <div className="relative z-10 mx-auto flex gap-1 p-1.5">
         {TABS.map((tab) => {
           const active =
             tab.href === "/"
@@ -37,16 +37,15 @@ export default function NavBar() {
               key={tab.href}
               href={tab.href}
               aria-label={tab.label}
-              className="group flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition-transform active:scale-90"
+              className={`group flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-2 text-[12px] transition active:scale-[0.97] ${
+                active ? "liquid-nav-active" : "text-muted"
+              }`}
             >
-              <span className="relative flex h-9 w-9 items-center justify-center rounded-xl">
-                {active && (
-                  <span className="liquid-nav-active absolute inset-0 rounded-xl" />
-                )}
+              <span className="relative flex items-center justify-center">
                 <Icon
-                  size={22}
+                  size={20}
                   strokeWidth={active ? 2.4 : 2}
-                  className={`relative z-10 transition-colors duration-200 ${
+                  className={`transition-colors duration-200 ${
                     active ? "text-primary" : "text-muted"
                   }`}
                 />
@@ -57,7 +56,7 @@ export default function NavBar() {
                 )}
               </span>
               <span
-                className={`relative z-10 transition-colors duration-200 ${
+                className={`transition-colors duration-200 ${
                   active ? "font-medium text-primary" : "text-muted"
                 }`}
               >
