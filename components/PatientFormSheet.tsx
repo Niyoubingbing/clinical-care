@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import BottomSheet from "./BottomSheet";
 import DatePicker from "./DatePicker";
@@ -15,6 +15,29 @@ import {
 import { parseBed } from "@/lib/bed-parser";
 import { Patient, DressingSchedule } from "@/types";
 
+/** 编辑模式下自动保存的字段校验错误（仅作内联展示，不影响其它字段落库）。 */
+interface FormErrors {
+  bed?: string;
+  name?: string;
+  diagnosis?: string;
+  schedule?: string;
+}
+
+/** 载入病人时记录的基线快照，用于 diff 出「用户实际改动」并增量落库。 */
+interface Baseline {
+  bedNumber: string;
+  name: string;
+  diagnosis: string;
+  group: string;
+  groupColor: string;
+  surgeryDate: string;
+  bloodTestDay: string;
+  customScheduleOn: boolean;
+  earlyInterval: string;
+  laterInterval: string;
+  maxDay: string;
+}
+
 export function PatientForm({
   patient,
   onSaved,
@@ -27,6 +50,7 @@ export function PatientForm({
   const { toast } = useApp();
   const settings = useLiveQuery(() => getSettings(), []);
   const customGroups = settings?.customGroups ?? [];
+
   const [bedNumber, setBedNumber] = useState("");
   const [name, setName] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -40,9 +64,38 @@ export function PatientForm({
   const [maxDay, setMaxDay] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // 编辑模式下的轻量状态指示：自动保存成功 / 校验错误。
+  const [savedHint, setSavedHint] = useState<"saved" | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
 
+  // 基线快照：仅在「载入/重置」时写入；自动保存时按 diff 增量落库，并更新基线。
+  const baselineRef = useRef<Baseline | null>(null);
+  // 是否处于编辑模式（传入了 patient）。编辑模式自动保存、无保存按钮；
+  // 新增模式保留「添加病人」按钮。
+  const isEdit = !!patient;
+
+  // 载入病人 / 重置表单：写入基线快照并清空提示。
   useEffect(() => {
     if (patient) {
+      baselineRef.current = {
+        bedNumber: patient.bedNumber,
+        name: patient.name,
+        diagnosis: patient.diagnosis,
+        group: patient.group ?? "",
+        groupColor: patient.groupColor ?? DEFAULT_GROUP_COLOR,
+        surgeryDate: patient.surgeryDate ?? "",
+        bloodTestDay: patient.bloodTestDay ?? "",
+        customScheduleOn: !!patient.dressingSchedule,
+        earlyInterval: patient.dressingSchedule
+          ? String(patient.dressingSchedule.earlyInterval)
+          : "",
+        laterInterval: patient.dressingSchedule
+          ? String(patient.dressingSchedule.laterInterval)
+          : "",
+        maxDay: patient.dressingSchedule
+          ? String(patient.dressingSchedule.maxDay)
+          : "",
+      };
       setBedNumber(patient.bedNumber);
       setName(patient.name);
       setDiagnosis(patient.diagnosis);
@@ -62,6 +115,7 @@ export function PatientForm({
         setMaxDay("");
       }
     } else {
+      baselineRef.current = null;
       setBedNumber("");
       setName("");
       setDiagnosis("");
@@ -74,9 +128,144 @@ export function PatientForm({
       setLaterInterval("");
       setMaxDay("");
     }
+    setErrors({});
+    setSavedHint(null);
   }, [patient]);
 
-  const save = async () => {
+  /**
+   * 编辑模式：字段变更即防抖自动落库。
+   * - 仅将「相对基线发生变化的合法字段」写入 DB；非法字段跳过并给出内联提示。
+   * - 必填项（床号/姓名/诊断）被清空：不覆盖 DB 中已有合法值，内联提示。
+   * - 重复床号：跳过本次落库并内联提示。
+   * - 换药计划：仅当整数≥1 且截止>前期间隔时写 dressingSchedule，否则内联提示。
+   * - 床号变更重算 parseBed 并持久化 ward/bedBase/bedType/specialType（自动床型判定）。
+   */
+  const autoSave = useCallback(async () => {
+    const p = patient;
+    const b = baselineRef.current;
+    if (!p || !b) return; // 新增模式或不完整的载入状态不自动保存
+
+    const s = await getSettings();
+    const patch: Partial<Patient> = {};
+    const nextErrors: FormErrors = {};
+
+    // —— 床号 ——
+    const normBed = bedNumber.trim();
+    if (normBed !== b.bedNumber) {
+      if (!normBed) {
+        nextErrors.bed = "床号为必填项，已保留原值";
+      } else {
+        const duplicate = await db.patients
+          .where("bedNumber")
+          .equals(normBed)
+          .first();
+        if (duplicate && duplicate.id !== p.id) {
+          nextErrors.bed = `床号 ${normBed} 已被 ${duplicate.name} 使用，已保留原值`;
+        } else {
+          const parsed = parseBed(normBed, s.bedTemplate, s.specialMarks);
+          patch.bedNumber = normBed;
+          patch.ward = parsed.ward;
+          patch.bedBase = parsed.bedBase;
+          patch.bedType = parsed.bedType;
+          patch.specialType = parsed.specialType;
+        }
+      }
+    }
+
+    // —— 姓名 ——
+    const normName = name.trim();
+    if (normName !== b.name) {
+      if (!normName) nextErrors.name = "姓名为必填项，已保留原值";
+      else patch.name = normName;
+    }
+
+    // —— 诊断 ——
+    const normDiag = diagnosis.trim();
+    if (normDiag !== b.diagnosis) {
+      if (!normDiag) nextErrors.diagnosis = "诊断为必填项，已保留原值";
+      else patch.diagnosis = normDiag;
+    }
+
+    // —— 分组 / 颜色 / 手术日期 / 查血日 ——
+    if (group !== b.group) patch.group = group || undefined;
+    if (groupColor !== b.groupColor) patch.groupColor = groupColor;
+    if (surgeryDate !== b.surgeryDate) patch.surgeryDate = surgeryDate || undefined;
+    if (bloodTestDay !== b.bloodTestDay)
+      patch.bloodTestDay = bloodTestDay || undefined;
+
+    // —— 换药计划（可选）——
+    if (customScheduleOn) {
+      const e = Number(earlyInterval);
+      const l = Number(laterInterval);
+      const m = Number(maxDay);
+      const valid =
+        Number.isInteger(e) &&
+        e >= 1 &&
+        Number.isInteger(l) &&
+        l >= 1 &&
+        Number.isInteger(m) &&
+        m >= 1 &&
+        m > e;
+      if (valid) {
+        patch.dressingSchedule = {
+          earlyInterval: e,
+          laterInterval: l,
+          maxDay: m,
+        } satisfies DressingSchedule;
+      } else {
+        nextErrors.schedule = "换药间隔需为整数≥1，且截止>前期间隔，本次未保存";
+      }
+    }
+
+    // 无明显改动且无错误：视为载入/重置后的首次触发，静默跳过（不写库、不提示）。
+    if (
+      Object.keys(patch).length === 0 &&
+      Object.keys(nextErrors).length === 0
+    ) {
+      return;
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(patch).length > 0) {
+      await updatePatient(p.id, patch);
+      // 同步基线，避免后续 diff 把已落库的字段误判为「又变了」。
+      baselineRef.current = { ...b, ...patch } as Baseline;
+      setSavedHint("saved");
+    }
+  }, [
+    patient,
+    bedNumber,
+    name,
+    diagnosis,
+    group,
+    groupColor,
+    surgeryDate,
+    bloodTestDay,
+    customScheduleOn,
+    earlyInterval,
+    laterInterval,
+    maxDay,
+  ]);
+
+  // 编辑模式：字段变更后防抖（400ms）自动保存。
+  useEffect(() => {
+    if (!isEdit || !baselineRef.current) return;
+    const t = setTimeout(() => {
+      void autoSave();
+    }, 400);
+    return () => clearTimeout(t);
+  }, [autoSave, isEdit]);
+
+  // 「已自动保存」指示自动淡出。
+  useEffect(() => {
+    if (savedHint !== "saved") return;
+    const t = setTimeout(() => setSavedHint(null), 1500);
+    return () => clearTimeout(t);
+  }, [savedHint]);
+
+  // 新增模式：点击「添加病人」创建病人（创建动作，非保存）。
+  const submit = async () => {
     if (saving) return;
     if (!bedNumber.trim() || !name.trim() || !diagnosis.trim()) {
       toast({ message: "床号、姓名、诊断为必填项" });
@@ -87,7 +276,7 @@ export function PatientForm({
       .where("bedNumber")
       .equals(normalizedBed)
       .first();
-    if (duplicate && duplicate.id !== patient?.id) {
+    if (duplicate) {
       toast({ message: `床号 ${normalizedBed} 已被 ${duplicate.name} 使用` });
       return;
     }
@@ -107,12 +296,8 @@ export function PatientForm({
 
     setSaving(true);
     try {
-      const settings = await getSettings();
-      const parsed = parseBed(
-        normalizedBed,
-        settings.bedTemplate,
-        settings.specialMarks
-      );
+      const s = await getSettings();
+      const parsed = parseBed(normalizedBed, s.bedTemplate, s.specialMarks);
       const payload: Partial<Patient> = {
         bedNumber: normalizedBed,
         name: name.trim(),
@@ -134,19 +319,14 @@ export function PatientForm({
           maxDay: max,
         } satisfies DressingSchedule;
       }
-      if (patient) {
-        await updatePatient(patient.id, payload);
-        toast({ message: "病人已更新" });
-      } else {
-        await addPatient(
-          payload as Omit<Patient, "id" | "createdAt" | "updatedAt">
-        );
-        toast({ message: "病人已添加" });
-      }
+      await addPatient(
+        payload as Omit<Patient, "id" | "createdAt" | "updatedAt">
+      );
+      toast({ message: "病人已添加" });
       onSaved?.();
       onClose();
     } catch {
-      toast({ message: patient ? "更新失败，请重试" : "添加失败，请重试" });
+      toast({ message: "添加失败，请重试" });
     } finally {
       setSaving(false);
     }
@@ -159,24 +339,30 @@ export function PatientForm({
           className="input"
           value={bedNumber}
           onChange={(e) => setBedNumber(e.target.value)}
+          onBlur={() => void autoSave()}
           placeholder="如 309W23"
         />
+        {errors.bed && <ErrorHint text={errors.bed} />}
       </Field>
       <Field label="姓名">
         <input
           className="input"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onBlur={() => void autoSave()}
           placeholder="姓名"
         />
+        {errors.name && <ErrorHint text={errors.name} />}
       </Field>
       <Field label="诊断">
         <input
           className="input"
           value={diagnosis}
           onChange={(e) => setDiagnosis(e.target.value)}
+          onBlur={() => void autoSave()}
           placeholder="诊断"
         />
+        {errors.diagnosis && <ErrorHint text={errors.diagnosis} />}
       </Field>
 
       <Field label="分组">
@@ -184,6 +370,7 @@ export function PatientForm({
           className="input"
           value={group}
           onChange={(e) => setGroup(e.target.value)}
+          onBlur={() => void autoSave()}
           placeholder="分组名称（可选，可在设置页自定义）"
         />
         <div className="mt-2 flex flex-wrap gap-2">
@@ -215,6 +402,7 @@ export function PatientForm({
             type="color"
             value={groupColor}
             onChange={(e) => setGroupColor(e.target.value)}
+            onBlur={() => void autoSave()}
             className="h-8 w-12 cursor-pointer rounded border border-border/60 bg-card"
           />
         </div>
@@ -238,6 +426,7 @@ export function PatientForm({
             className="input"
             value={bloodTestDay}
             onChange={(e) => setBloodTestDay(e.target.value)}
+            onBlur={() => void autoSave()}
             placeholder="如 周一 周三"
           />
         </Field>
@@ -277,6 +466,7 @@ export function PatientForm({
                 className="input"
                 value={earlyInterval}
                 onChange={(e) => setEarlyInterval(e.target.value)}
+                onBlur={() => void autoSave()}
                 placeholder="2"
               />
             </Field>
@@ -287,6 +477,7 @@ export function PatientForm({
                 className="input"
                 value={laterInterval}
                 onChange={(e) => setLaterInterval(e.target.value)}
+                onBlur={() => void autoSave()}
                 placeholder="3"
               />
             </Field>
@@ -297,20 +488,32 @@ export function PatientForm({
                 className="input"
                 value={maxDay}
                 onChange={(e) => setMaxDay(e.target.value)}
+                onBlur={() => void autoSave()}
                 placeholder="14"
               />
             </Field>
           </div>
         )}
+        {errors.schedule && <ErrorHint text={errors.schedule} />}
       </div>
 
-      <button
-        className="btn-primary h-12 w-full text-[15px]"
-        onClick={save}
-        disabled={saving}
-      >
-        {saving ? "保存中…" : "保存"}
-      </button>
+      {/* 编辑模式：无保存按钮，字段变更即自动落库；仅展示轻量指示 / 内联错误。
+          新增模式：保留「添加病人」创建按钮。 */}
+      {isEdit ? (
+        <div className="min-h-[20px] text-[12px]">
+          {savedHint === "saved" && (
+            <span className="text-primary">已自动保存</span>
+          )}
+        </div>
+      ) : (
+        <button
+          className="btn-primary h-12 w-full text-[15px]"
+          onClick={submit}
+          disabled={saving}
+        >
+          {saving ? "添加中…" : "添加病人"}
+        </button>
+      )}
 
       <DatePicker
         open={datePickerOpen}
@@ -356,4 +559,9 @@ function Field({
       {children}
     </div>
   );
+}
+
+/** 字段级内联错误提示（轻量、不弹 toast）。 */
+function ErrorHint({ text }: { text: string }) {
+  return <p className="mt-1 text-[12px] text-danger">{text}</p>;
 }

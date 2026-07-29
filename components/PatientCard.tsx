@@ -113,7 +113,7 @@ function PatientCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate text-[14px] font-semibold text-main">
+            <span className="min-w-0 truncate text-[14px] font-semibold text-main">
               {patient.name}
             </span>
             {patient.group && (

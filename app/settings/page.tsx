@@ -15,6 +15,7 @@ import {
   ScanLine,
   Zap,
   Users,
+  ChevronDown,
 } from "lucide-react";
 import { db, getSettings, updateSettings } from "@/lib/db";
 import {
@@ -44,6 +45,8 @@ export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importData, setImportData] = useState<ParsedClinical | null>(null);
   const [clearOpen, setClearOpen] = useState(false);
+  // 换药规则分区默认展开，可折叠以节省空间（入口仍保持在 Settings 内，不独立成路由）。
+  const [dressingOpen, setDressingOpen] = useState(true);
 
   const setTheme = (theme: Theme) => updateSettings({ theme });
 
@@ -128,32 +131,54 @@ export default function SettingsPage() {
         <EntryLink href="/settings/groups" icon={Users} label="分组管理" />
       </Section>
 
-      <Section title="换药规则">
-        <div className="card space-y-3 p-3">
-          <div className="grid grid-cols-3 gap-2">
-            <NumberField
-              label="前期间隔(天)"
-              value={settings?.dressingSchedule.earlyInterval}
-              onChange={(v) => updateSchedule({ earlyInterval: v })}
-            />
-            <NumberField
-              label="后期间隔(天)"
-              value={settings?.dressingSchedule.laterInterval}
-              onChange={(v) => updateSchedule({ laterInterval: v })}
-            />
-            <NumberField
-              label="截止(术后天数)"
-              value={settings?.dressingSchedule.maxDay}
-              onChange={(v) => updateSchedule({ maxDay: v })}
-            />
+      {/* 换药规则：Settings 内独立、突出、可折叠的分区卡片（非独立路由）。 */}
+      <div className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-3.5">
+        <button
+          type="button"
+          onClick={() => setDressingOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 text-left"
+          aria-expanded={dressingOpen}
+        >
+          <div className="flex min-w-0 flex-col">
+            <span className="text-[15px] font-semibold text-main">换药规则</span>
+            <span className="truncate text-[12px] text-muted">
+              术后第 {settings?.dressingSchedule.earlyInterval ?? 2} 天起换药，每{" "}
+              {settings?.dressingSchedule.laterInterval ?? 3} 天一次，至第{" "}
+              {settings?.dressingSchedule.maxDay ?? 14} 天
+            </span>
           </div>
-          <p className="text-[12px] leading-relaxed text-muted">
-            换药日：术后第 {settings?.dressingSchedule.earlyInterval ?? 2} 天开始，之后每{" "}
-            {settings?.dressingSchedule.laterInterval ?? 3} 天一次，至术后第{" "}
-            {settings?.dressingSchedule.maxDay ?? 14} 天。例如 2 / 3 / 14 → 第 2、5、8、11、14 天。
-          </p>
-        </div>
-      </Section>
+          <ChevronDown
+            size={18}
+            className={`shrink-0 text-muted transition-transform ${dressingOpen ? "" : "-rotate-90"}`}
+          />
+        </button>
+        {dressingOpen && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <NumberField
+                label="前期间隔(天)"
+                value={settings?.dressingSchedule.earlyInterval}
+                onChange={(v) => updateSchedule({ earlyInterval: v })}
+              />
+              <NumberField
+                label="后期间隔(天)"
+                value={settings?.dressingSchedule.laterInterval}
+                onChange={(v) => updateSchedule({ laterInterval: v })}
+              />
+              <NumberField
+                label="截止(术后天数)"
+                value={settings?.dressingSchedule.maxDay}
+                onChange={(v) => updateSchedule({ maxDay: v })}
+              />
+            </div>
+            <p className="text-[12px] leading-relaxed text-muted">
+              换药日：术后第 {settings?.dressingSchedule.earlyInterval ?? 2} 天开始，之后每{" "}
+              {settings?.dressingSchedule.laterInterval ?? 3} 天一次，至术后第{" "}
+              {settings?.dressingSchedule.maxDay ?? 14} 天。例如 2 / 3 / 14 → 第 2、5、8、11、14 天。
+            </p>
+          </div>
+        )}
+      </div>
 
       <Section title="数据管理">
         <button

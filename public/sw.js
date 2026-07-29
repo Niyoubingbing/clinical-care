@@ -1,10 +1,10 @@
-const APP_VERSION = "2.16.1";
+const APP_VERSION = "__APP_VERSION__";
 const CACHE = "clinical-care-v" + APP_VERSION;
 // 构建期由 scripts/gen-sw-precache.mjs 注入的全量预缓存清单（所有路由 HTML + /_next/static/*）。
 // 源文件中 PRECACHE_LIST 的赋值保留占位符，构建时由脚本替换为真实数组，以便可重复构建。
 // 默认值含核心路由壳：即便构建期注入脚本因故未执行（如部署平台跳过 npm 脚本链），
 // 首页 / 待办 / 设置 / 病人详情 仍可离线命中；完整清单由 gen-sw-precache.mjs 注入覆盖。
-const PRECACHE_LIST = /*__PRECACHE_LIST__*/["/", "/todos", "/settings", "/patient", "/manifest.json", "/icon.svg"];
+const PRECACHE_LIST = /*__PRECACHE_LIST__*/["/"];
 // 通用病人详情壳的固定缓存键：与具体 id 无关，离线打开「任意未在线访问过的病人」时兜底。
 const PATIENT_SHELL_KEY = CACHE + "::patient-shell";
 

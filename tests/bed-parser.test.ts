@@ -49,7 +49,17 @@ describe("parseBed", () => {
       const r = parseBed(b);
       expect(r.matched).toBe(false);
       expect(typeof r.bedBase).toBe("number");
-      expect(r.bedType).toBe("real");
+      // 不匹配任何床号模板 → 虚拟床（关键修复：不再兜底成 "real"）。
+      expect(r.bedType).toBe("virtual");
+    }
+  });
+
+  it("classifies unmatched bed numbers as virtual (auto bed-type detection)", () => {
+    // 走廊床 / 临时床等不匹配模板的床号，应自动归为虚拟床。
+    for (const b of ["V09", "L03", "走廊5", "临时床A"]) {
+      const r = parseBed(b);
+      expect(r.matched).toBe(false);
+      expect(r.bedType).toBe("virtual");
     }
   });
 
@@ -64,7 +74,7 @@ describe("parseBed", () => {
     const r = parseBed("");
     expect(r.matched).toBe(false);
     expect(r.bedBase).toBe(0);
-    expect(r.bedType).toBe("real");
+    expect(r.bedType).toBe("virtual");
   });
 
   it("handles undefined bedNumber without throwing (graceful fallback)", () => {
@@ -79,5 +89,17 @@ describe("parseBed", () => {
     const r = parseBed("309w01");
     expect(r.matched).toBe(false);
     expect(r.ward).toBe("309W");
+  });
+
+  it("treats a successful match under a non-4-group custom template as a real bed", () => {
+    // 回归：自定义模板捕获组数≠4（此处 3 组 ^([A-Z])(\d{3})(\d{2})$）时，
+    // 合法床号 "W30901" 仍应判定为真实床（real），而非因 m.length=4 < 5 误入兜底返回 virtual。
+    const r = parseBed("W30901", "^([A-Z])(\\d{3})(\\d{2})$");
+    expect(r.matched).toBe(true);
+    expect(r.bedType).toBe("real");
+    // 组数无关提取：ward 由 m[1]+m[2] 拼出（W + 309 → "W309"），不依赖固定 4 组结构。
+    expect(r.ward).toBe("W309");
+    // 该 3 组模板没有第 4 个「床基」捕获组，bedBase 由 trailingDigits 兜底推断为 30901（不会是 NaN）。
+    expect(r.bedBase).toBe(30901);
   });
 });

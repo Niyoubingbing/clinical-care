@@ -204,11 +204,11 @@ export default function PatientDetailPage() {
             {bedBlockLabel(patient.bedNumber)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-medium text-main">
+            <p className="truncate text-[14px] font-medium text-main">
               {patient.bedNumber} · {patient.diagnosis}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {patient.bedType === "virtual" && (
+              {parsedBed?.bedType === "virtual" && (
                 <span className="badge-virtual">虚拟床</span>
               )}
               {parsedBed?.bedType === "extra-real" && (

@@ -111,9 +111,10 @@ export default function HomePage() {
   }, [ordered, todos, today, settings]);
 
   // 虚拟床隐藏 + 分组筛选：抽离为纯函数（见 lib/home-filter），便于组件外单测。
-  // 虚拟床判定以人工写入的 Patient.bedType==="virtual" 为准（parseBed 只返回 real/extra-real）。
+  // 虚拟床判定完全由 parseBed 解析结果决定（不匹配任何床号模板 → virtual），
+  // 与首页卡片展示共用同一解析来源（bedInfoMap），消除「筛选 vs 展示」数据源分裂。
   const filtered = useMemo(
-    () => filterHomeRows(rows, group, settings?.showVirtualBeds ?? true),
+    () => filterHomeRows(rows, group, settings?.showVirtualBeds ?? true, settings),
     [rows, group, settings]
   );
 
