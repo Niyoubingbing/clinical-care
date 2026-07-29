@@ -1,6 +1,6 @@
 # 临床病人管理助手 - 产品需求文档 (PRD)
 
-**版本**: v2.17.0
+**版本**: v2.17.1
 **日期**: 2026-07-08  
 **作者**: Jiahao Wu
 
@@ -1868,6 +1868,7 @@ interface Settings {
 | v2.12.6 (patch) | 2026-07-08 | 修复部署到 Vercel 后「移动端首次联网加载即断网，打开病人详情页报错 Vercel 网址无法访问」的**离线可用性问题**（用户实测场景）。**根因**：`/patient/[id]` 是 `ƒ` 动态服务端路由，其 RSC 载荷需联网请求；详情页数据虽来自 IndexedDB（离线可用），但客户端路由导航时要拉取该 id 的 RSC，旧 SW 仅缓存安装时预缓存的 App Shell + 静态资源，**未预取的动态路由在离线时 fetch RSC 失败 → 浏览器报「Vercel 网址无法访问」**（首页 `/` 是 `○` 静态会被预缓存，所以列表页能开、详情页不能）。**修复**：① `app/page.tsx` 首页首次联网加载后，后台**分块预取全部病人详情路由 RSC**（`router.prefetch('/patient/'+id)`，10 个/批、250ms 间隔，不阻塞 UI），由 SW 的运行时缓存（fetch 成功即 `cache.put`）留存，使「联网加载一次后断网」也能打开**任意**病人详情（数据来自 IndexedDB）；② `public/sw.js` fetch 增加**导航兜底**——`request.mode==='navigate'` 且离线未缓存时回退到已缓存的首页 App Shell（`caches.match('/')`），不再直接报「无法访问」。注意：dev 环境（`NODE_ENV!=='production'`）不执行预取。sw.js 版本升 2.12.6 以触发 PWA 更新检测。构建零错误（10 页面）。**本版本号 2.12.6（由 2.12.5 升上来）** | Jiahao Wu |
 | v2.12.7 (patch) | 2026-07-08 | **纠正 v2.12.6 的离线修复技术路径（用户指出逻辑错误：应用本身不含有病人，「逐个预取全部病人 RSC」前提不成立——首屏可能为空、且覆盖不全、且与「按 id 逐个预取」概念错误）。改用标准 App Shell 模式**：本应用数据全在 IndexedDB（客户端），`/patient/[id]` 对任意 id 只是**同一个通用空壳**，离线可用性本就不该依赖枚举病人。① 删除首页「逐个预取全部病人 RSC」循环，改为首次联网且已有病人时仅**播种一个通用壳**——`fetch('/patient/'+首个病人id)` 抓取任一病人路由 HTML 写入 SW 缓存（概念即 App Shell，而非病人枚举）；② `public/sw.js` 新增固定**通用壳键 `patient-shell`**：在线访问任意 `/patient/*` 导航或资源时，响应同时写入该键；离线导航 `/patient/*` 优先返回通用壳（与具体 id 无关，前端按 URL 的 id 从 IndexedDB 取数渲染），其次回退首页——使**任意病人（含断网后新导入）离线都可用**；③ SW `activate` 清理旧缓存时**保留通用壳键**（跨激活复用）。逻辑回归正确、与病人数量完全解耦。sw.js 版本升 2.12.7 触发 PWA 更新检测。构建零错误（10 页面）。**本版本号 2.12.7（由 2.12.6 升上来）** | Jiahao Wu |
 | v2.17.0 | 2026-07-08 | 换药管理功能升级（本次五项改动）：① 默认换药规则 `Settings.dressingSchedule = {earlyInterval:2, laterInterval:3, maxDay:14}` 生成换药日序列第 2/5/8/11/14 天（首换固定 POD2），设置页新增「换药规则」全局自定义入口、病人编辑页新增「换药计划」每病人覆盖（见 4.10）；② App 打开/回到前台按手术日计划自动生成「换药」待办，按 `patientId+换药+dueDate` 幂等去重、不补历史日、离线可用（见 4.2.4 / 4.10.4）；③ 首页病人卡片与详情页显示「术后第 N 天 / 术前第 N 天」，详情页显示「距下次换药 N 天 / 今日换药 / 计划已完成」，手术日期改用自定义底部弹层日历组件 `DatePicker`（见 4.1.1 / 4.7 / 5.6）；④ 查房首页新增「虚拟床 显示/隐藏」开关（`Settings.showVirtualBeds`，默认显示），隐藏时剔除虚拟床（含整组）、正序/反序不受影响（见 4.10.5）；⑤ 废弃 `dressingFrequency`/`lastDressingChange`：不再参与计算、表单不再编辑，仅保留类型定义兼容导入/导出，`toggleTodo` 完成「换药」待办不再写 `lastDressingChange`（见 4.10.7）。数据模型 `Patient` 增 `dressingSchedule?`、`Settings` 增 `dressingSchedule`+`showVirtualBeds?`。本文档由 v2.12.7 升 v2.17.0。 | 许清楚 |
+| v2.17.1 | 2026-07-30 | 床型识别与筛选修复 + 体验优化（五项）：① 床型识别改为**完全自动判定**——`lib/bed-parser.ts` 不匹配任何床号模板（含空床号）即归为 `virtual`，病房床 `real` / 真实加床 `extra-real` 按真实床计；首页筛选 `lib/home-filter.ts` 与卡片展示统一以 `parseBed` 结果为源，修复「显示虚拟床」开关失效（此前手动 `patient.bedType` 与解析结果分裂、且解析永不产出 virtual）；② 换药规则入口升级为 Settings 内**独立醒目可折叠区块**（非独立路由），仍绑全局 `settings.dressingSchedule`；③ UI 文字拥挤/不美观换行优化（`PatientCard`/`GroupedPatientCard`/`app/patient` 用 `truncate`+`min-w-0`）；④ 病人编辑页**移除「保存」按钮、改为字段变更即 400ms 防抖自动落库**（必填清空/重复床号/非法换药间隔行内提示跳过持久化），新增模式保留「添加病人」；⑤ 修复潜在缺陷：`lib/bed-parser.ts` 自定义床号模板捕获组数≠4 时合法匹配被误判为 virtual（改为组数无关提取+防崩）。113/113 测试通过，Vercel 生产构建 READY、线上 `version.json=2.17.1`。本文档由 v2.17.0 升 v2.17.1。 | 齐活林 |
 
 ---
 

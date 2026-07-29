@@ -1,8 +1,9 @@
-# 换药管理功能升级 v2.17.0 — 架构设计与任务分解
+# 换药管理功能升级 v2.17.0 → v2.17.1 — 架构设计与任务分解
 
 > 角色：软件架构师（Bob）｜ 输入：已审核通过的实施方案 + 现有代码调研
 > 技术栈：Next.js 15 App Router + TypeScript + Dexie/IndexedDB + Tailwind + Framer Motion（沿用，**无新增依赖**）
 > 本文档为工程师可执行的设计依据；类图/时序图另存 `docs/class-diagram.mermaid`、`docs/sequence-diagram.mermaid`。
+> **v2.17.1 增量（已交付）**：在 v2.17.0 基础上修复床型识别与筛选、升级换药规则入口、优化 UI 文字拥挤/换行、病人编辑页改为自动保存、修复 bed-parser 自定义模板捕获组数缺陷。详见文末 §9。
 
 ---
 
@@ -39,7 +40,7 @@
 
 ### 新建
 - `lib/dressing.ts` — 换药核心算法库（纯函数）。
-- `lib/home-filter.ts` — 首页列表过滤纯函数 `filterHomeRows`（含 `HomeRow`/`HomeGroupItem` 类型），由 `app/page.tsx` 的 `filtered` 内联逻辑抽出，用于组件外单测（行为等价、无副作用）。
+- `lib/home-filter.ts` — 首页列表过滤纯函数 `filterHomeRows(rows, group, showVirtualBeds, settings?)`，由 `app/page.tsx` 的 `filtered` 内联逻辑抽出（含 `HomeRow`/`HomeGroupItem` 类型）。**虚拟床判定改为完全自动**：`isVirtual = parseBed(p.bedNumber, settings?.bedTemplate, settings?.specialMarks).bedType === "virtual"`（v2.17.1 起忽略手动 `patient.bedType`，不匹配床号模板即判为虚拟床）。关闭虚拟床时按单卡/整组剔除、保序（filterHomeRows 不重排）。
 - `components/DatePicker.tsx` — 自定义手术日期选择器。
 - `docs/system_design.md`、`docs/class-diagram.mermaid`、`docs/sequence-diagram.mermaid` — 本文档与图。
 - `tests/dressing.test.ts` — 新算法单测（建议，随 T01 落地）。
@@ -48,9 +49,10 @@
 ### 修改
 - `types/index.ts` — 新增 `DressingSchedule`；`Settings.dressingSchedule`、`Settings.showVirtualBeds?`；`Patient.dressingSchedule?`。
 - `lib/db.ts` — `defaultSettings()` 加默认 schedule + `showVirtualBeds`；`ensureSettingsMigrated()` 补默认；`toggleTodo` 移除 `lastDressingChange` 写入。
+- `lib/bed-parser.ts` — **v2.17.1 修复**：不匹配床号模板时 fallback 为 `bedType:"virtual"`（仅匹配模板返回 `real`/`extra-real`）；修正自定义模板「捕获组数≠4 即误判 virtual」缺陷（`if(!m)` 判定 + 组数无关防崩提取，补 `tests/bed-parser.test.ts`）。筛选与展示统一以 `parseBed(...).bedType` 为准，不再读手动 `patient.bedType`。
 - `lib/reminders.ts` — 重写 `needsDressing`（改为基于待办的「今日/逾期未换药」判定）；扩展 `PatientStatus`（加 `postOpDay`/`dressingToday`/`nextDressingInDays`）；`patientStatus` 接收 schedule 并计算新字段；`computeReminders` 同步。
-- `app/settings/page.tsx` — 新增「换药间隔（全局默认）」编辑区段（3 个数字输入）。
-- `components/PatientFormSheet.tsx` — 手术日期换用 `DatePicker`；移除 `dressingFrequency`/`lastDressingChange` 输入；新增可选「每病人自定义换药间隔」覆盖。
+- `app/settings/page.tsx` — 换药规则升级为 Settings 内**独立醒目可折叠区块**（标题「换药规则」+ 描述 + `ChevronDown` 折叠，默认展开，非路由），绑定全局 `settings.dressingSchedule`（3 个数字输入，整数≥1 校验保留）。
+- `components/PatientFormSheet.tsx` — 手术日期换用 `DatePicker`；移除 `dressingFrequency`/`lastDressingChange` 输入；新增可选「每病人自定义换药间隔」覆盖。**v2.17.1：编辑模式移除「保存」按钮，改动经 400ms 防抖 `updatePatient` 自动落库**（必填清空→行内提示不覆盖库；重复床号→行内错误跳过；床号变更重算 `parseBed` 并持久化 `ward/bedBase/bedType/specialType`）。
 - `app/page.tsx` — 读 `showVirtualBeds` 加开关；按开关过滤虚拟床（保持正/反序）；给卡片传入 `status.postOpDay` 等。
 - `components/PatientCard.tsx` — 新增「术后第 N 天」徽标；`patientCardEqual` 补新 status 字段 + `postOpDay`。
 - `components/GroupedPatientCard.tsx` — `groupedEqual` 补新 status 字段 + `postOpDay`（透传）。
@@ -58,7 +60,7 @@
 - `app/patient/page.tsx` — 详情 `Info` 区「换药频率/上次换药」改为「术后天数 / 距下次换药」。
 - `components/QuickActions.tsx` — 「换药」按钮去重（已存在今日换药待办则不再重复建）。
 - `app/todos/page.tsx` — `onToggle` 移除 `lastDressingChange` 写入。
-- `package.json` — 版本 `2.16.1` → `2.17.0`（prebuild 的 `sync-version.mjs` 自动注入 `version.json`/`sw.js`，无需手改其它）。
+- `package.json` — 版本 `2.16.1` → `2.17.0` → `2.17.1`（v2.17.1 增量；prebuild 的 `sync-version.mjs` 自动注入 `version.json`/`sw.js`，无需手改其它）。
 
 ---
 
@@ -410,7 +412,7 @@ sequenceDiagram
 - **自动建待办的边界**：仅在 App 打开/回到前台时执行；只建 `dueDate===today` 的待办；App 关闭期间不补建历史日（符合需求②）。
 - **徽标驱动**：`needDressing`（兼容旧字段）= 存在 pending 的「换药」待办且 `dueDate<=today`；在自动建待办已运行后等价于 `dressingToday`。`ReminderBar` 的「X 人需换药」计数即 `computeReminders().needDressing`。
 - **废弃字段兼容**：`dressingFrequency`/`lastDressingChange` 在 `types` 与 DB 中保留（不删除，避免破坏存量数据导入/导出），但**任何新逻辑都不读取它们**；`PatientForm` 不再提供其编辑入口。
-- **首页过滤可测试化**：虚拟床隐藏 + 正/反序保持逻辑统一收敛到纯函数 `filterHomeRows(rows, bedInfoMap, showVirtualBeds)`（`lib/home-filter.ts`），组件只负责调用；该模块无 `useLiveQuery`/副作用，可由 `tests/home-filter.test.ts` 直接单测。
+- **首页过滤可测试化**：虚拟床隐藏 + 正/反序保持逻辑统一收敛到纯函数 `filterHomeRows(rows, group, showVirtualBeds, settings?)`（`lib/home-filter.ts`），组件只负责调用；**虚拟床判定完全自动**——`isVirtual = parseBed(p.bedNumber, settings?.bedTemplate, settings?.specialMarks).bedType === "virtual"`，忽略手动 `patient.bedType`（v2.17.1 起）。该模块无 `useLiveQuery`/副作用，可由 `tests/home-filter.test.ts` 与 `tests/bed-parser.test.ts` 直接单测。
 
 ---
 
@@ -421,3 +423,31 @@ sequenceDiagram
 3. **旧字段清理**：`dressingFrequency`/`lastDressingChange` 保留类型定义但不参与计算、表单不再编辑；导入/导出保留旧值以向后兼容。
 4. **详情页「上次换药」**：改为「距下次换药」，隐藏「上次换药日期」展示。
 5. **测试改写影响**：`tests/toggle-dressing.test.ts` 旧断言已改写为新模型（完成今日换药待办后不再写 `lastDressingChange`，`dressingInfo.doneToday` 正确）；正式回归由 QA 任务执行并全绿。
+
+---
+
+## 9. v2.17.1 增量变更（床型识别修复 + 体验优化，已交付）
+
+> 版本号：`package.json` → `2.17.1`（prebuild 经 `sync-version.mjs` 注入 `version.json`/`sw.js`）。
+> 测试：全量 `113/113` 通过（`npx vitest run`）；`tsc` 0 错误、`eslint` 0 error；Vercel 生产构建 `READY`，线上 `version.json=2.17.1`。
+> 关键决策：换药规则入口采用「Settings 内联独立分区」（非独立二级路由、非首页）；床型判定采用「完全自动判定」（忽略手动 `patient.bedType`）。
+
+### 9.1 床型识别修复（① + ⑤ 缺陷修复）
+- **根因**：v2.17.0 的虚拟床判定依赖「设置-床号识别」中手动写入的 `Patient.bedType` 覆盖值，导致「隐藏虚拟床」开关对未按模板标注的病人失效。
+- **修复**：`lib/bed-parser.ts` `parseBed(bedNumber, template, specialMarks)` 语义改为——**仅当床号匹配床号模板**（且特标命中 `specialMarks`）返回 `real`/`extra-real`；**不匹配模板或空床号一律 `virtual`**。筛选与展示统一以 `parseBed(...).bedType` 为准（`app/page.tsx` 的 `filterHomeRows` 调用、`app/patient/page.tsx` 虚拟床徽标均改为 `parsedBed?.bedType === "virtual"`），不再读取手动 `patient.bedType`。
+- **潜在缺陷修复（⑤）**：原 `if (!m || m.length < 5)` 隐含「模板恰有 4 捕获组」假设，自定义模板（捕获组数≠4）的合法匹配被误判 `virtual`、导致该床被隐藏。改为 `if (!m)` 判定 + 组数无关防崩提取（`m[1..4]` 缺省回退），并新增 `tests/bed-parser.test.ts` 覆盖「`^([A-Z])(\d{3})(\d{2})$` + `W30901` ⇒ `matched:true, bedType:"real", ward:"W309", bedBase:30901`」。
+
+### 9.2 换药规则入口升级（②）
+- `app/settings/page.tsx`：原「换药间隔」编辑区段升级为 Settings 内**独立醒目可折叠卡片**（标题「换药规则」+ 描述 + `ChevronDown` 折叠，默认展开，非路由），仍绑定全局 `settings.dressingSchedule`（整数≥1 校验保留）。入口层级「不用太浅」——在 Settings 内独立分区而非首页，便捷且不过度暴露。
+
+### 9.3 UI 文字拥挤 / 换行优化（③）
+- `components/PatientCard.tsx` / `components/GroupedPatientCard.tsx`：卡片文本容器加 `min-w-0 truncate` 防止长床号/诊断溢出拥挤换行；床型徽标统一用传入的解析床型。
+- `app/patient/page.tsx`：虚拟床徽标条件统一为 `parsedBed?.bedType === "virtual"`，长床号加 `truncate`。
+
+### 9.4 病人编辑页自动保存（④）
+- `components/PatientFormSheet.tsx`：编辑模式（传入 `patient`）**移除「保存」按钮**，改为**改动即自动落库**——400ms 防抖 `updatePatient(id, partial)` 持久化；必填清空→行内提示不覆盖库；重复床号→行内错误跳过；换药字段仅持久化合法值（int≥1、max>early）；床号变更重算 `parseBed` 并持久化 `ward/bedBase/bedType/specialType`；无每次按键 Toast。新增模式保留「添加病人」按钮。
+
+### 9.5 验收结论
+- `npx vitest run`：113/113 通过（含新增 `tests/bed-parser.test.ts`）。
+- `npx tsc --noEmit` 0 错误；`npx eslint` 0 error。
+- Vercel 生产构建 `READY`，线上 `version.json=2.17.1`、首页 HTTP 200。
