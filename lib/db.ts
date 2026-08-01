@@ -160,6 +160,8 @@ export function defaultSettings(): Settings {
     specialMarks: ["J", "YZ"],
     dressingSchedule: { earlyInterval: 2, laterInterval: 3, maxDay: 14 },
     showVirtualBeds: true,
+    // 强制虚拟床名单，默认空；见 lib/bed-type.ts computeBedType。
+    virtualOverrides: [],
   };
 }
 
@@ -337,6 +339,8 @@ export async function clearAllData(): Promise<void> {
         maxDay: 14,
       },
       showVirtualBeds: s?.showVirtualBeds ?? true,
+      // 强制虚拟床名单属于「设置」而非业务数据，与 bedTemplate 一样在清空数据后保留。
+      virtualOverrides: s?.virtualOverrides ?? [],
     });
   });
 }

@@ -451,3 +451,32 @@ sequenceDiagram
 - `npx vitest run`：113/113 通过（含新增 `tests/bed-parser.test.ts`）。
 - `npx tsc --noEmit` 0 错误；`npx eslint` 0 error。
 - Vercel 生产构建 `READY`，线上 `version.json=2.17.1`、首页 HTTP 200。
+
+---
+
+## 10. v2.17.2 增量变更（虚拟床开关真正生效，已交付）
+
+> 版本号：`package.json` → `2.17.2`（prebuild 经 `sync-version.mjs` 注入 `version.json`/`sw.js`）。
+> 测试：全量 `142/142` 通过（含 QA 独立回归 `tests/qa2-independent-verify.test.ts` / `tests/qa2-parity.test.ts`）；`tsc` 0 错误、`eslint` 0 error；Vercel 生产构建 `READY`。
+> **推翻 v2.17.1 的「床号模板判定」模型**：用户权威业务规则——「只有在查房列表（查房顺序）里的被分配房间和真实加床才是真实床，其他都是虚拟床」。
+
+### 10.1 床型判定唯一真相源改为查房顺序块成员（①）
+- **根因（v2.17.1 仍失效）**：v2.17.1 把床型判定压到 `parseBed` 的床号模板匹配上，但真实床号（如 `309Wxx`）本就能被默认模板匹配 → 解析永不产出 `virtual` → 「隐藏虚拟床」开关没有任何床可隐藏，实测无反应。
+- **修复**：新增 `lib/bed-type.ts` `computeBedType(p: BedTypeInput, roundingOrder?, virtualOverrides?)`，床型**唯一**由 `roundingOrder.blocks` 的成员关系决定：
+  - 复用 `lib/rounding.ts` `resolveOrder` 的**双口径**匹配：块存完整床号（`useFull`）→ 精确 `block.beds.includes(bed)`；基础规则（块内存 `"01"/"02"`）→ 按 `parseInt(bedBase) === p.bedBase` 数值匹配。
+  - 命中 `room` 块 → `real`；命中 `extra`/`extra-real` 块 → `extra-real`；都不命中 → `virtual`。
+  - `bedTemplate`/`specialMarks` **仅用于展示解析**，不再参与床型判定。
+- 调用点统一切换：`app/page.tsx`、`app/patient/page.tsx`、`components/PatientFormSheet.tsx`（新增/编辑两处）、`lib/batch-import.ts`（toAdd/toUpdate）、`app/settings/bed-recognition/page.tsx` 均传 `BedTypeInput`（patient 对象或 `{bedNumber,ward,bedBase}`）。
+
+### 10.2 首页整组按成员过滤（②，修复 virtualOverrides 连坐）
+- **根因**：v2.17.2 前的整组逻辑「组内任一 virtual 即剔整组」。当用户把同房 `309W02` 标进 `virtualOverrides`，同块真实床 `309W01` 会被一起藏掉。
+- **修复**：`lib/home-filter.ts` `filterHomeRows` 对 group 行改为 `kept = items.filter(it => !isVirtual(it.patient))`；`kept.length === 0` 才剔整组，否则 `items = kept` 仅保留真实成员。
+
+### 10.3 强制虚拟名单 + 床号识别页重构（③④）
+- `Settings.virtualOverrides?: string[]`：强制虚拟床名单，优先级高于块匹配；`lib/db.ts` `defaultSettings()` 补 `virtualOverrides: []`。
+- 床号识别页重构为「**管理查房块**」：加床进 `room`/`extra` 块即变真实、移出即变虚拟；「重新解析全部」只重算 `ward/bedBase/specialType`，不写 `bedType`。
+
+### 10.4 验收结论
+- `npx vitest run`：142/142 通过（含 `tests/bed-type.test.ts`、`tests/virtual-bed.test.ts`、`tests/qa2-independent-verify.test.ts`、`tests/qa2-parity.test.ts`）。
+- 关键回归场景由 QA 独立实测（非只看断言）：基础规则下 `REMAIN_WHEN_HIDDEN=["a","b","c"]`（首页不清空）；混合整组 `virtualOverrides` 命中后 `kept=["g1/real1"]`（同病房真实床保住）。
+- `npx tsc --noEmit` 0 错误；`npx eslint` 0 error；Vercel 生产构建 `READY`，线上 `version.json=2.17.2`、首页 HTTP 200。

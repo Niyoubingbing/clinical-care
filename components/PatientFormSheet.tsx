@@ -13,6 +13,7 @@ import {
   DEFAULT_GROUP_COLOR,
 } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
+import { computeBedType } from "@/lib/bed-type";
 import { Patient, DressingSchedule } from "@/types";
 
 /** 编辑模式下自动保存的字段校验错误（仅作内联展示，不影响其它字段落库）。 */
@@ -138,7 +139,9 @@ export function PatientForm({
    * - 必填项（床号/姓名/诊断）被清空：不覆盖 DB 中已有合法值，内联提示。
    * - 重复床号：跳过本次落库并内联提示。
    * - 换药计划：仅当整数≥1 且截止>前期间隔时写 dressingSchedule，否则内联提示。
-   * - 床号变更重算 parseBed 并持久化 ward/bedBase/bedType/specialType（自动床型判定）。
+   * - 床号变更时：ward/bedBase/specialType 由 parseBed（展示解析）重算，
+   *   bedType 由 computeBedType（查房顺序）判定——不再无条件用解析结果覆盖，
+   *   避免编辑病人时把「已在查房块内的床」误写成 virtual（v2.17.2 Bug B）。
    */
   const autoSave = useCallback(async () => {
     const p = patient;
@@ -166,7 +169,11 @@ export function PatientForm({
           patch.bedNumber = normBed;
           patch.ward = parsed.ward;
           patch.bedBase = parsed.bedBase;
-          patch.bedType = parsed.bedType;
+          patch.bedType = computeBedType(
+            { bedNumber: normBed, ward: parsed.ward, bedBase: parsed.bedBase },
+            s.roundingOrder,
+            s.virtualOverrides
+          );
           patch.specialType = parsed.specialType;
         }
       }
@@ -308,7 +315,12 @@ export function PatientForm({
         bloodTestDay: bloodTestDay || undefined,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
-        bedType: parsed.bedType,
+        // 新增病人同样以查房顺序判定床型（床号不在查房列表里 → 虚拟床）。
+        bedType: computeBedType(
+          { bedNumber: normalizedBed, ward: parsed.ward, bedBase: parsed.bedBase },
+          s.roundingOrder,
+          s.virtualOverrides
+        ),
         specialType: parsed.specialType,
       };
       // 仅在开启自定义间隔且参数合法时写入每病人换药计划；否则不写（继承全局默认）。

@@ -46,7 +46,8 @@ function PatientCard({
   const color = patient.groupColor || DEFAULT_GROUP_COLOR;
   const dangerBorder = status.overdue || status.needDressing;
 
-  // 合并「传入的实时解析值」与「已持久化的字段」，确保两种来源都能标识特殊床。
+  // 床型优先取调用方传入的实时值（首页 bedInfoMap 由 computeBedType 依查房顺序算出，
+  // 与 filterHomeRows 同源）；仅当调用方未提供时，才退回持久化字段作为兜底。
   const bt = bedType ?? patient.bedType;
   const st = specialType ?? patient.specialType;
   const isVirtual = bt === "virtual";

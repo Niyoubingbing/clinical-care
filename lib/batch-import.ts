@@ -1,10 +1,12 @@
-import { Patient } from "@/types";
+import { Patient, RoundingConfig } from "@/types";
 import { parseBed, DEFAULT_BED_TEMPLATE, DEFAULT_SPECIAL_MARKS } from "./bed-parser";
+import { computeBedType } from "./bed-type";
 import {
   DEFAULT_GROUP_COLOR,
   addPatient,
   updatePatient,
   deletePatient,
+  getSettings,
   db,
 } from "./db";
 
@@ -86,14 +88,33 @@ export function analyzeRoster(
   return { valid, toAdd, toUpdate, toRemove, skipped, removeAbsent };
 }
 
+/**
+ * 落库批量导入结果。
+ *
+ * - ward / bedBase / specialType 仍由 parseBed（展示解析）得到；
+ * - bedType 统一由 computeBedType 依据查房顺序判定（v2.17.2 起不再来自解析模板）。
+ *   未显式传入 roundingOrder / virtualOverrides 时，自动从 settings 读取，
+ *   保证任何调用点写入的 bedType 与首页筛选口径一致。
+ */
 export async function applyRoster(
   preview: RosterPreview,
   template: string = DEFAULT_BED_TEMPLATE,
-  specialMarks: string[] = DEFAULT_SPECIAL_MARKS
+  specialMarks: string[] = DEFAULT_SPECIAL_MARKS,
+  roundingOrder?: RoundingConfig,
+  virtualOverrides?: string[]
 ): Promise<{ added: number; updated: number; removed: number }> {
   let added = 0;
   let updated = 0;
   let removed = 0;
+
+  // 事务外先取设置：Dexie 事务内再发起无关读取容易踩到事务作用域限制。
+  let order = roundingOrder;
+  let overrides = virtualOverrides;
+  if (order === undefined || overrides === undefined) {
+    const s = await getSettings();
+    if (order === undefined) order = s.roundingOrder;
+    if (overrides === undefined) overrides = s.virtualOverrides;
+  }
 
   await db.transaction("rw", db.patients, db.todos, async () => {
     for (const row of preview.toAdd) {
@@ -105,7 +126,11 @@ export async function applyRoster(
         groupColor: DEFAULT_GROUP_COLOR,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
-        bedType: parsed.bedType,
+        bedType: computeBedType(
+          { bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase },
+          order,
+          overrides
+        ),
         specialType: parsed.specialType,
       });
       added++;
@@ -118,7 +143,11 @@ export async function applyRoster(
         diagnosis: row.diagnosis,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
-        bedType: parsed.bedType,
+        bedType: computeBedType(
+          { bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase },
+          order,
+          overrides
+        ),
         specialType: parsed.specialType,
       });
       updated++;

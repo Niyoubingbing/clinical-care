@@ -10,6 +10,7 @@ import { patientStatus } from "@/lib/reminders";
 import { resolveSchedule, dressingInfo } from "@/lib/dressing";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 import { parseBed } from "@/lib/bed-parser";
+import { computeBedType } from "@/lib/bed-type";
 
 import QuickActions from "@/components/QuickActions";
 import QuickTodoBar from "@/components/QuickTodoBar";
@@ -79,9 +80,23 @@ export default function PatientDetailPage() {
       : null;
   const hasSurgery = !!patient?.surgeryDate;
 
-  // 解析当前病人床号，用于详情页头部标识特殊类型床（加床 / 虚拟）。
+  // 解析当前病人床号（仅取 specialType 等展示字段）。
   const parsedBed = useMemo(
     () => (settings && patient ? parseBed(patient.bedNumber, settings.bedTemplate, settings.specialMarks) : null),
+    [settings, patient]
+  );
+
+  // 床型徽标（虚拟床 / 加床）统一走 computeBedType：以查房顺序为准，
+  // 与首页筛选、卡片徽标同源，避免详情页与列表判定分裂。
+  const bedType = useMemo(
+    () =>
+      settings && patient
+        ? computeBedType(
+            patient,
+            settings.roundingOrder,
+            settings.virtualOverrides
+          )
+        : null,
     [settings, patient]
   );
 
@@ -208,12 +223,14 @@ export default function PatientDetailPage() {
               {patient.bedNumber} · {patient.diagnosis}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {parsedBed?.bedType === "virtual" && (
+              {bedType === "virtual" && (
                 <span className="badge-virtual">虚拟床</span>
               )}
-              {parsedBed?.bedType === "extra-real" && (
+              {bedType === "extra-real" && (
                 <span className="badge-special">
-                  {parsedBed.specialType ? `加床·${parsedBed.specialType}` : "加床"}
+                  {parsedBed?.specialType
+                    ? `加床·${parsedBed.specialType}`
+                    : "加床"}
                 </span>
               )}
               {status?.needDressing && <span className="badge-danger">需换药</span>}

@@ -10,7 +10,20 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.ts"],
+    server: {
+      deps: {
+        inline: ["vitest"],
+      },
+    },
+    deps: {
+      optimizer: {
+        ssr: {
+          include: ["@vitest/runner", "vitest", "@vitest/expect", "@vitest/utils"],
+        },
+      },
+    },
   },
 });

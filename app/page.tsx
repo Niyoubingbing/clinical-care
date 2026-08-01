@@ -12,6 +12,7 @@ import { resolveSchedule } from "@/lib/dressing";
 import { buildDailySummary } from "@/lib/summary";
 import { Patient, BedType, Todo } from "@/types";
 import { parseBed } from "@/lib/bed-parser";
+import { computeBedType } from "@/lib/bed-type";
 import { filterHomeRows } from "@/lib/home-filter";
 
 import PatientCard from "@/components/PatientCard";
@@ -111,8 +112,8 @@ export default function HomePage() {
   }, [ordered, todos, today, settings]);
 
   // 虚拟床隐藏 + 分组筛选：抽离为纯函数（见 lib/home-filter），便于组件外单测。
-  // 虚拟床判定完全由 parseBed 解析结果决定（不匹配任何床号模板 → virtual），
-  // 与首页卡片展示共用同一解析来源（bedInfoMap），消除「筛选 vs 展示」数据源分裂。
+  // 虚拟床判定统一由 computeBedType 依据查房顺序（settings.roundingOrder）决定，
+  // 与首页卡片徽标共用同一来源（bedInfoMap），消除「筛选 vs 展示」数据源分裂。
   const filtered = useMemo(
     () => filterHomeRows(rows, group, settings?.showVirtualBeds ?? true, settings),
     [rows, group, settings]
@@ -158,13 +159,22 @@ export default function HomePage() {
     [todos, patients, today]
   );
 
-  // 实时解析床号，得到每个病人的床型与特殊标记，用于列表卡片标识特殊类型床（加床 / 虚拟）。
+  // 实时计算每个病人的床型与特殊标记，用于列表卡片标识特殊类型床（加床 / 虚拟）。
+  // bedType 走 computeBedType（查房顺序为准，与 filterHomeRows 同源）；
+  // specialType 仍来自 parseBed（仅展示用的特殊标记字母，如 J / YZ）。
   const bedInfoMap = useMemo(() => {
     const m = new Map<string, { bedType: BedType; specialType: string }>();
     if (!settings) return m;
     for (const p of patients) {
       const r = parseBed(p.bedNumber, settings.bedTemplate, settings.specialMarks);
-      m.set(p.id, { bedType: r.bedType, specialType: r.specialType });
+      m.set(p.id, {
+        bedType: computeBedType(
+          p,
+          settings.roundingOrder,
+          settings.virtualOverrides
+        ),
+        specialType: r.specialType,
+      });
     }
     return m;
   }, [patients, settings]);

@@ -65,7 +65,10 @@ export default function BatchImportSheet({
       const res = await applyRoster(
         preview,
         settings.bedTemplate,
-        settings.specialMarks
+        settings.specialMarks,
+        // bedType 由查房顺序判定（lib/bed-type），与首页筛选口径保持一致。
+        settings.roundingOrder,
+        settings.virtualOverrides
       );
       toast({
         message: `新增 ${res.added} 人、更新 ${res.updated} 人、删除 ${res.removed} 人`,

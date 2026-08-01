@@ -89,4 +89,7 @@ export interface Settings {
   specialMarks?: string[];
   dressingSchedule: DressingSchedule; // 默认换药间隔（被 Patient.dressingSchedule 覆盖）
   showVirtualBeds?: boolean; // 是否在首页列表展示虚拟床（默认 true）
+  // 强制虚拟床名单（完整床号，精确匹配）：极少数场景下把已在查房块内的床强制判为虚拟床。
+  // 优先级高于 roundingOrder 块匹配，见 lib/bed-type.ts computeBedType。
+  virtualOverrides?: string[];
 }
