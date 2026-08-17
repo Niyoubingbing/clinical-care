@@ -19,7 +19,7 @@
     "@tanstack/react-virtual": "^3.14.5",
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
-    "framer-motion": "^11.18.0",
+    "framer-motion": "^13.1.0",
     "lucide-react": "^0.469.0",
     "next": "15.5.20",
     "pinyin-pro": "^3.26.0",
