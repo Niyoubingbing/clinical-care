@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   parseBed,
   DEFAULT_BED_TEMPLATE,
-  DEFAULT_SPECIAL_MARKS,
 } from "@/lib/bed-parser";
 
 describe("parseBed", () => {

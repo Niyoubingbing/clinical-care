@@ -1,44 +1,40 @@
 import { test, expect } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-
-const SHOTS = path.join(process.cwd(), 'tests', 'e2e', 'screenshots');
-mkdirSync(SHOTS, { recursive: true });
 
 test.beforeEach(async ({ context }) => {
   await context.route('**/sw.js', (r) => r.fulfill({ status: 404, body: '' }));
 });
 
-test('核心流程1: 添加病人 → 列表出现卡片 → 进入详情', async ({ page }) => {
+test('核心流程1: 添加病人 → 列表出现卡片 → 进入详情', async ({ page }, testInfo) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: '添加病人' }).click();
   const patientSheet = page.locator('.liquid-sheet');
   await expect(patientSheet).toBeVisible();
   await expect(patientSheet).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await page.screenshot({ path: path.join(SHOTS, 'sheet-add-patient.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('sheet-add-patient.png'), fullPage: true });
   await page.getByPlaceholder('如 309W23').fill('309W23');
   await page.getByPlaceholder('姓名').fill('测试病人甲');
   await page.getByPlaceholder('诊断').fill('急性阑尾炎');
-  await page.getByRole('button', { name: '保存' }).click();
+  await patientSheet.getByRole('button', { name: '添加病人', exact: true }).click();
 
   const card = page.getByRole('button', { name: '查看 测试病人甲 详情' });
   await expect(card).toBeVisible();
 
   await card.click();
   await expect(page.getByRole('heading', { name: '测试病人甲' })).toBeVisible();
-  await expect(page.getByText('309W23 · 急性阑尾炎')).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, 'flow-detail.png'), fullPage: true });
+  await expect(page.getByRole('button', { name: '309W23' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '急性阑尾炎' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('flow-detail.png'), fullPage: true });
 });
 
-test('核心流程2: 通用待办 添加 → 自然语言时间识别 → 完成 → 删除', async ({ page }) => {
+test('核心流程2: 通用待办 添加 → 自然语言时间识别 → 完成 → 删除', async ({ page }, testInfo) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: '通用待办' }).click();
   const todoSheet = page.locator('.liquid-sheet');
   await expect(todoSheet).toBeVisible();
   await expect(todoSheet).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await page.screenshot({ path: path.join(SHOTS, 'sheet-general-todo.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('sheet-general-todo.png'), fullPage: true });
   const ta = page.getByPlaceholder('如：交班记录 / 写病历 / 周会');
   await ta.fill('明早查房');
   // 时间解析实时反馈（time-parser 已单测覆盖，这里验证 UI 串联）
@@ -91,7 +87,7 @@ test('核心流程4: 首页列表正序/反序切换并持久化到 settings', a
   await expect(page.getByRole('button', { name: '反序' })).toHaveClass(/sort-button-active/);
 });
 
-test('视觉回归: 病房单层卡片与紧凑底部导航', async ({ page }) => {
+test('视觉回归: 病房单层卡片与紧凑底部导航', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: '添加病人' }).click();
   await page.getByRole('button', { name: '批量导入' }).click();
@@ -127,5 +123,5 @@ test('视觉回归: 病房单层卡片与紧凑底部导航', async ({ page }) =
   expect(navBox?.height).toBeLessThan(70);
   expect(navBox?.width).toBeLessThanOrEqual(380);
 
-  await page.screenshot({ path: path.join(SHOTS, 'home-redesign.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('home-redesign.png'), fullPage: true });
 });

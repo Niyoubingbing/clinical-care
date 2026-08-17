@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const OUT = path.join(process.cwd(), 'tests', 'e2e', 'perf-report.json');
+const OUT = path.join(process.cwd(), 'test-results', 'perf-report.json');
 
 test.beforeEach(async ({ context }) => {
   await context.route('**/sw.js', (r) => r.fulfill({ status: 404, body: '' }));

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 // Regression tests for the "Vercel clean URL 404" fix.
 //
@@ -17,8 +18,6 @@ describe("vercel.json + sw.js clean-URL 404 regression", () => {
 // ---------------------------------------------------------------------------
 // Test 1: vercel.json validity + rewrite-rule completeness (static assertions)
 // ---------------------------------------------------------------------------
-
-const ROOT = new URL(".", import.meta.url).pathname;
 
 test("vercel.json: valid JSON, rewrites array, build/output fields intact", () => {
   const raw = readFileSync("vercel.json", "utf8");

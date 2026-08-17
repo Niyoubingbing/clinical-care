@@ -1,12 +1,33 @@
-node_modules
-.next
-out
-.vercel
-.env*
-.workbuddy
-*.local
-.DS_Store
-npm-debug.log*
+node_modules/
+.next/
+out/
+.vercel/
+.workbuddy/
 _reference_liquid_glass_webgl/
 
-.vercel
+# Local secrets and machine-specific settings
+.env*
+!.env.example
+*.local
+
+# Build, test and diagnostic artifacts
+test-results/
+playwright-report/
+blob-report/
+coverage/
+*.log
+*.err
+*.tsbuildinfo
+qa_*
+vt*.log
+tsc_*.log
+eslint_*.log
+run-vitest.sh
+
+# Legacy local publishing helpers. Use Git + PR instead (docs/OPERATIONS.md).
+.github-push.mjs
+deploy-push.mjs
+
+.DS_Store
+Thumbs.db
+npm-debug.log*

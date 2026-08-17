@@ -98,11 +98,20 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-[20px] font-semibold text-main">设置</h1>
+    <div className="settings-page space-y-6">
+      <header className="page-intro">
+        <p className="page-kicker">工作区</p>
+        <h1 className="text-[24px] font-semibold tracking-[-0.03em] text-main">
+          设置
+        </h1>
+        <p className="mt-1 text-[13px] leading-5 text-muted">
+          管理查房路线、提醒规则、数据备份和应用偏好。
+        </p>
+      </header>
 
-      <Section title="主题">
-        <div className="grid grid-cols-3 gap-2">
+      <Section title="界面" description="调整应用的显示方式。">
+        <div className="card p-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
           {THEMES.map((t) => {
             const Icon = t.icon;
             const active = settings?.theme === t.key;
@@ -110,29 +119,56 @@ export default function SettingsPage() {
               <button
                 key={t.key}
                 onClick={() => setTheme(t.key)}
-                className={`flex flex-col items-center gap-1.5 rounded-xl py-3 transition active:scale-[0.97] ${
+                className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl py-3 transition active:scale-[0.97] ${
                   active
-                    ? "liquid-pill-active text-white"
+                    ? "liquid-pill-active !bg-[#7a301b] !text-white"
                     : "liquid-panel text-muted"
                 }`}
+                style={active ? { backgroundColor: "#7a301b", color: "#ffffff" } : undefined}
               >
                 <Icon size={20} />
                 <span className="text-[12px] font-medium">{t.label}</span>
               </button>
             );
           })}
+          </div>
         </div>
       </Section>
 
-      <Section title="查房与识别">
-        <EntryLink href="/settings/rounding" icon={ListOrdered} label="查房顺序" />
-        <EntryLink href="/settings/bed-recognition" icon={ScanLine} label="床号识别" />
-        <EntryLink href="/settings/quick-todos" icon={Zap} label="快捷待办" />
-        <EntryLink href="/settings/groups" icon={Users} label="分组管理" />
+      <Section
+        title="临床工作流"
+        description="这些设置会直接影响首页查房顺序、床型判断和病人详情操作。"
+      >
+        <div className="settings-list card p-1">
+          <EntryLink
+            href="/settings/rounding"
+            icon={ListOrdered}
+            label="查房顺序"
+            description="排列病房块、真实加床和实际查房路线"
+          />
+          <EntryLink
+            href="/settings/bed-recognition"
+            icon={ScanLine}
+            label="床号识别"
+            description="管理床号模板、床型和虚拟床覆盖"
+          />
+          <EntryLink
+            href="/settings/quick-todos"
+            icon={Zap}
+            label="快捷待办"
+            description="配置病人详情页常用的待办按钮"
+          />
+          <EntryLink
+            href="/settings/groups"
+            icon={Users}
+            label="分组管理"
+            description="维护分组名称、颜色和显示顺序"
+          />
+        </div>
       </Section>
 
       {/* 换药规则：Settings 内独立、突出、可折叠的分区卡片（非独立路由）。 */}
-      <div className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-3.5">
+      <section className="settings-feature rounded-2xl border border-primary/30 bg-primary/[0.04] p-4">
         <button
           type="button"
           onClick={() => setDressingOpen((v) => !v)}
@@ -178,30 +214,32 @@ export default function SettingsPage() {
             </p>
           </div>
         )}
-      </div>
-
-      <Section title="数据管理">
-        <button
-          className="settings-row text-left text-[14px] text-main"
-          onClick={onExport}
-        >
-          <Download size={18} className="text-primary" />
-          导出数据
-        </button>
-        <button
-          className="settings-row text-left text-[14px] text-main"
-          onClick={() => fileRef.current?.click()}
-        >
-          <Upload size={18} className="text-primary" />
-          导入数据
-        </button>
-        <button
-          className="settings-row text-left text-[14px] text-danger"
-          onClick={() => setClearOpen(true)}
-        >
-          <Trash2 size={18} />
-          清除所有数据
-        </button>
+      </section>
+      
+      <Section title="数据与维护" description="备份或恢复本机数据；应用不会把病人数据上传到云端。">
+        <div className="settings-list card p-1">
+          <button
+            className="settings-row settings-row-grouped text-left text-[14px] text-main"
+            onClick={onExport}
+          >
+            <Download size={18} className="text-primary" />
+            <span>导出数据</span>
+          </button>
+          <button
+            className="settings-row settings-row-grouped text-left text-[14px] text-main"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload size={18} className="text-primary" />
+            <span>导入数据</span>
+          </button>
+          <button
+            className="settings-row settings-row-grouped text-left text-danger"
+            onClick={() => setClearOpen(true)}
+          >
+            <Trash2 size={18} />
+            <span>清除所有数据</span>
+          </button>
+        </div>
         <input
           ref={fileRef}
           type="file"
@@ -211,7 +249,7 @@ export default function SettingsPage() {
         />
       </Section>
 
-      <Section title="关于应用">
+      <Section title="关于应用" description="版本与离线更新状态。">
         <div className="card space-y-3 p-3">
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-muted">当前版本</span>
@@ -294,16 +332,21 @@ export default function SettingsPage() {
 
 function Section({
   title,
+  description,
   children,
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <h2 className="mb-2 px-1 text-[13px] font-medium text-muted">{title}</h2>
-      <div className="space-y-2">{children}</div>
-    </div>
+    <section className="settings-section">
+      <div className="settings-section-heading">
+        <h2 className="text-[15px] font-semibold text-main">{title}</h2>
+        {description && <p className="mt-0.5 text-[12px] leading-5 text-muted">{description}</p>}
+      </div>
+      <div className="mt-2">{children}</div>
+    </section>
   );
 }
 
@@ -311,18 +354,23 @@ function EntryLink({
   href,
   icon: Icon,
   label,
+  description,
 }: {
   href: string;
   icon: typeof Sun;
   label: string;
+  description?: string;
 }) {
   return (
     <Link
       href={href}
-      className="settings-row text-left text-[14px] text-main transition active:scale-[0.99]"
+      className="settings-row settings-row-grouped text-left text-[14px] text-main transition active:scale-[0.99]"
     >
       <Icon size={18} className="text-primary" />
-      <span className="flex-1">{label}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{label}</span>
+        {description && <span className="mt-0.5 block truncate text-[12px] text-muted">{description}</span>}
+      </span>
       <ArrowRight size={16} className="text-muted" />
     </Link>
   );

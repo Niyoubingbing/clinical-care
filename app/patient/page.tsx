@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ClipboardCheck } from "lucide-react";
 import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo } from "@/types";
 import { patientStatus } from "@/lib/reminders";
@@ -12,11 +12,10 @@ import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 import { parseBed } from "@/lib/bed-parser";
 import { computeBedType } from "@/lib/bed-type";
 
-import QuickActions from "@/components/QuickActions";
-import QuickTodoBar from "@/components/QuickTodoBar";
+import TodoActionPanel from "@/components/TodoActionPanel";
 import { TodoListView } from "@/components/TodoListView";
 import TodoFormSheet from "@/components/TodoFormSheet";
-import PatientFormSheet from "@/components/PatientFormSheet";
+import PatientFieldSheet, { PatientField } from "@/components/PatientFieldSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
@@ -61,7 +60,7 @@ export default function PatientDetailPage() {
   const settings = useLiveQuery(() => getSettings(), []);
 
   const [todoOpen, setTodoOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [fieldOpen, setFieldOpen] = useState<PatientField | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const today = todayStr();
@@ -202,7 +201,7 @@ export default function PatientDetailPage() {
         action={
           <button
             aria-label="编辑"
-            onClick={() => setEditOpen(true)}
+            onClick={() => setFieldOpen("name")}
             className="subpage-back"
           >
             <Pencil size={17} />
@@ -219,9 +218,11 @@ export default function PatientDetailPage() {
             {bedBlockLabel(patient.bedNumber)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-medium text-main">
-              {patient.bedNumber} · {patient.diagnosis}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] font-medium text-main">
+              <button className="patient-editable truncate" onClick={() => setFieldOpen("bedNumber")}>{patient.bedNumber}</button>
+              <span aria-hidden="true">·</span>
+              <button className="patient-editable truncate text-left" onClick={() => setFieldOpen("diagnosis")}>{patient.diagnosis}</button>
+            </div>
             <div className="mt-1 flex flex-wrap gap-1">
               {bedType === "virtual" && (
                 <span className="badge-virtual">虚拟床</span>
@@ -241,7 +242,7 @@ export default function PatientDetailPage() {
         </div>
 
         <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-[12px]">
-          <Info label="手术日期" value={patient.surgeryDate} />
+          <Info label="手术日期" value={patient.surgeryDate} onClick={() => setFieldOpen("surgeryDate")} />
           {dressInfo && hasSurgery && dressInfo.postOpDay !== null && (
             <Info
               label="术后"
@@ -252,26 +253,37 @@ export default function PatientDetailPage() {
               }
             />
           )}
-          {dressInfo && hasSurgery && (
-            <Info
-              label="距下次换药"
-              value={
-                dressInfo.nextInDays === 0
-                  ? "今日换药"
-                  : dressInfo.nextInDays !== null
-                    ? `距下次换药 ${dressInfo.nextInDays} 天`
-                    : "换药计划已完成(已超14天)"
-              }
-            />
-          )}
-          <Info label="查血日" value={patient.bloodTestDay} />
+          <Info label="查血日" value={patient.bloodTestDay} onClick={() => setFieldOpen("bloodTestDay")} />
         </dl>
       </div>
+
+      {dressInfo && hasSurgery && (
+        <section className={`care-plan-card ${dressInfo.isDressingDay && !dressInfo.doneToday ? "care-plan-card-today" : ""}`}>
+          <div className="flex items-start gap-3">
+            <div className="care-plan-icon"><ClipboardCheck size={18} /></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-[14px] font-semibold text-main">换药计划</h2>
+                <span className={`care-plan-status ${dressInfo.doneToday ? "is-done" : dressInfo.isDressingDay ? "is-today" : ""}`}>
+                  {dressInfo.doneToday ? "今日已完成" : dressInfo.isDressingDay ? "今日需要" : "按计划进行"}
+                </span>
+              </div>
+              <p className="mt-1 text-[12px] text-muted">
+                {dressInfo.nextInDays === 0
+                  ? "今天是换药日，快捷添加一条换药待办即可记录。"
+                  : dressInfo.nextInDays !== null
+                    ? `下次换药还有 ${dressInfo.nextInDays} 天。`
+                    : "当前计划周期已完成。"}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 详情页一键切换分组（设置页自定义的分组列表） */}
       {customGroups.length > 0 && (
         <div>
-          <p className="mb-2 text-[13px] font-medium text-muted">切换分组</p>
+          <p className="mb-2 text-[13px] font-medium text-muted">分组</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -309,15 +321,17 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      <QuickActions patientId={patient.id} onAddTodo={() => setTodoOpen(true)} />
+      <TodoActionPanel
+        patientId={patient.id}
+        onAddTodo={() => setTodoOpen(true)}
+        pendingCount={list.filter((todo) => todo.status === "pending").length}
+      />
 
       <div>
-        <p className="mb-2 text-[13px] font-medium text-muted">快捷待办</p>
-        <QuickTodoBar patientId={patient.id} />
-      </div>
-
-      <div>
-        <p className="mb-2 text-[13px] font-medium text-muted">待办</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[13px] font-medium text-muted">待办记录</p>
+          <span className="text-[12px] text-muted">{list.length} 项</span>
+        </div>
         <TodoListView
           list={list}
           passFilter={passFilter}
@@ -340,12 +354,11 @@ export default function PatientDetailPage() {
         patientId={patient.id}
         patientName={patient.name}
       />
-      <PatientFormSheet
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
+      <PatientFieldSheet
         patient={patient}
+        field={fieldOpen}
+        onClose={() => setFieldOpen(null)}
       />
-
       <ConfirmDialog
         open={deleteOpen}
         title="删除病人？"
@@ -373,11 +386,11 @@ export default function PatientDetailPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value?: string }) {
+function Info({ label, value, onClick }: { label: string; value?: string; onClick?: () => void }) {
   return (
-    <div className="flex gap-2">
+    <button type="button" className="patient-info-row" onClick={onClick} disabled={!onClick}>
       <dt className="text-muted">{label}</dt>
       <dd className="text-main">{value ?? "—"}</dd>
-    </div>
+    </button>
   );
 }

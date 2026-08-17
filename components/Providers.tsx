@@ -147,7 +147,15 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   // Register service worker + 管理更新生命周期
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof window === "undefined") return;
+
+    // 版本号与 Service Worker 解耦：开发环境不注册 SW，但设置页仍应显示当前版本。
+    fetch("/version.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j && j.version && setLocalVersion(j.version))
+      .catch(() => {});
+
+    if (!("serviceWorker" in navigator)) return;
 
     // 本地开发环境（npm run dev）默认不注册 Service Worker：
     // SW 的 fetch 为 cache-first，会缓存 dev 模式下带 hash 的 JS chunk；
@@ -167,12 +175,6 @@ export default function Providers({ children }: { children: ReactNode }) {
         return;
       }
     }
-
-    // 读取本地版本（关于应用页展示 + 检查更新比对）
-    fetch("/version.json", { cache: "no-cache" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => j && j.version && setLocalVersion(j.version))
-      .catch(() => {});
 
     // 新版本激活（用户点击更新后 skipWaiting）时，刷新页面以加载新版本内容
     const onControllerChange = () => {

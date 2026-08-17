@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const OUT = path.join(process.cwd(), 'tests', 'e2e', 'a11y-report.json');
+const OUT = path.join(process.cwd(), 'test-results', 'a11y-report.json');
 
 test.beforeEach(async ({ context }) => {
   await context.route('**/sw.js', (r) => r.fulfill({ status: 404, body: '' }));

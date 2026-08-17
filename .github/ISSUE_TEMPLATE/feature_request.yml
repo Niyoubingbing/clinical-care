@@ -1,0 +1,37 @@
+name: 功能建议
+description: 说明问题、目标和验收标准。
+title: "feat: "
+labels: [enhancement, triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 描述临床工作流问题，不要包含真实病人信息。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      placeholder: "Given / When / Then，至少列出正常、边界和失败场景。"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: 可能影响
+      multiple: true
+      options:
+        - IndexedDB 数据兼容
+        - 查房顺序或床型判断
+        - 提醒或换药逻辑
+        - PWA 离线或更新
+        - 仅界面/文案
+        - 不确定

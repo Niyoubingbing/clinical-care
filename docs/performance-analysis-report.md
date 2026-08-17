@@ -1,5 +1,7 @@
 # Clinical Care PWA — 性能分析与优化方案
 
+> 历史资料：本文是 2026-07-10 阶段快照，不代表当前构建体积或待办。当前基线见 `REVIEW-2026-08-17.md`。
+
 > 分析对象：https://clinical-care.vercel.app/ （Next.js 15 静态导出 PWA，IndexDB/Dexie 离线优先，无后端 API）
 > 分析日期：2026-07-10
 > 角色：Performance Benchmarker
