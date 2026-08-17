@@ -1,5 +1,7 @@
 # 临床护理 PWA 深度架构审查报告
 
+> 历史资料：本文记录修复前的问题，部分结论已被 v2.13–v2.17 实现替代。当前架构与未解决债务见 `ARCHITECTURE.md` 和 `REVIEW-2026-08-17.md`。
+
 > 审查对象：`D:\Document\OneDrive - uppingallthetime\Document\Project-Management\WorkRoom\PWA`
 > 审查目标：把"卡顿"和"离线不达标"的根因钉死，给出可执行、按优先级排序的修复计划。
 > 方法：实际 Read 了下列文件并逐行核对，所有结论均引用 `file:line`，不含推测。

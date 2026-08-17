@@ -116,6 +116,13 @@ export default function GroupsPage() {
       </div>
 
       <div className="space-y-2">
+        <div className="subpage-section-heading">
+          <div>
+            <h2>当前分组</h2>
+            <p>拖动排序，点击名称可修改。</p>
+          </div>
+          <span className="subpage-section-count">{list.length} 个</span>
+        </div>
         {list.length === 0 && (
           <p className="rounded-xl bg-card/50 px-4 py-8 text-center text-[13px] text-muted">
             暂无分组，先添加一个吧

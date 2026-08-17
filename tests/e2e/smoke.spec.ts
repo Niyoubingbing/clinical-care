@@ -1,9 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-
-const SHOTS = path.join(process.cwd(), 'tests', 'e2e', 'screenshots');
-mkdirSync(SHOTS, { recursive: true });
 
 // 隔离 Service Worker：避免 SW 缓存（stale-while-revalidate）干扰 E2E 断言，
 // 让每次导航都走真实网络/内存，测试更可重复。
@@ -37,7 +32,7 @@ test.describe('页面加载冒烟 + 视觉截图', () => {
         await expect(page.getByRole('link', { name: '返回' })).toBeVisible();
       }
       await page.screenshot({
-        path: path.join(SHOTS, `${p.name}.png`),
+        path: testInfo.outputPath(`${p.name}.png`),
         fullPage: true,
       });
 

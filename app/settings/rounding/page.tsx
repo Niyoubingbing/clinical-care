@@ -222,6 +222,13 @@ export default function RoundingPage() {
       )}
 
       {/* 块列表 */}
+      <div className="subpage-section-heading">
+        <div>
+          <h2>查房块</h2>
+          <p>拖动调整顺序，块内可继续编辑床号。</p>
+        </div>
+        <span className="subpage-section-count">{config.blocks.length} 块</span>
+      </div>
       {config.blocks.length === 0 ? (
         <p className="rounded-lg bg-surface-alt px-3 py-3 text-[12px] text-muted">
           {ruleType === "basic"

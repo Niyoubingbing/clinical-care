@@ -84,7 +84,7 @@ function TodoListViewImpl({
   });
 
   if (pending.length === 0 && completed.length === 0) {
-    return <p className="px-1 py-2 text-[12px] text-muted">暂无待办</p>;
+    return <p className="todo-empty-state">今天没有待办记录</p>;
   }
 
   return (

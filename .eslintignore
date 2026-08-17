@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+.vercel/
+coverage/
+test-results/
+playwright-report/
+_reference_liquid_glass_webgl/
+next-env.d.ts
+docs/

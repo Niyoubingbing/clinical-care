@@ -1,0 +1,52 @@
+name: 缺陷报告
+description: 报告可复现的问题；禁止提交真实病人信息。
+title: "bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: "请只使用虚构数据，并先确认问题在最新版仍可复现。"
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本
+      description: 设置页“关于应用”中显示的版本。
+      placeholder: 2.17.2
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 环境
+      options:
+        - Vercel 生产环境
+        - Vercel Preview
+        - 本地开发
+        - PWA 离线模式
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: 使用虚构床号和姓名描述最短复现路径。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影响与频率
+      description: 是否涉及数据丢失、查房顺序、提醒或离线不可用？
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我确认内容和附件不含真实病人信息、导出数据、访问令牌或其他秘密。
+          required: true

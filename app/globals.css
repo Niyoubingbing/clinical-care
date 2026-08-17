@@ -234,7 +234,8 @@
     border-radius: 10px;
   }
   .liquid-pill-active {
-    background: var(--accent);
+    /* Keep a solid, sufficiently dark fill: this control uses 12px white text. */
+    background: #7a301b;
     border: 1px solid transparent;
     color: #ffffff;
   }
@@ -282,6 +283,152 @@
     border-radius: 12px;
     background: rgb(var(--surface));
     box-shadow: var(--shadow-sm);
+  }
+  .settings-list {
+    overflow: hidden;
+  }
+  .settings-row-grouped {
+    border-color: transparent;
+    border-radius: 10px;
+    box-shadow: none;
+  }
+  .settings-row-grouped + .settings-row-grouped {
+    border-top-color: var(--hairline);
+    border-top-width: 1px;
+    border-top-style: solid;
+  }
+  .settings-row-grouped:hover {
+    background: var(--surface-2);
+  }
+  .settings-section-heading {
+    padding: 0 2px;
+  }
+  .page-intro {
+    padding: 2px 2px 0;
+  }
+  .page-kicker {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .subpage-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+  }
+  .subpage-section-heading h2 {
+    color: rgb(var(--text));
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .subpage-section-heading p {
+    margin-top: 2px;
+    color: rgb(var(--muted));
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .subpage-section-count {
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .todo-action-panel {
+    border-color: color-mix(in srgb, var(--accent) 18%, var(--hairline));
+  }
+  .todo-quick-chip {
+    min-height: 32px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: rgb(var(--surface));
+    padding: 5px 10px;
+    color: rgb(var(--text));
+    font-size: 12px;
+    font-weight: 500;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+  .todo-quick-chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .care-plan-card {
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: rgb(var(--surface));
+    padding: 12px;
+  }
+  .care-plan-card-today {
+    border-color: color-mix(in srgb, var(--warning) 42%, var(--hairline));
+    background: color-mix(in srgb, var(--warning) 7%, rgb(var(--surface)));
+  }
+  .care-plan-icon {
+    display: flex;
+    height: 34px;
+    width: 34px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .care-plan-status {
+    border-radius: 999px;
+    background: var(--surface-2);
+    padding: 3px 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .care-plan-status.is-today {
+    background: color-mix(in srgb, var(--warning) 16%, transparent);
+    color: rgb(var(--warning));
+  }
+  .care-plan-status.is-done {
+    background: color-mix(in srgb, var(--success) 16%, transparent);
+    color: rgb(var(--success));
+  }
+  .patient-inline-editor {
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--hairline));
+    background: color-mix(in srgb, var(--accent) 3%, rgb(var(--surface)));
+  }
+  .patient-editable {
+    border-radius: 6px;
+    text-decoration: underline dotted transparent;
+    text-underline-offset: 3px;
+    transition: background 160ms ease, text-decoration-color 160ms ease;
+  }
+  .patient-editable:hover,
+  .patient-editable:focus-visible {
+    background: var(--accent-soft);
+    text-decoration-color: var(--accent);
+    outline: none;
+  }
+  .patient-info-row {
+    display: flex;
+    gap: 8px;
+    text-align: left;
+  }
+  .patient-info-row:not(:disabled):hover dd,
+  .patient-info-row:not(:disabled):focus-visible dd {
+    color: var(--accent);
+  }
+  .todo-empty-state {
+    border: 1px dashed var(--hairline);
+    border-radius: 12px;
+    padding: 13px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
   }
 
   /* ====================== 面板 / 抽屉 / 对话框 ====================== */

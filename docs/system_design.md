@@ -1,4 +1,6 @@
-# 换药管理功能升级 v2.17.0 → v2.17.1 — 架构设计与任务分解
+# 换药管理功能升级 v2.17.0 → v2.17.2 — 历史设计与交付记录
+
+> 历史资料：仅用于追溯换药与床型功能的演进。当前系统架构见 `ARCHITECTURE.md`，当前产品行为见 `../PRD.md`。
 
 > 角色：软件架构师（Bob）｜ 输入：已审核通过的实施方案 + 现有代码调研
 > 技术栈：Next.js 15 App Router + TypeScript + Dexie/IndexedDB + Tailwind + Framer Motion（沿用，**无新增依赖**）

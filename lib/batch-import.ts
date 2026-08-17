@@ -115,6 +115,8 @@ export async function applyRoster(
     if (order === undefined) order = s.roundingOrder;
     if (overrides === undefined) overrides = s.virtualOverrides;
   }
+  const settings = await getSettings();
+  const defaultGroup = settings.customGroups?.[0];
 
   await db.transaction("rw", db.patients, db.todos, async () => {
     for (const row of preview.toAdd) {
@@ -123,7 +125,8 @@ export async function applyRoster(
         bedNumber: row.bedNumber,
         name: row.name,
         diagnosis: row.diagnosis,
-        groupColor: DEFAULT_GROUP_COLOR,
+        group: defaultGroup?.name,
+        groupColor: defaultGroup?.color ?? DEFAULT_GROUP_COLOR,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
         bedType: computeBedType(

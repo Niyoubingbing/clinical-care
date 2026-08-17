@@ -95,6 +95,11 @@ export default function BatchImportSheet({
       <p className="text-[12px] text-muted">
         每行一个病人，格式：床号 姓名 诊断（以空格或制表符分隔）。按姓名匹配更新，未匹配则新增。
       </p>
+      {settings?.customGroups?.[0] && (
+        <p className="rounded-lg bg-primary/5 px-3 py-2 text-[12px] text-muted">
+          新增病人默认归入「{settings.customGroups[0].name}」；再次导入已有病人时保留原分组。
+        </p>
+      )}
       <textarea
         className="input min-h-[140px] resize-none font-mono text-[13px]"
         value={text}

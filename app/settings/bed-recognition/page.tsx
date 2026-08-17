@@ -228,9 +228,13 @@ export default function BedRecognitionPage() {
 
       {/* —— 1. 病人床型总览：直接加入 / 移出查房列表 —— */}
       <div>
-        <p className="mb-2 px-1 text-[13px] font-medium text-muted">
-          病人床型（{patients.length} 人 · 虚拟床 {virtualPatients.length} 人）
-        </p>
+        <div className="subpage-section-heading">
+          <div>
+            <h2>病人床型</h2>
+            <p>直接加入或移出查房列表，当前虚拟床 {virtualPatients.length} 人。</p>
+          </div>
+          <span className="subpage-section-count">{patients.length} 人</span>
+        </div>
         {patients.length === 0 && (
           <p className="rounded-xl bg-card/50 px-4 py-8 text-center text-[13px] text-muted">
             暂无病人
@@ -307,9 +311,13 @@ export default function BedRecognitionPage() {
 
       {/* —— 2. 查房块管理：床号增删即真实/虚拟切换 —— */}
       <div>
-        <p className="mb-2 px-1 text-[13px] font-medium text-muted">
-          查房列表（{blocks.length} 块）
-        </p>
+        <div className="subpage-section-heading">
+          <div>
+            <h2>查房列表</h2>
+            <p>列表中的床号默认为真实床，可单独覆盖。</p>
+          </div>
+          <span className="subpage-section-count">{blocks.length} 块</span>
+        </div>
         {blocks.length === 0 ? (
           <p className="rounded-xl bg-card/50 px-4 py-6 text-center text-[13px] text-muted">
             暂无查房块，所有床号都会被判为虚拟床。点下方按钮添加。

@@ -80,6 +80,13 @@ export default function QuickTodosPage() {
       </div>
 
       <div className="space-y-2">
+        <div className="subpage-section-heading">
+          <div>
+            <h2>当前快捷操作</h2>
+            <p>拖动排序，显示在病人详情页的待办区。</p>
+          </div>
+          <span className="subpage-section-count">{list.length} 项</span>
+        </div>
         {list.length === 0 && (
           <p className="rounded-xl bg-card/50 px-4 py-8 text-center text-[13px] text-muted">
             暂无快捷待办

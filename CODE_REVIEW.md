@@ -2,7 +2,8 @@
 
 > 适用仓库：`clinical-care`（Next.js 15 App Router + React 19 + TypeScript + Dexie/IndexedDB + Framer Motion + Tailwind + 静态导出 PWA）
 > 维护者：火眼眼（Code Review Expert）
-> 版本：1.0 ｜ 最后更新：2026-07-08
+> 版本：1.1 ｜ 最后更新：2026-08-17  
+> 项目级流程以 `docs/GOVERNANCE.md` 为准；本文保留详细技术审查清单。
 
 ---
 
@@ -52,7 +53,7 @@
 ```
 作者开发 ──▶ 本地自检(.github 自检清单) ──▶ 开 PR(填模板)
    │                                            │
-   │                                     CI 门禁(lint+tsc) 自动跑
+   │                              CI 门禁(lint+types+test+build+E2E)
    │                                            │
    └──────────── 不达标打回 ◀── 红 ✗ / 🔴 未解决
                                                 │
@@ -72,10 +73,13 @@
 
 ### 3.2 CI 门禁（自动）
 PR 触发 `.github/workflows/ci.yml`，必须全绿才能 review：
-1. `npm run lint`（Next ESLint，含 `eslint-config-next`）
-2. `npx tsc --noEmit`（严格类型检查）
+1. `npm run lint`（ESLint CLI，warning 也阻断）
+2. `npm run typecheck`（严格类型检查）
+3. `npm test`（Vitest 单元/集成测试）
+4. `npm run build`（静态导出 + SW 预缓存注入）
+5. `npm run test:e2e`（流程、冒烟、可访问性、性能基线）
 
-> 完整 `next build`（静态导出 + SW 预缓存注入）由 Vercel 在 push 到 `main` 时负责，不在 PR 门禁里重复跑，避免双倍构建成本。但**任何触碰 `next.config.mjs`、SW、`scripts/` 的 PR，作者需额外在描述里附本地 `npm run build` 结果**。
+> 完整构建与 E2E 已进入 PR 门禁。触碰 `next.config.mjs`、SW、`scripts/` 的 PR 还需在描述附离线、更新和回滚验证结果。
 
 ### 3.3 审查轮次与节奏
 - 常规 PR：**1 个工作日内**给出首轮意见。
@@ -250,13 +254,12 @@ lib/db.ts 中 `todayStr` 与 `formatDate` 逻辑重复，
 PR 到 `main` 自动运行：
 1. `npm ci`
 2. `npm run lint`
-3. `npx tsc --noEmit`
+3. `npm run typecheck`
+4. `npm test`
+5. `npm run build`
+6. 安装 Chromium 后运行 `npm run test:e2e`
 
-（后续接入 `npm test` 后，第 4 步加入单测。）Vercel 负责完整构建与部署。
-
-> **当前基线说明（已知债务）**：建立本门禁时为让基线可绿，已补 `.eslintrc.json`（`next/core-web-vitals` + `next/typescript`），并修掉 `lib/time-parser.ts` 的一处 `prefer-const` 错误。当前 `next lint` 仅**报错（Error）才会让 CI 失败**，warning 不阻断。
-> 现存 warning 主要为未使用变量（`@typescript-eslint/no-unused-vars`）与 `react-hooks/exhaustive-deps` 依赖提示 —— 属可维护性问题，建议在迭代中逐步清理，**不强制**在单个 PR 清零，但新增代码应避免引入新的未使用变量。
-> ⚠️ `next lint` 已在 Next.js 15 标记 deprecated，Next 16 将移除；届时需迁移到 ESLint CLI（`npx @next/codemod@canary next-lint-to-eslint-cli .`）并相应更新本 workflow。
+Vercel 负责 Preview 与合并后的 Production 部署；GitHub 门禁独立验证同一静态构建，避免“平台能部署但应用行为未验证”。
 
 ---
 
