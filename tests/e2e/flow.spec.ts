@@ -22,7 +22,8 @@ test('核心流程1: 添加病人 → 列表出现卡片 → 进入详情', asyn
 
   await card.click();
   await expect(page.getByRole('heading', { name: '测试病人甲' })).toBeVisible();
-  await expect(page.getByText('309W23 · 急性阑尾炎')).toBeVisible();
+  await expect(page.getByRole('button', { name: '309W23' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '急性阑尾炎' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('flow-detail.png'), fullPage: true });
 });
 
