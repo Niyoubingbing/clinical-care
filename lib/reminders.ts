@@ -1,35 +1,33 @@
-import { Patient, Todo } from "@/types";
+import { Patient, Todo, DressingSchedule } from "@/types";
 import { dueLabel } from "./time-parser";
+import { dressingInfo } from "./dressing";
 
 const WEEK_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-function parseDate(s?: string): Date | null {
-  if (!s) return null;
-  const d = new Date(s + "T00:00:00");
-  return isNaN(d.getTime()) ? null : d;
+export function weekdayCn(d: Date = new Date()): string {
+  return WEEK_NAMES[d.getDay()];
 }
 
-function addDaysStr(s: string, n: number): string {
-  const d = parseDate(s);
-  if (!d) return s;
-  d.setDate(d.getDate() + n);
+function todayStr(): string {
+  const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-export function weekdayCn(d: Date = new Date()): string {
-  return WEEK_NAMES[d.getDay()];
-}
-
+/**
+ * 是否需要在今日提醒换药：基于「手术日计划」——今天是换药日且今日尚未完成换药。
+ * 不依赖 auto-create 是否已运行（未完成待办即视为需换药）。
+ */
 export function needsDressing(
   p: Patient,
+  schedule: DressingSchedule,
+  todos: Todo[],
   today: string = todayStr()
 ): boolean {
-  if (!p.dressingFrequency || !p.lastDressingChange) return false;
-  const next = addDaysStr(p.lastDressingChange, p.dressingFrequency);
-  return next <= today;
+  const info = dressingInfo(p, schedule, todos, today);
+  return info.isDressingDay && !info.doneToday;
 }
 
 export function needsBlood(
@@ -40,14 +38,6 @@ export function needsBlood(
   const todayName = weekdayCn(new Date(today + "T00:00:00"));
   const days = p.bloodTestDay.split(/[\s、，,]+/).filter(Boolean);
   return days.includes(todayName);
-}
-
-function todayStr(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 export interface ReminderSummary {
@@ -62,7 +52,8 @@ export interface ReminderSummary {
 export function computeReminders(
   patients: Patient[],
   todos: Todo[],
-  today: string = todayStr()
+  today: string = todayStr(),
+  schedule?: DressingSchedule
 ): ReminderSummary {
   let overdueTodos = 0;
   let todayTodos = 0;
@@ -77,7 +68,7 @@ export function computeReminders(
   }
 
   for (const p of patients) {
-    if (needsDressing(p, today)) needDressing++;
+    if (schedule && needsDressing(p, schedule, todos, today)) needDressing++;
     if (needsBlood(p, today)) needBlood++;
   }
 
@@ -109,12 +100,16 @@ export interface PatientStatus {
   needBlood: boolean;
   todayDue: boolean;
   overdue: boolean;
+  postOpDay: number | null;
+  dressingToday: boolean;
+  nextDressingInDays: number | null;
 }
 
 export function patientStatus(
   p: Patient,
   todos: Todo[],
-  today: string = todayStr()
+  today: string = todayStr(),
+  schedule?: DressingSchedule
 ): PatientStatus {
   const pt = todos.filter((t) => t.patientId === p.id);
   let todayDue = false;
@@ -125,11 +120,23 @@ export function patientStatus(
     if (info.level === "overdue") overdue = true;
     else if (info.level === "today") todayDue = true;
   }
+  const info = schedule
+    ? dressingInfo(p, schedule, todos, today)
+    : {
+        hasSchedule: false,
+        postOpDay: null,
+        isDressingDay: false,
+        doneToday: false,
+        nextInDays: null,
+      };
   return {
-    needDressing: needsDressing(p, today),
+    needDressing: schedule ? info.isDressingDay && !info.doneToday : false,
     needBlood: needsBlood(p, today),
     todayDue,
     overdue,
+    postOpDay: info.postOpDay,
+    dressingToday: info.isDressingDay,
+    nextDressingInDays: info.nextInDays,
   };
 }
 

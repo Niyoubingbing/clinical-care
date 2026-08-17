@@ -20,8 +20,8 @@ export default function AddPatientSheet({
         <button
           className={`flex-1 rounded-xl py-2.5 text-[14px] font-medium transition ${
             tab === "manual"
-              ? "bg-primary text-white"
-              : "bg-surface-alt text-muted"
+              ? "liquid-pill-active text-white"
+              : "liquid-pill text-muted"
           }`}
           onClick={() => setTab("manual")}
         >
@@ -30,8 +30,8 @@ export default function AddPatientSheet({
         <button
           className={`flex-1 rounded-xl py-2.5 text-[14px] font-medium transition ${
             tab === "import"
-              ? "bg-primary text-white"
-              : "bg-surface-alt text-muted"
+              ? "liquid-pill-active text-white"
+              : "liquid-pill text-muted"
           }`}
           onClick={() => setTab("import")}
         >

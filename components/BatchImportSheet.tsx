@@ -10,6 +10,9 @@ import {
   applyRoster,
   RosterPreview,
 } from "@/lib/batch-import";
+import type { Todo } from "@/types";
+
+const EMPTY_TODOS: Todo[] = [];
 
 export default function BatchImportSheet({
   onClose,
@@ -19,16 +22,25 @@ export default function BatchImportSheet({
   const { toast } = useApp();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<RosterPreview | null>(null);
-  const [removeAbsent, setRemoveAbsent] = useState(false);
+  const [removeAbsent, setRemoveAbsent] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
 
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
-  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? [];
+  const todos = useLiveQuery(() => db.todos.toArray(), []) ?? EMPTY_TODOS;
   const settings = useLiveQuery(() => getSettings(), []);
 
+  const pendingTodoCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const todo of todos) {
+      if (todo.patientId && todo.status === "pending") {
+        counts.set(todo.patientId, (counts.get(todo.patientId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [todos]);
   const pendingCountOf = (patientId: string) =>
-    todos.filter((t) => t.patientId === patientId && t.status === "pending")
-      .length;
+    pendingTodoCounts.get(patientId) ?? 0;
 
   const runPreview = () => {
     if (!text.trim()) {
@@ -41,23 +53,33 @@ export default function BatchImportSheet({
   const removeHasPending = useMemo(
     () =>
       preview
-        ? preview.toRemove.some((p) => pendingCountOf(p.id) > 0)
+        ? preview.toRemove.some((p) => (pendingTodoCounts.get(p.id) ?? 0) > 0)
         : false,
-    [preview, todos]
+    [preview, pendingTodoCounts]
   );
 
   const doApply = async () => {
-    if (!preview || !settings) return;
-    const res = await applyRoster(
-      preview,
-      settings.bedTemplate,
-      settings.specialMarks
-    );
-    toast({
-      message: `新增 ${res.added} 人、更新 ${res.updated} 人、删除 ${res.removed} 人`,
-    });
-    setPreview(null);
-    onClose();
+    if (!preview || !settings || applying) return;
+    setApplying(true);
+    try {
+      const res = await applyRoster(
+        preview,
+        settings.bedTemplate,
+        settings.specialMarks,
+        // bedType 由查房顺序判定（lib/bed-type），与首页筛选口径保持一致。
+        settings.roundingOrder,
+        settings.virtualOverrides
+      );
+      toast({
+        message: `新增 ${res.added} 人、更新 ${res.updated} 人、删除 ${res.removed} 人`,
+      });
+      setPreview(null);
+      onClose();
+    } catch {
+      toast({ message: "批量导入失败，请检查内容后重试" });
+    } finally {
+      setApplying(false);
+    }
   };
 
   const onConfirmClick = () => {
@@ -73,6 +95,11 @@ export default function BatchImportSheet({
       <p className="text-[12px] text-muted">
         每行一个病人，格式：床号 姓名 诊断（以空格或制表符分隔）。按姓名匹配更新，未匹配则新增。
       </p>
+      {settings?.customGroups?.[0] && (
+        <p className="rounded-lg bg-primary/5 px-3 py-2 text-[12px] text-muted">
+          新增病人默认归入「{settings.customGroups[0].name}」；再次导入已有病人时保留原分组。
+        </p>
+      )}
       <textarea
         className="input min-h-[140px] resize-none font-mono text-[13px]"
         value={text}
@@ -102,10 +129,10 @@ export default function BatchImportSheet({
         </button>
         <button
           className="btn-primary h-11 flex-1"
-          disabled={!preview}
+          disabled={!preview || applying}
           onClick={onConfirmClick}
         >
-          确认导入
+          {applying ? "导入中…" : "确认导入"}
         </button>
       </div>
 
@@ -134,8 +161,8 @@ export default function BatchImportSheet({
             <div className="text-warning">
               <p>跳过 {preview.skipped.length} 行：</p>
               <ul className="ml-4 list-disc">
-                {preview.skipped.slice(0, 5).map((s, i) => (
-                  <li key={i}>
+                {preview.skipped.slice(0, 5).map((s) => (
+                  <li key={s.line}>
                     第 {s.line} 行：{s.reason}
                   </li>
                 ))}

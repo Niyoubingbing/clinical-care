@@ -59,6 +59,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          '"Noto Sans SC Variable"',
           "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",

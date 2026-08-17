@@ -1,0 +1,73 @@
+classDiagram
+  class DressingSchedule {
+    +number earlyInterval
+    +number laterInterval
+    +number maxDay
+  }
+  class Settings {
+    +number id
+    +RoundingConfig roundingOrder
+    +listDirection
+    +QuickTodo[] quickTodos
+    +Theme theme
+    +string bedTemplate
+    +string[] specialMarks
+    +DressingSchedule dressingSchedule
+    +boolean showVirtualBeds
+  }
+  class Patient {
+    +string id
+    +string bedNumber
+    +string name
+    +string surgeryDate
+    +number dressingFrequency
+    +string lastDressingChange
+    +DressingSchedule dressingSchedule
+  }
+  class Todo {
+    +string id
+    +string patientId
+    +string content
+    +string type
+    +string dueDate
+    +status
+    +number completedAt
+  }
+  class PatientStatus {
+    +boolean needDressing
+    +boolean needBlood
+    +boolean todayDue
+    +boolean overdue
+    +number postOpDay
+    +boolean dressingToday
+    +number nextDressingInDays
+  }
+  class DressingLib {
+    +resolveSchedule(p, settings) DressingSchedule
+    +dressingDays(s) number[]
+    +postOpDay(surgeryDate, today) number
+    +nextDressingDate(p, s, today) string
+    +dressingInfo(p, s, todos, today) DressingInfo
+    +ensureTodaysDressingTodos(patients, s, todos, today) void
+    +dressingTodoKey(pid, due) string
+  }
+  class Reminders {
+    +needsDressing(p, todos, today) boolean
+    +patientStatus(p, todos, today, schedule) PatientStatus
+    +computeReminders(patients, todos, today, schedule) ReminderSummary
+  }
+  class DB {
+    +defaultSettings() Settings
+    +ensureSettingsMigrated() void
+    +addTodo(data) string
+    +toggleTodo(id, completed) void
+    +updatePatient(id, patch) void
+  }
+  Settings "1" *-- "1" DressingSchedule : dressingSchedule
+  Patient "0..1" *-- "0..1" DressingSchedule : dressingSchedule?
+  DressingLib ..> DressingSchedule : uses
+  DressingLib ..> Patient : reads
+  DressingLib ..> Todo : reads/writes
+  Reminders ..> PatientStatus : builds
+  Reminders ..> DressingLib : delegates
+  DB ..> Settings : seeds

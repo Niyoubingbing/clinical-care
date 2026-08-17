@@ -4,31 +4,67 @@
 
 @layer base {
   :root {
-    --surface: 250 247 242;
+    /* ===================================================================
+       Claude (Anthropic) 真实调色板 —— 暖奶油底 + 陶土橙强调（暖中性）。
+       通道写法 "R G B" 供 Tailwind rgb(var(--x)/<alpha-value>) 使用。
+       品牌原色 #d97757 配白字仅 3.1:1（不达标 WCAG AA），故强调色加深到
+       #a94929（白字 5.7:1，AA），保留橙家族。语义色同步按暖系做 AA 可达加深。
+       =================================================================== */
+    --surface: 255 255 255;            /* 纯白表面 */
     --card: 255 255 255;
-    --main: 35 32 28;
-    --muted: 115 110 105;
-    --border: 230 225 218;
-    --primary: 218 119 86;
-    --primary-hover: 194 100 63;
-    --success: 75 140 90;
-    --warning: 195 135 45;
-    --danger: 185 65 65;
-    --surface-alt: 245 242 238;
+    --main: 20 20 19;                  /* #141413 主文字（暖近黑） */
+    --muted: 94 93 89;                 /* #5e5d59 次级文字（暖灰，白底 6.5:1，AA） */
+    --border: 20 20 19;                /* 1px 边框通道 */
+    --primary: 169 73 41;              /* #a94929 深陶土橙（白字 5.7:1，AA） */
+    --primary-hover: 148 62 34;        /* #943e22 */
+    --success: 95 122 69;              /* #5f7a45 加深橄榄绿（白字 4.8:1） */
+    --warning: 156 95 23;              /* #9c5f17 加深琥珀（白字 5.2:1） */
+    --danger: 178 59 50;               /* #b23b32 加深红（白字 5.9:1） */
+    --special: 156 74 38;             /* #9c4a26 深赭（特殊） */
+    --info: 63 111 156;                /* #3f6f9c 加深雾蓝（白字 5.3:1） */
+    --surface-alt: 240 238 230;        /* #f0eee6 奶油次级底 */
+
+    /* 显式 Token（Claude 暖中性） */
+    --bg: #faf9f5;                     /* 暖奶油主背景（Claude 标识） */
+    --surface-2: #f0eee6;              /* 奶油次级表面 */
+    --hairline: #e8e6dc;               /* 暖奶油发丝线边框 */
+    --border-strong: #d8d4c6;          /* 更明显的暖边框 */
+    --text: #141413;
+    --text-muted: #5e5d59;
+    --accent: #a94929;                 /* Claude 深陶土橙（小字号亦达 AA） */
+    --accent-soft: rgba(169, 73, 41, 0.12);
+    --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.06);
+    --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.08);
+    --radius: 14px;
   }
 
   .dark {
-    --surface: 32 30 28;
-    --card: 42 40 37;
-    --main: 245 242 238;
-    --muted: 145 140 132;
-    --border: 62 58 54;
-    --primary: 230 165 125;
-    --primary-hover: 240 180 143;
-    --success: 105 165 115;
-    --warning: 210 160 80;
-    --danger: 200 95 95;
-    --surface-alt: 38 36 33;
+    /* 暗色：暖炭灰，仅翻转明度；语义色使用与浅色同族但可达 WCAG AA 的深色，
+       配合白字（4.5:1+），消除「浅底+白字」对比度崩坏。暖橙家族保留。 */
+    --surface: 48 48 46;               /* #30302e 暖炭灰表面 */
+    --card: 40 40 38;                  /* #282826 */
+    --main: 250 249 245;               /* #faf9f5 暖白文字 */
+    --muted: 176 174 165;             /* #b0aea5 */
+    --border: 255 255 255;
+    --primary: 169 73 41;              /* #a94929 同浅色深陶土橙 */
+    --primary-hover: 148 62 34;        /* #943e22 */
+    --success: 95 122 69;              /* #5f7a45 加深橄榄绿（白字 4.8:1） */
+    --warning: 156 95 23;              /* #9c5f17 加深琥珀（白字 5.2:1） */
+    --danger: 178 59 50;               /* #b23b32 加深红（白字 5.9:1） */
+    --special: 156 74 38;             /* #9c4a26 深赭（特殊） */
+    --info: 63 111 156;                /* #3f6f9c 加深雾蓝（白字 5.3:1） */
+    --surface-alt: 40 40 38;
+
+    --bg: #141413;                     /* 深炭黑 */
+    --surface-2: #30302e;
+    --hairline: #3d3d3a;
+    --border-strong: #4d4c48;
+    --text: #faf9f5;
+    --text-muted: #b0aea5;
+    --accent: #a94929;
+    --accent-soft: rgba(169, 73, 41, 0.16);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
 
   html {
@@ -36,7 +72,9 @@
   }
 
   body {
-    @apply bg-surface text-main antialiased;
+    @apply font-sans text-main antialiased;
+    min-height: 100dvh;
+    background: var(--bg);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -54,37 +92,90 @@
 }
 
 @layer components {
+  /* ============================ 表单输入 ============================ */
   .input {
-    @apply w-full rounded-xl bg-card border border-border px-4 py-3 text-main outline-none transition;
+    @apply w-full rounded-xl border px-4 py-3 text-main outline-none transition;
+    background: rgb(var(--surface));
+    border-color: var(--hairline);
+    box-shadow: var(--shadow-sm);
   }
   .input:focus {
-    @apply border-primary;
-    box-shadow: 0 0 0 2px rgb(var(--primary) / 0.25);
+    border-color: var(--accent);
+    /* 克制的辉光（非玻璃光晕） */
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .input::placeholder {
+    color: var(--text-muted);
   }
 
+  /* ============================== 按钮 ============================== */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 text-white font-medium transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
-    box-shadow: 0 1px 3px rgba(35, 32, 28, 0.06);
+    box-shadow: var(--shadow-sm);
   }
   .btn-primary:hover {
     @apply bg-primary-hover;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-4 font-medium text-primary transition active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 font-medium transition active:scale-[0.97];
+    background: var(--surface-2);
+    border-color: var(--hairline);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
   }
   .btn-secondary:hover {
-    @apply border-primary;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-secondary:active {
+    transform: translateY(0) scale(0.97);
   }
 
+  /* ============================== 卡片 ============================== */
+  /* 实白、不透明、1px 发丝线、单层克制阴影。彻底去掉毛玻璃/镜面高光。 */
   .card {
-    @apply bg-card rounded-xl border border-border/60 shadow-xs;
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
   }
-
   .card-interactive {
-    @apply card transition hover:shadow-sm hover:border-border;
+    transition:
+      box-shadow 150ms ease,
+      transform 150ms ease,
+      border-color 150ms ease;
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
+  .patient-card {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .patient-card-embedded {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+  .patient-card-alert {
+    box-shadow: inset 3px 0 0 rgb(var(--danger) / 0.72);
+  }
+  .patient-cluster {
+    overflow: hidden;
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ============================== 徽章 ============================== */
+  /* 保留语义色，仅清理透明度写法（无玻璃/阴影）。色值已加深以保 WCAG AA 对比。 */
   .badge {
     @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-tight;
   }
@@ -103,33 +194,274 @@
   .badge-muted {
     @apply badge text-muted bg-muted/10;
   }
+  .badge-virtual {
+    @apply badge;
+    color: rgb(var(--info));
+    background-color: rgb(var(--info) / 0.12);
+  }
+  .badge-special {
+    @apply badge;
+    color: rgb(var(--special));
+    background-color: rgb(var(--special) / 0.12);
+  }
+  .badge-info {
+    @apply badge;
+    color: rgb(var(--info));
+    background-color: rgb(var(--info) / 0.12);
+  }
+
+  /* ============================ 导航栏 ============================== */
+  /* 紧凑实体导航：只保留暖白表面与克制阴影，不再占据整条屏幕宽度。 */
+  .liquid-nav {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    box-shadow: var(--shadow-md);
+  }
+  .dark .liquid-nav {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+  }
+  .liquid-nav-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* =========================== 药丸切换 ============================= */
+  .liquid-pill {
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+  }
+  .liquid-pill-active {
+    /* Keep a solid, sufficiently dark fill: this control uses 12px white text. */
+    background: #7a301b;
+    border: 1px solid transparent;
+    color: #ffffff;
+  }
+
+  .filter-chip,
+  .sort-button {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    box-shadow: 0 1px 1px rgba(20, 20, 19, 0.03);
+  }
+  .filter-chip-active,
+  .sort-button-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .subpage-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .subpage-back {
+    display: inline-flex;
+    height: 40px;
+    width: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hairline);
+    border-radius: 11px;
+    background: rgb(var(--surface));
+    color: rgb(var(--muted));
+    box-shadow: var(--shadow-sm);
+  }
+  .settings-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 11px 13px;
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    background: rgb(var(--surface));
+    box-shadow: var(--shadow-sm);
+  }
+  .settings-list {
+    overflow: hidden;
+  }
+  .settings-row-grouped {
+    border-color: transparent;
+    border-radius: 10px;
+    box-shadow: none;
+  }
+  .settings-row-grouped + .settings-row-grouped {
+    border-top-color: var(--hairline);
+    border-top-width: 1px;
+    border-top-style: solid;
+  }
+  .settings-row-grouped:hover {
+    background: var(--surface-2);
+  }
+  .settings-section-heading {
+    padding: 0 2px;
+  }
+  .page-intro {
+    padding: 2px 2px 0;
+  }
+  .page-kicker {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .subpage-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+  }
+  .subpage-section-heading h2 {
+    color: rgb(var(--text));
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .subpage-section-heading p {
+    margin-top: 2px;
+    color: rgb(var(--muted));
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .subpage-section-count {
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .todo-action-panel {
+    border-color: color-mix(in srgb, var(--accent) 18%, var(--hairline));
+  }
+  .todo-quick-chip {
+    min-height: 32px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: rgb(var(--surface));
+    padding: 5px 10px;
+    color: rgb(var(--text));
+    font-size: 12px;
+    font-weight: 500;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+  .todo-quick-chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .care-plan-card {
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: rgb(var(--surface));
+    padding: 12px;
+  }
+  .care-plan-card-today {
+    border-color: color-mix(in srgb, var(--warning) 42%, var(--hairline));
+    background: color-mix(in srgb, var(--warning) 7%, rgb(var(--surface)));
+  }
+  .care-plan-icon {
+    display: flex;
+    height: 34px;
+    width: 34px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .care-plan-status {
+    border-radius: 999px;
+    background: var(--surface-2);
+    padding: 3px 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .care-plan-status.is-today {
+    background: color-mix(in srgb, var(--warning) 16%, transparent);
+    color: rgb(var(--warning));
+  }
+  .care-plan-status.is-done {
+    background: color-mix(in srgb, var(--success) 16%, transparent);
+    color: rgb(var(--success));
+  }
+  .patient-inline-editor {
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--hairline));
+    background: color-mix(in srgb, var(--accent) 3%, rgb(var(--surface)));
+  }
+  .patient-editable {
+    border-radius: 6px;
+    text-decoration: underline dotted transparent;
+    text-underline-offset: 3px;
+    transition: background 160ms ease, text-decoration-color 160ms ease;
+  }
+  .patient-editable:hover,
+  .patient-editable:focus-visible {
+    background: var(--accent-soft);
+    text-decoration-color: var(--accent);
+    outline: none;
+  }
+  .patient-info-row {
+    display: flex;
+    gap: 8px;
+    text-align: left;
+  }
+  .patient-info-row:not(:disabled):hover dd,
+  .patient-info-row:not(:disabled):focus-visible dd {
+    color: var(--accent);
+  }
+  .todo-empty-state {
+    border: 1px dashed var(--hairline);
+    border-radius: 12px;
+    padding: 13px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  /* ====================== 面板 / 抽屉 / 对话框 ====================== */
+  .liquid-panel {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .liquid-sheet {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 6px);
+  }
+  .liquid-dialog {
+    background: rgb(var(--surface));
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 @layer utilities {
-  .bg-surface {
-    background-color: rgb(var(--surface));
-  }
-  .text-main {
-    color: rgb(var(--main));
-  }
-  .bg-card {
-    background-color: rgb(var(--card));
-  }
-  .text-muted {
-    color: rgb(var(--muted));
-  }
-  .border-custom {
-    border-color: rgb(var(--border));
-  }
-  .text-primary {
-    color: rgb(var(--primary));
-  }
-  .bg-primary {
-    background-color: rgb(var(--primary));
-  }
-  .bg-primary-hover {
-    background-color: rgb(var(--primary-hover));
-  }
+  /* 注意：bg-surface / text-main / text-muted / text-primary / bg-primary /
+     bg-primary-hover / bg-card / bg-surface-alt 等颜色工具类已由 Tailwind 依据
+     theme.extend.colors 自动生成（并正确支持 <alpha-value>）。此处**不再手写**，
+     因为手写规则中的 <alpha-value> 占位符不会被 Tailwind 替换，会生成无效 CSS
+     —— 这正是首轮 .bg-primary 背景透明、首页「列表顺序」激活药丸对比度不达标
+     （1.11:1）的根因。交由 Tailwind 生成即可获得正确且支持透明度的版本。 */
+
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -142,11 +474,28 @@
   }
 }
 
+/* ====================== 全局静态背景（替代 WebGL） ======================
+   固定定位、置于内容之下（z-index:-1）、无 canvas / 无 shader / 无动画。
+   从根上保证非定位文字（如首页「列表顺序」）在任意部署下都可见。 */
+.liquid-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, #faf9f5 0%, #f0eee6 100%);
+}
+.dark .liquid-scene {
+  background: linear-gradient(180deg, #141413 0%, #201e1c 100%);
+}
+
+/* ====================== 无障碍：减少动态 ======================
+   Claude 风格本身几乎无动画，reduced-motion 下进一步确保无闪烁/位移。 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }

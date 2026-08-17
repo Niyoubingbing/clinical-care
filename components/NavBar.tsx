@@ -24,8 +24,8 @@ export default function NavBar() {
   }).length;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-card/95 backdrop-blur-xl shadow-lg safe-area-pb">
-      <div className="mx-auto flex max-w-2xl grid-cols-3">
+    <nav className="liquid-nav fixed inset-x-4 bottom-2 z-20 mx-auto max-w-[380px] safe-area-pb transform-gpu">
+      <div className="relative z-10 mx-auto flex gap-1 p-1.5">
         {TABS.map((tab) => {
           const active =
             tab.href === "/"
@@ -37,26 +37,29 @@ export default function NavBar() {
               key={tab.href}
               href={tab.href}
               aria-label={tab.label}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] transition"
+              className={`group flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-2 text-[12px] transition active:scale-[0.97] ${
+                active ? "liquid-nav-active" : "text-muted"
+              }`}
             >
-              <span
-                className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                  active ? "bg-primary/15 text-primary" : "text-muted"
-                }`}
-                style={
-                  active
-                    ? { transform: "scale(1.1)" }
-                    : undefined
-                }
-              >
-                <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+              <span className="relative flex items-center justify-center">
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.4 : 2}
+                  className={`transition-colors duration-200 ${
+                    active ? "text-primary" : "text-muted"
+                  }`}
+                />
                 {tab.label === "待办" && badge > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
               </span>
-              <span className={active ? "text-primary font-medium" : "text-muted"}>
+              <span
+                className={`transition-colors duration-200 ${
+                  active ? "font-medium text-primary" : "text-muted"
+                }`}
+              >
                 {tab.label}
               </span>
             </Link>

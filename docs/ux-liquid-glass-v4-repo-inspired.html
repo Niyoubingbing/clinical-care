@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Liquid Glass V4 Repo Inspired</title>
+    <style>
+      :root {
+        --ink: #15191f;
+        --muted: rgba(21, 25, 31, 0.58);
+        --danger: #d93455;
+        --amber: #bd7a19;
+        --accent: #c86652;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+          "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(ellipse at 15% 22%, rgba(255, 150, 113, 0.82), transparent 24%),
+          radial-gradient(ellipse at 35% 15%, rgba(98, 205, 255, 0.86), transparent 28%),
+          radial-gradient(ellipse at 82% 20%, rgba(126, 109, 255, 0.70), transparent 26%),
+          radial-gradient(ellipse at 72% 88%, rgba(255, 199, 86, 0.78), transparent 28%),
+          linear-gradient(145deg, #f7fbff, #e8f4ff 40%, #fff4e9);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: -80px;
+        background:
+          linear-gradient(115deg, transparent 0 22%, rgba(255,255,255,.75) 32%, transparent 43% 100%),
+          linear-gradient(20deg, rgba(255, 110, 130, .40), transparent 32%),
+          conic-gradient(from 220deg at 52% 52%, #ffffff, #8adfff, #ffa88d, #b8a5ff, #fff4c7, #ffffff);
+        opacity: 0.52;
+        filter: blur(38px) saturate(1.3);
+        mix-blend-mode: soft-light;
+      }
+
+      .board {
+        position: relative;
+        z-index: 1;
+        width: 2400px;
+        height: 1080px;
+        padding: 58px 66px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 42px;
+        letter-spacing: -0.03em;
+      }
+
+      .subtitle {
+        margin: 8px 0 34px;
+        color: var(--muted);
+        font-size: 23px;
+        font-weight: 560;
+      }
+
+      .screens {
+        display: flex;
+        gap: 42px;
+      }
+
+      .phone {
+        position: relative;
+        width: 414px;
+        height: 852px;
+        overflow: hidden;
+        border-radius: 48px;
+        background: rgba(255, 255, 255, 0.23);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow:
+          0 42px 76px rgba(26, 42, 61, 0.24),
+          inset 0 1px rgba(255, 255, 255, 0.9),
+          inset 0 -24px 44px rgba(16, 36, 55, 0.08);
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.68;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255,255,255,.68), transparent 20%),
+          radial-gradient(circle at 88% 16%, rgba(102,212,255,.28), transparent 25%),
+          radial-gradient(circle at 12% 88%, rgba(255,128,105,.25), transparent 32%),
+          linear-gradient(150deg, rgba(255,255,255,.25), transparent 48%);
+      }
+
+      .screen {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 30px 26px;
+      }
+
+      h2 {
+        margin: 0;
+        flex: 1;
+        font-size: 34px;
+        letter-spacing: -0.03em;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      .glass {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        background:
+          linear-gradient(140deg, rgba(255,255,255,.34), rgba(255,255,255,.08) 46%, rgba(30,50,70,.06));
+        border: 0.5px solid rgba(255,255,255,.78);
+        -webkit-backdrop-filter: blur(4px) saturate(1.32) contrast(1.04);
+        backdrop-filter: blur(4px) saturate(1.32) contrast(1.04);
+        box-shadow:
+          0 14px 28px rgba(18, 34, 54, 0.12),
+          inset 0 0.5px rgba(255,255,255,.95),
+          inset 0 -1px rgba(10,28,45,.16);
+      }
+
+      .glass::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background:
+          radial-gradient(120px 46px at 20% 0%, rgba(255,255,255,.95), transparent 55%),
+          radial-gradient(76px 58px at 100% 100%, rgba(75,165,255,.22), transparent 62%);
+        mix-blend-mode: screen;
+      }
+
+      .glass::after {
+        content: "";
+        position: absolute;
+        inset: 0.5px;
+        pointer-events: none;
+        border-radius: inherit;
+        box-shadow:
+          inset 0 0 0 0.5px rgba(255,255,255,.42),
+          inset 1px 1px 0 rgba(255,255,255,.58),
+          inset -1px -1px 0 rgba(20,38,58,.12);
+      }
+
+      .pill {
+        min-width: 68px;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 720;
+        color: rgba(20, 25, 31, 0.82);
+      }
+
+      .active {
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 0, rgba(255,255,255,.72), transparent 35%),
+          linear-gradient(140deg, #ffab8f, #df6d5c 52%, #aa3e58);
+        border: 0.5px solid rgba(255,255,255,.72);
+        box-shadow:
+          0 14px 26px rgba(159, 56, 83, 0.20),
+          inset 0 .5px rgba(255,255,255,.9),
+          inset 0 -2px rgba(80,15,40,.22);
+      }
+
+      .card {
+        border-radius: 18px;
+        padding: 16px 18px;
+        background: rgba(255,255,255,.42);
+        border: 0.5px solid rgba(255,255,255,.58);
+        box-shadow: 0 10px 22px rgba(26, 42, 61, 0.08);
+      }
+
+      .glass-card {
+        border-radius: 20px;
+        padding: 16px 18px;
+      }
+
+      .main {
+        font-size: 22px;
+        font-weight: 760;
+        letter-spacing: -0.01em;
+      }
+
+      .sub {
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 560;
+        margin-top: 4px;
+      }
+
+      .tiny {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .bed {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 21px;
+        font-weight: 820;
+        background: linear-gradient(145deg, #ffaf8e, #c85f51);
+        box-shadow: inset 0 .5px rgba(255,255,255,.76), inset 0 -1px rgba(70,15,20,.22);
+      }
+
+      .blue {
+        background: linear-gradient(145deg, #8de8ff, #4e95e4 55%, #315fac);
+      }
+
+      .badge {
+        height: 26px;
+        padding: 0 11px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 780;
+      }
+
+      .danger {
+        color: #fff;
+        background: linear-gradient(145deg, #ff8495, #d93455);
+      }
+
+      .amber {
+        color: #fff;
+        background: linear-gradient(145deg, #ffd886, #cf8422);
+      }
+
+      .chips {
+        display: flex;
+        gap: 10px;
+        margin: 16px 0;
+      }
+
+      .nav {
+        position: absolute;
+        left: 26px;
+        right: 26px;
+        bottom: 24px;
+        height: 62px;
+        border-radius: 999px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+      }
+
+      .nav span {
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 720;
+      }
+
+      .nav .on {
+        color: var(--ink);
+      }
+
+      .section {
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 760;
+        margin: 18px 4px 10px;
+      }
+
+      .setting {
+        height: 54px;
+        border-radius: 18px;
+        padding: 0 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .input {
+        height: 132px;
+        border-radius: 20px;
+        padding-top: 20px;
+      }
+
+      .line {
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.85;
+        font-weight: 560;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <h1>Liquid Glass V4：按 liquid_glass_widgets 校正</h1>
+      <p class="subtitle">
+        少用大毛玻璃，多用薄边缘、低 blur、强 rim light、superellipse 形状和会“滑动”的玻璃指示器。
+      </p>
+
+      <section class="screens">
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar">
+              <h2>查房</h2>
+              <span class="pill glass">+ 病人</span>
+              <span class="pill glass">待办</span>
+            </div>
+            <div class="glass glass-card">
+              <div class="main">今日提醒 <span style="color:var(--danger)">逾期 2</span> · 今日 5</div>
+              <div class="sub">点击进入待办清单</div>
+            </div>
+            <div class="card" style="margin-top:12px; display:flex; justify-content:space-between;">
+              <span class="main" style="font-size:20px;">每日小结</span>
+              <span class="sub" style="margin:0;">今日暂无完成项 ⌄</span>
+            </div>
+            <div class="chips">
+              <span class="pill active">全部</span>
+              <span class="pill glass">轻组</span>
+              <span class="pill glass">勇组</span>
+              <span class="pill glass">李组</span>
+            </div>
+            <div class="tiny" style="margin:2px 4px 10px;">顺序：正向</div>
+            <div class="stack">
+              <div class="card row">
+                <div class="bed">23</div>
+                <div style="flex:1">
+                  <div class="main">张三 <span class="badge danger" style="float:right;">逾期</span></div>
+                  <div class="sub">胫骨骨折</div>
+                  <span class="badge glass" style="margin-top:8px;">待办 2</span>
+                </div>
+              </div>
+              <div class="card row">
+                <div class="bed blue">24</div>
+                <div style="flex:1">
+                  <div class="main">李四 <span class="badge amber" style="float:right;">今日</span></div>
+                  <div class="sub">取除内固定术后</div>
+                  <span class="badge glass" style="margin-top:8px;">需换药</span>
+                </div>
+              </div>
+            </div>
+            <div class="nav glass"><span class="on">查房</span><span>待办</span><span>设置</span></div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>批量导入</h2></div>
+            <div class="glass" style="height:44px;border-radius:999px;padding:4px;display:flex;">
+              <span class="pill" style="flex:1;">手动添加</span>
+              <span class="pill active" style="flex:1;">批量导入</span>
+            </div>
+            <div class="section">粘贴名单</div>
+            <div class="card input">
+              <div class="line">309W23 张三 胫骨骨折</div>
+              <div class="line">309W24 李四 术后换药</div>
+              <div class="line">309W25 王五 复查片</div>
+            </div>
+            <div class="row" style="margin:20px 4px;">
+              <span class="glass" style="width:24px;height:24px;border-radius:8px;"></span>
+              <div>
+                <div class="main" style="font-size:19px;">同步移除未出现病人</div>
+                <div class="sub">默认关闭，避免误删现有病人</div>
+              </div>
+            </div>
+            <div class="pill active" style="width:100%;height:50px;font-size:20px;">预览导入</div>
+            <div class="glass glass-card" style="height:178px;margin-top:26px;">
+              <div class="main">预览 <span class="sub">新增 3 · 更新 18 · 移除 2</span></div>
+              <div class="line" style="margin-top:10px;">新增　309W25 王五</div>
+              <div class="line">更新　309W23 张三</div>
+              <div class="glass" style="height:34px;border-radius:17px;padding:7px 12px;margin-top:6px;">
+                <span class="line" style="line-height:1;">移除　309W01 赵六</span>
+                <span style="float:right;color:var(--danger);font-size:15px;font-weight:800;">待办 2</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>待办</h2></div>
+            <div class="chips" style="margin-top:0;">
+              <span class="pill active">未完成 12</span>
+              <span class="pill glass">今天 5</span>
+              <span class="pill glass">逾期 2</span>
+              <span class="pill glass">已完成</span>
+            </div>
+            <div class="glass glass-card" style="height:140px;">
+              <div class="main">通用待办 <span class="sub" style="float:right;">3 进行中</span></div>
+              <div class="line" style="color:var(--danger);margin-top:10px;">○ 逾期　复查化验</div>
+              <div class="line">○ 今天　通知家属</div>
+            </div>
+            <div class="card" style="height:148px;margin-top:14px;">
+              <div class="main">309W23 张三 <span class="badge glass">勇组</span></div>
+              <div class="line" style="margin-top:10px;">○ 今天　复查片</div>
+              <div class="line">○ 明早　换药</div>
+            </div>
+            <div class="card" style="height:106px;margin-top:14px;">
+              <div class="main">309W24 李四 <span class="badge danger" style="float:right;">逾期</span></div>
+              <div class="line" style="color:var(--danger);margin-top:10px;">○ 查血</div>
+            </div>
+            <div class="nav glass"><span>查房</span><span class="on">待办</span><span>设置</span></div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>设置</h2></div>
+            <div class="section">日常工作</div>
+            <div class="stack">
+              <div class="setting card"><span class="main">查房顺序</span><span class="sub">自定义</span></div>
+              <div class="setting card"><span class="main">床号识别</span><span class="sub">已配置</span></div>
+              <div class="setting card"><span class="main">快捷待办</span><span class="sub">6 个</span></div>
+              <div class="setting card"><span class="main">分组管理</span><span class="sub">4 组</span></div>
+            </div>
+            <div class="section">显示</div>
+            <div class="setting glass"><span class="main">主题</span><span class="sub">系统</span></div>
+            <div class="section">数据与备份</div>
+            <div class="stack">
+              <div class="setting card"><span class="main">导出数据</span></div>
+              <div class="setting card"><span class="main">导入数据</span></div>
+              <div class="setting glass"><span class="main" style="color:var(--danger);">清除全部数据</span></div>
+            </div>
+            <div class="nav glass"><span>查房</span><span>待办</span><span class="on">设置</span></div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>查房顺序</h2></div>
+            <div class="glass" style="height:44px;border-radius:999px;padding:4px;display:flex;">
+              <span class="pill" style="flex:1;">默认</span>
+              <span class="pill" style="flex:1;">基础</span>
+              <span class="pill active" style="flex:1;">自定义</span>
+            </div>
+            <div class="glass glass-card" style="height:136px;margin-top:24px;">
+              <div class="main">预览 <span class="sub" style="float:right;">前 5 个块</span></div>
+              <div class="line" style="margin-top:10px;">309W41：41 42 43</div>
+              <div class="line">309W44：44</div>
+              <div class="line" style="color:var(--amber);">J04：真实加床，归属 41-43</div>
+            </div>
+            <div class="card" style="height:114px;margin-top:14px;">
+              <div class="main">☰　病房块 309W41-43</div>
+              <div class="chips" style="margin:12px 0 0;">
+                <span class="pill glass">41</span>
+                <span class="pill glass">42</span>
+                <span class="pill glass">43</span>
+              </div>
+            </div>
+            <div class="card" style="height:114px;margin-top:14px;">
+              <div class="main">☰　真实加床 J04 <span class="badge amber" style="float:right;">需确认</span></div>
+              <div class="sub" style="margin-top:14px;">归属：309W41-43</div>
+            </div>
+            <div class="glass glass-card" style="height:74px;margin-top:20px;">
+              <div class="main" style="font-size:18px;">校验提醒</div>
+              <div style="color:var(--danger);font-size:15px;font-weight:800;margin-top:6px;">重复床号、空块会阻止保存</div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

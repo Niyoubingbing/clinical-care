@@ -1,0 +1,18 @@
+{
+  "home": {
+    "url": "/",
+    "violations": []
+  },
+  "todos": {
+    "url": "/todos",
+    "violations": []
+  },
+  "settings": {
+    "url": "/settings",
+    "violations": []
+  },
+  "settings-rounding": {
+    "url": "/settings/rounding",
+    "violations": []
+  }
+}

@@ -28,7 +28,7 @@ export default function ToastContainer({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.2 }}
-            className="pointer-events-auto flex max-w-md items-center gap-3 rounded-xl bg-main px-4 py-2.5 text-[13px] text-surface shadow-lg"
+            className="pointer-events-auto flex max-w-md items-center gap-3 rounded-xl bg-card px-4 py-2.5 text-[13px] text-main border border-hairline shadow-sm"
           >
             <span className="flex-1">{t.message}</span>
             {t.actionLabel && (
@@ -44,7 +44,7 @@ export default function ToastContainer({
             )}
             <button
               aria-label="关闭"
-              className="text-surface/60 hover:text-surface"
+              className="text-muted hover:text-main"
               onClick={() => onDismiss(t.id)}
             >
               ✕

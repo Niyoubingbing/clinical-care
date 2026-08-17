@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Liquid Glass V3 Preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: rgba(11, 18, 28, 0.9);
+        --muted: rgba(24, 38, 54, 0.62);
+        --hairline: rgba(255, 255, 255, 0.52);
+        --primary: #ff8b70;
+        --danger: #ff466b;
+        --amber: #f4a62a;
+        --blue: #55b8ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+          "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at 12% 15%, #ffb6a0 0 13%, transparent 28%),
+          radial-gradient(circle at 34% 8%, #7ee3ff 0 12%, transparent 30%),
+          radial-gradient(circle at 70% 18%, #b9a6ff 0 14%, transparent 32%),
+          radial-gradient(circle at 88% 66%, #73f1d5 0 13%, transparent 30%),
+          radial-gradient(circle at 48% 92%, #ffd36e 0 18%, transparent 36%),
+          linear-gradient(135deg, #f8fbff 0%, #e8f5ff 42%, #fff4eb 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: -80px;
+        opacity: 0.78;
+        filter: blur(34px) saturate(1.25);
+        background:
+          conic-gradient(
+            from 120deg at 18% 26%,
+            #ff8b70,
+            #7be1ff,
+            #ffffff,
+            #b8a2ff,
+            #ff8b70
+          ),
+          linear-gradient(140deg, transparent 0 35%, #fff 48%, transparent 66%);
+        mix-blend-mode: soft-light;
+      }
+
+      .board {
+        position: relative;
+        z-index: 1;
+        width: 2400px;
+        height: 1080px;
+        padding: 58px 66px;
+      }
+
+      .board-title {
+        margin: 0;
+        font-size: 42px;
+        letter-spacing: -0.02em;
+      }
+
+      .board-subtitle {
+        margin: 8px 0 34px;
+        color: var(--muted);
+        font-size: 23px;
+        font-weight: 560;
+      }
+
+      .screens {
+        display: flex;
+        gap: 42px;
+      }
+
+      .phone {
+        position: relative;
+        width: 414px;
+        height: 852px;
+        overflow: hidden;
+        border-radius: 48px;
+        background:
+          linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.32),
+            rgba(255, 255, 255, 0.07) 42%,
+            rgba(20, 38, 58, 0.13)
+          );
+        border: 1.5px solid rgba(255, 255, 255, 0.72);
+        box-shadow:
+          0 42px 80px rgba(20, 38, 58, 0.26),
+          inset 0 1px 1px rgba(255, 255, 255, 0.9),
+          inset 0 -1px 18px rgba(12, 28, 45, 0.16);
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 22% 12%, rgba(255, 255, 255, 0.6), transparent 23%),
+          radial-gradient(circle at 85% 22%, rgba(101, 214, 255, 0.28), transparent 28%),
+          radial-gradient(circle at 22% 82%, rgba(255, 133, 112, 0.24), transparent 30%),
+          linear-gradient(150deg, rgba(255, 255, 255, 0.24), transparent 42%);
+        opacity: 0.9;
+      }
+
+      .phone::after {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        pointer-events: none;
+        border-radius: 39px;
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+          inset 0 20px 42px rgba(255, 255, 255, 0.14);
+      }
+
+      .screen {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 28px 26px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      h2 {
+        margin: 0;
+        flex: 1;
+        font-size: 34px;
+        font-weight: 780;
+        letter-spacing: -0.03em;
+      }
+
+      .liquid {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        background:
+          linear-gradient(
+            140deg,
+            rgba(255, 255, 255, 0.58),
+            rgba(255, 255, 255, 0.18) 38%,
+            rgba(255, 255, 255, 0.08) 64%,
+            rgba(27, 45, 65, 0.18)
+          );
+        border: 1px solid rgba(255, 255, 255, 0.64);
+        -webkit-backdrop-filter: blur(28px) saturate(1.8) contrast(1.08);
+        backdrop-filter: blur(28px) saturate(1.8) contrast(1.08);
+        box-shadow:
+          0 18px 36px rgba(17, 35, 55, 0.18),
+          inset 0 1px 1px rgba(255, 255, 255, 0.95),
+          inset 0 -16px 28px rgba(25, 48, 70, 0.16),
+          inset 18px 0 32px rgba(255, 255, 255, 0.18);
+      }
+
+      .liquid::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+          radial-gradient(120px 68px at 18% 8%, rgba(255, 255, 255, 0.92), transparent 58%),
+          radial-gradient(90px 70px at 84% 86%, rgba(96, 210, 255, 0.26), transparent 62%),
+          linear-gradient(110deg, rgba(255, 255, 255, 0.35), transparent 46%);
+        mix-blend-mode: screen;
+      }
+
+      .liquid::after {
+        content: "";
+        position: absolute;
+        inset: -35%;
+        z-index: -2;
+        opacity: 0.28;
+        transform: rotate(-18deg);
+        background:
+          linear-gradient(
+            90deg,
+            transparent 0 32%,
+            rgba(255, 255, 255, 0.9) 43%,
+            transparent 54% 100%
+          );
+      }
+
+      .blob {
+        border-radius: 999px 999px 999px 999px / 820px 740px 880px 760px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 70px;
+        height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        color: rgba(12, 20, 30, 0.82);
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .primary {
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.58), transparent 38%),
+          linear-gradient(140deg, #ffb394, #f16c62 48%, #a73362);
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        box-shadow:
+          0 16px 26px rgba(173, 51, 98, 0.24),
+          inset 0 1px 1px rgba(255, 255, 255, 0.72),
+          inset 0 -10px 18px rgba(99, 14, 52, 0.18);
+      }
+
+      .danger {
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.55), transparent 42%),
+          linear-gradient(140deg, #ff8da0, #ff466b 52%, #a31a45);
+      }
+
+      .amber {
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.52), transparent 42%),
+          linear-gradient(140deg, #ffe29d, #ee9a24 52%, #b46019);
+      }
+
+      .blue {
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.56), transparent 42%),
+          linear-gradient(140deg, #9cecff, #4da6ff 52%, #285cbb);
+      }
+
+      .card {
+        padding: 18px 20px;
+        border-radius: 30px;
+      }
+
+      .reminder {
+        height: 82px;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .main {
+        font-size: 22px;
+        font-weight: 760;
+        letter-spacing: -0.01em;
+      }
+
+      .subtext {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 560;
+      }
+
+      .bed {
+        width: 58px;
+        height: 58px;
+        flex: 0 0 auto;
+        border-radius: 21px;
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 760;
+      }
+
+      .chips {
+        display: flex;
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .textarea {
+        height: 142px;
+        padding-top: 24px;
+      }
+
+      .nav {
+        position: absolute;
+        left: 26px;
+        right: 26px;
+        bottom: 24px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        height: 72px;
+        border-radius: 32px;
+      }
+
+      .nav span {
+        font-size: 17px;
+        font-weight: 720;
+        color: var(--muted);
+      }
+
+      .nav .active {
+        color: var(--ink);
+      }
+
+      .section-title {
+        margin: 22px 6px 10px;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 760;
+      }
+
+      .setting-row {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-radius: 24px;
+      }
+
+      .small-note {
+        font-size: 15px;
+        color: rgba(173, 34, 70, 0.85);
+        font-weight: 760;
+      }
+
+      .mock-input-line {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.9;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <h1 class="board-title">Liquid Glass V3 视觉方向</h1>
+      <p class="board-subtitle">
+        重点改为真正的液态材质：背景穿透、强 backdrop blur、边缘高光、内侧暗边、浮层折射，而不是普通透明白卡片。
+      </p>
+
+      <section class="screens">
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar">
+              <h2>查房</h2>
+              <span class="pill liquid blob">+ 病人</span>
+              <span class="pill liquid blob">待办</span>
+            </div>
+
+            <div class="card liquid blob reminder">
+              <div class="main">今日提醒 <span style="color:#cc234e">逾期 2</span> · 今日 5</div>
+              <div class="subtext">点击进入待办清单</div>
+            </div>
+
+            <div class="card liquid blob" style="height: 58px; margin-top: 14px; display:flex; align-items:center; justify-content:space-between;">
+              <span class="main" style="font-size:20px">每日小结</span>
+              <span class="subtext" style="margin:0">今日暂无完成项  ⌄</span>
+            </div>
+
+            <div class="chips">
+              <span class="pill primary">全部</span>
+              <span class="pill liquid">轻组</span>
+              <span class="pill liquid">勇组</span>
+              <span class="pill liquid">李组</span>
+            </div>
+
+            <div class="label" style="margin: 2px 6px 12px;">顺序：正向</div>
+
+            <div class="stack">
+              <div class="card liquid blob row">
+                <div class="bed primary row" style="justify-content:center;">23</div>
+                <div style="flex:1;">
+                  <div class="main">张三 <span class="badge danger" style="float:right">逾期</span></div>
+                  <div class="subtext">胫骨骨折</div>
+                  <div class="badge liquid" style="margin-top:8px;">待办 2</div>
+                </div>
+              </div>
+              <div class="card liquid blob row">
+                <div class="bed blue row" style="justify-content:center;">24</div>
+                <div style="flex:1;">
+                  <div class="main">李四 <span class="badge amber" style="float:right">今日</span></div>
+                  <div class="subtext">取除内固定术后</div>
+                  <div class="badge liquid" style="margin-top:8px;">需换药</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="nav liquid blob">
+              <span class="active">查房</span>
+              <span>待办</span>
+              <span>设置</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar">
+              <h2>批量导入</h2>
+            </div>
+
+            <div class="liquid blob" style="height:56px; padding:7px; display:flex;">
+              <span class="pill" style="flex:1;">手动添加</span>
+              <span class="pill primary" style="flex:1;">批量导入</span>
+            </div>
+
+            <div class="section-title">粘贴名单</div>
+            <div class="card liquid blob textarea">
+              <div class="mock-input-line">309W23 张三 胫骨骨折</div>
+              <div class="mock-input-line">309W24 李四 术后换药</div>
+              <div class="mock-input-line">309W25 王五 复查片</div>
+            </div>
+
+            <div class="row" style="margin:22px 8px;">
+              <span class="liquid" style="width:26px;height:26px;border-radius:9px;"></span>
+              <div>
+                <div class="main" style="font-size:19px">同步移除未出现病人</div>
+                <div class="subtext">默认关闭，避免误删现有病人</div>
+              </div>
+            </div>
+
+            <div class="pill primary" style="width:100%; height:54px; font-size:20px;">预览导入</div>
+
+            <div class="card liquid blob" style="height:186px; margin-top:30px;">
+              <div class="main">预览 <span class="subtext">新增 3 · 更新 18 · 移除 2</span></div>
+              <div class="mock-input-line" style="margin-top:10px;">新增　309W25 王五</div>
+              <div class="mock-input-line">更新　309W23 张三</div>
+              <div class="liquid blob" style="height:36px; padding:8px 14px; margin-top:6px;">
+                <span class="mock-input-line" style="line-height:1;">移除　309W01 赵六</span>
+                <span class="small-note" style="float:right;">待办 2</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>待办</h2></div>
+            <div class="chips" style="margin-top:0;">
+              <span class="pill primary">未完成 12</span>
+              <span class="pill liquid">今天 5</span>
+              <span class="pill liquid">逾期 2</span>
+              <span class="pill liquid">已完成</span>
+            </div>
+
+            <div class="card liquid blob" style="height:146px;">
+              <div class="main">通用待办 <span class="subtext" style="float:right;">3 进行中</span></div>
+              <div class="mock-input-line" style="color:#cc234e; margin-top:12px;">○ 逾期　复查化验</div>
+              <div class="mock-input-line">○ 今天　通知家属</div>
+            </div>
+
+            <div class="card liquid blob" style="height:158px; margin-top:16px;">
+              <div class="main">309W23 张三 <span class="badge liquid">勇组</span></div>
+              <div class="mock-input-line" style="margin-top:12px;">○ 今天　复查片</div>
+              <div class="mock-input-line">○ 明早　换药</div>
+            </div>
+
+            <div class="card liquid blob" style="height:112px; margin-top:16px;">
+              <div class="main">309W24 李四 <span class="badge danger" style="float:right;">逾期</span></div>
+              <div class="mock-input-line" style="color:#cc234e; margin-top:12px;">○ 查血</div>
+            </div>
+
+            <div class="nav liquid blob">
+              <span>查房</span>
+              <span class="active">待办</span>
+              <span>设置</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>设置</h2></div>
+
+            <div class="section-title">日常工作</div>
+            <div class="stack">
+              <div class="setting-row liquid blob"><span class="main">查房顺序</span><span class="subtext">自定义</span></div>
+              <div class="setting-row liquid blob"><span class="main">床号识别</span><span class="subtext">已配置</span></div>
+              <div class="setting-row liquid blob"><span class="main">快捷待办</span><span class="subtext">6 个</span></div>
+              <div class="setting-row liquid blob"><span class="main">分组管理</span><span class="subtext">4 组</span></div>
+            </div>
+
+            <div class="section-title">显示</div>
+            <div class="setting-row liquid blob"><span class="main">主题</span><span class="subtext">系统</span></div>
+
+            <div class="section-title">数据与备份</div>
+            <div class="stack">
+              <div class="setting-row liquid blob"><span class="main">导出数据</span></div>
+              <div class="setting-row liquid blob"><span class="main">导入数据</span></div>
+              <div class="setting-row liquid blob"><span class="main" style="color:#cc234e;">清除全部数据</span></div>
+            </div>
+
+            <div class="nav liquid blob">
+              <span>查房</span>
+              <span>待办</span>
+              <span class="active">设置</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="topbar"><h2>查房顺序</h2></div>
+
+            <div class="liquid blob" style="height:56px; padding:7px; display:flex;">
+              <span class="pill" style="flex:1;">默认</span>
+              <span class="pill" style="flex:1;">基础</span>
+              <span class="pill primary" style="flex:1;">自定义</span>
+            </div>
+
+            <div class="card liquid blob" style="height:142px; margin-top:26px;">
+              <div class="main">预览 <span class="subtext" style="float:right;">前 5 个块</span></div>
+              <div class="mock-input-line" style="margin-top:12px;">309W41：41 42 43</div>
+              <div class="mock-input-line">309W44：44</div>
+              <div class="mock-input-line" style="color:#a75d26;">J04：真实加床，归属 41-43</div>
+            </div>
+
+            <div class="card liquid blob" style="height:118px; margin-top:16px;">
+              <div class="main">☰　病房块 309W41-43</div>
+              <div class="chips" style="margin:14px 0 0;">
+                <span class="pill liquid">41</span>
+                <span class="pill liquid">42</span>
+                <span class="pill liquid">43</span>
+              </div>
+            </div>
+
+            <div class="card liquid blob" style="height:118px; margin-top:16px;">
+              <div class="main">☰　真实加床 J04 <span class="badge amber" style="float:right;">需确认</span></div>
+              <div class="subtext" style="margin-top:16px;">归属：309W41-43</div>
+            </div>
+
+            <div class="card liquid blob" style="height:78px; margin-top:22px;">
+              <div class="main" style="font-size:18px;">校验提醒</div>
+              <div class="small-note" style="margin-top:6px;">重复床号、空块会阻止保存</div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

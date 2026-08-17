@@ -1,23 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Reorder, useDragControls, type DragControls } from "framer-motion";
 import { useLiveQuery } from "dexie-react-hooks";
-import { GripVertical, ArrowUp, ArrowDown, X, Plus } from "lucide-react";
-import { getSettings, updateSettings } from "@/lib/db";
+import { GripVertical, X, Plus } from "lucide-react";
+import { getSettings, updateSettings, uid } from "@/lib/db";
+import { inferTodoType } from "@/lib/time-parser";
 import { QuickTodo } from "@/types";
 import { useApp } from "@/components/Providers";
-
-const TYPES = [
-  "换药",
-  "查血",
-  "开术前",
-  "明天出院",
-  "康复会诊",
-  "会诊",
-  "复查",
-  "开查血",
-  "其他",
-];
+import SubpageHeader from "@/components/SubpageHeader";
 
 export default function QuickTodosPage() {
   const { toast } = useApp();
@@ -25,7 +16,6 @@ export default function QuickTodosPage() {
   const list = settings?.quickTodos ?? [];
 
   const [label, setLabel] = useState("");
-  const [type, setType] = useState("换药");
 
   const commit = (next: QuickTodo[], undo?: QuickTodo[]) => {
     updateSettings({ quickTodos: next });
@@ -44,7 +34,7 @@ export default function QuickTodosPage() {
       toast({ message: "请输入标签" });
       return;
     }
-    commit([...list, { label: t, type, content: t }]);
+    commit([...list, { id: uid(), label: t, type: inferTodoType(t), content: t }]);
     setLabel("");
   };
 
@@ -54,17 +44,22 @@ export default function QuickTodosPage() {
     commit(next, undo);
   };
 
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= list.length) return;
-    const next = [...list];
-    [next[i], next[j]] = [next[j], next[i]];
+  const onReorder = (ids: string[]) => {
+    const byId = new Map(
+      list.map((item, i) => [item.id ?? `qt-${i}`, item] as const)
+    );
+    const next = ids
+      .map((id) => byId.get(id))
+      .filter((q): q is QuickTodo => Boolean(q));
     commit(next);
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-[20px] font-semibold text-main">快捷待办</h1>
+    <div className="space-y-5">
+      <SubpageHeader
+        title="快捷待办"
+        description="维护病人详情页中常用的待办操作。"
+      />
 
       <div className="card p-3">
         <div className="flex items-end gap-2">
@@ -75,21 +70,8 @@ export default function QuickTodosPage() {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="如 换药"
+              onKeyDown={(e) => e.key === "Enter" && add()}
             />
-          </div>
-          <div className="w-28">
-            <label className="mb-1 block text-[12px] text-muted">类型</label>
-            <select
-              className="input"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
           </div>
           <button className="btn-primary h-[48px] px-3" onClick={add}>
             <Plus size={18} />
@@ -98,45 +80,82 @@ export default function QuickTodosPage() {
       </div>
 
       <div className="space-y-2">
+        <div className="subpage-section-heading">
+          <div>
+            <h2>当前快捷操作</h2>
+            <p>拖动排序，显示在病人详情页的待办区。</p>
+          </div>
+          <span className="subpage-section-count">{list.length} 项</span>
+        </div>
         {list.length === 0 && (
           <p className="rounded-xl bg-card/50 px-4 py-8 text-center text-[13px] text-muted">
             暂无快捷待办
           </p>
         )}
-        {list.map((qt, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2 rounded-xl bg-card p-3 shadow-xs"
+        {list.length > 0 && (
+          <Reorder.Group
+            axis="y"
+            values={list.map((qt, i) => qt.id ?? `qt-${i}`)}
+            onReorder={onReorder}
+            className="space-y-2"
           >
-            <GripVertical size={18} className="text-muted" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-medium text-main">{qt.label}</p>
-              <p className="text-[12px] text-muted">{qt.type}</p>
-            </div>
-            <button
-              aria-label="上移"
-              onClick={() => move(i, -1)}
-              className="rounded-lg p-1.5 text-muted hover:bg-surface-alt"
-            >
-              <ArrowUp size={18} />
-            </button>
-            <button
-              aria-label="下移"
-              onClick={() => move(i, 1)}
-              className="rounded-lg p-1.5 text-muted hover:bg-surface-alt"
-            >
-              <ArrowDown size={18} />
-            </button>
-            <button
-              aria-label="删除"
-              onClick={() => remove(i)}
-              className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        ))}
+            {list.map((qt, i) => (
+              <QuickTodoItem
+                key={qt.id ?? `qt-${i}`}
+                id={qt.id ?? `qt-${i}`}
+                item={qt}
+                onRemove={() => remove(i)}
+              />
+            ))}
+          </Reorder.Group>
+        )}
       </div>
     </div>
+  );
+}
+
+function DragHandle({ controls }: { controls: DragControls }) {
+  return (
+    <span
+      onPointerDown={(e) => controls.start(e)}
+      aria-label="拖拽排序"
+      className="shrink-0 cursor-grab touch-none select-none text-muted active:cursor-grabbing"
+    >
+      <GripVertical size={18} />
+    </span>
+  );
+}
+
+function QuickTodoItem({
+  id,
+  item,
+  onRemove,
+}: {
+  id: string;
+  item: QuickTodo;
+  onRemove: () => void;
+}) {
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={id}
+      dragListener={false}
+      dragControls={controls}
+      className="card flex items-center gap-2 p-3 shadow-xs"
+    >
+      <DragHandle controls={controls} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium text-main">{item.label}</p>
+        <p className="text-[12px] text-muted">{item.type}</p>
+      </div>
+      <button
+        aria-label="删除"
+        onClick={onRemove}
+        className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
+      >
+        <X size={18} />
+      </button>
+    </Reorder.Item>
   );
 }

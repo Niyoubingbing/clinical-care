@@ -6,12 +6,19 @@ export type TodoType =
   | "换药"
   | "查血"
   | "开术前"
+  | "出院"
   | "明天出院"
   | "康复会诊"
   | "会诊"
   | "复查"
   | "开查血"
   | "其他";
+
+export interface DressingSchedule {
+  earlyInterval: number; // 首个换药日（术后天数）
+  laterInterval: number; // 之后每次换药间隔（天）
+  maxDay: number; // 截止（术后天数），超过此天数不再安排换药
+}
 
 export interface Patient {
   id: string;
@@ -21,13 +28,17 @@ export interface Patient {
   group?: string;
   groupColor?: string;
   surgeryDate?: string;
+  dressingSchedule?: DressingSchedule; // 每病人换药间隔覆盖；不设置则继承 Settings.dressingSchedule
+  // @deprecated 不再参与计算，仅保留字段以兼容存量导入/导出数据
   dressingFrequency?: number;
+  // @deprecated 不再参与计算，仅保留字段以兼容存量导入/导出数据
   lastDressingChange?: string;
   bloodTestDay?: string;
   ward?: string;
   room?: string;
   bedBase?: number;
   bedType?: BedType;
+  specialType?: string; // 特殊床标记字母（如 "J" / "YZ"），由床号解析得到并持久化，用于列表/详情快速标识特殊类型床
   createdAt: number;
   updatedAt: number;
 }
@@ -44,20 +55,41 @@ export interface Todo {
 }
 
 export interface QuickTodo {
+  id: string;
   label: string;
   type: string;
   content?: string;
 }
 
-export type RoundingUnit =
-  | { kind: "room"; ward: string; beds: string[] }
-  | { kind: "extra-real"; bed: string; room: string };
+export interface CustomGroup {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export type RoundingBlock =
+  | { id: string; kind: "room"; ward?: string; beds: string[] }
+  | { id: string; kind: "extra"; beds: string[] };
+
+export interface RoundingConfig {
+  ruleType: "default" | "basic" | "custom"; // 当前规则态；修改内置规则后自动置 'custom'
+  regularBedCount?: number; // 基础规则：普通病床总数（不含加床/虚拟）
+  avgBedsPerRoom?: number; // 基础规则：平均单一病房床数
+  blocks: RoundingBlock[]; // 有序序列：病房块 + 真实加床块（顺序本身即查房顺序）
+}
 
 export interface Settings {
   id: number;
-  roundingOrder: RoundingUnit[];
+  roundingOrder: RoundingConfig; // 查房顺序配置（块模型，见 PRD 4.9.4）
+  listDirection?: "forward" | "reverse"; // 首页病人列表展示方向（与查房顺序设置解耦），默认 'forward'
   quickTodos: QuickTodo[];
+  customGroups?: CustomGroup[]; // 自定义分组（设置页维护，详情页快捷切换）
   theme: Theme;
   bedTemplate?: string;
   specialMarks?: string[];
+  dressingSchedule: DressingSchedule; // 默认换药间隔（被 Patient.dressingSchedule 覆盖）
+  showVirtualBeds?: boolean; // 是否在首页列表展示虚拟床（默认 true）
+  // 强制虚拟床名单（完整床号，精确匹配）：极少数场景下把已在查房块内的床强制判为虚拟床。
+  // 优先级高于 roundingOrder 块匹配，见 lib/bed-type.ts computeBedType。
+  virtualOverrides?: string[];
 }

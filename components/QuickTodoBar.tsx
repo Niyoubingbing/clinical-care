@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSettings, addTodo } from "@/lib/db";
+import { parseTime, inferTodoType } from "@/lib/time-parser";
 import { useApp } from "./Providers";
 import { Todo } from "@/types";
 
@@ -19,26 +20,32 @@ export default function QuickTodoBar({ patientId }: { patientId: string }) {
 
   if (!quickTodos || quickTodos.length === 0) return null;
 
-  const onAdd = async (label: string, type: string, content?: string) => {
-    const text = content && content.trim() ? content : label;
+  const onAdd = async (text: string) => {
     const exists = (pending ?? []).some(
-      (t: Todo) =>
-        t.status === "pending" && t.content.trim() === text.trim()
+      (t: Todo) => t.status === "pending" && t.content.trim() === text.trim()
     );
     if (exists) {
       toast({ message: "该待办已存在" });
       return;
     }
-    await addTodo({ patientId, content: text, type });
+    const p = parseTime(text);
+    await addTodo({
+      patientId,
+      content: text,
+      type: inferTodoType(text),
+      dueDate: p?.date,
+    });
     toast({ message: "待办已添加" });
   };
 
   return (
     <div className="flex flex-wrap gap-2">
-      {quickTodos.map((qt, i) => (
+      {quickTodos.map((qt) => (
         <button
-          key={i}
-          onClick={() => onAdd(qt.label, qt.type, qt.content)}
+          key={qt.id}
+          onClick={() =>
+            onAdd(qt.content && qt.content.trim() ? qt.content : qt.label)
+          }
           className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-[12px] font-medium text-main transition active:scale-95 hover:border-primary"
         >
           {qt.label}

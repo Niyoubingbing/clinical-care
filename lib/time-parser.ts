@@ -1,3 +1,5 @@
+import type { TodoType } from "@/types";
+
 export interface ParsedTime {
   date: string; // YYYY-MM-DD
   label: "今明后天" | "星期几" | "具体日期";
@@ -41,10 +43,11 @@ export function parseTime(text: string): ParsedTime | null {
     今日: 0,
     明天: 1,
     明日: 1,
+    明早: 1,
     后天: 2,
     后日: 2,
   };
-  for (const key of ["今天", "今日", "明天", "明日", "后天", "后日"]) {
+  for (const key of ["今天", "今日", "明天", "明日", "明早", "后天", "后日"]) {
     if (text.includes(key)) {
       const d = addDays(new Date(), relMap[key]);
       return {
@@ -67,7 +70,7 @@ export function parseTime(text: string): ParsedTime | null {
     if (m) {
       const num = WEEKDAY[m[2]];
       if (num === undefined) continue;
-      let base = (num - todayWd + 7) % 7;
+      const base = (num - todayWd + 7) % 7;
       const days = base + add;
       const d = addDays(today, days);
       return {
@@ -106,6 +109,29 @@ export function parseTime(text: string): ParsedTime | null {
   }
 
   return null;
+}
+
+/**
+ * 从自由文本待办内容推断其类型。
+ * 命中关键词即返回对应 TodoType；均未命中返回「其他」。
+ * 用于新建待办时自动归类（如内容含「换药」即记为换药类），
+ * 无需用户手动选择类型。换药类待办会参与「需换药」状态与换药提醒的计算
+ * （换药计划与提醒由 DressingSchedule / 自动生成逻辑驱动）。
+ */
+export function inferTodoType(content: string): TodoType {
+  const map: [string, TodoType][] = [
+    ["开查血", "开查血"],
+    ["查血", "查血"],
+    ["换药", "换药"],
+    ["开术前", "开术前"],
+    ["术前", "开术前"],
+    ["出院", "出院"],
+    ["康复会诊", "康复会诊"],
+    ["会诊", "会诊"],
+    ["复查", "复查"],
+  ];
+  for (const [kw, t] of map) if (content.includes(kw)) return t;
+  return "其他";
 }
 
 export type DueLevel = "none" | "overdue" | "today" | "soon" | "future";
