@@ -1,6 +1,6 @@
 # Clinical Care — 临床病人管理助手
 
-面向移动端查房、病人待办和换药提醒的 local-first PWA。当前版本为 `2.18.0`，生产站点为 [clinical-care.vercel.app](https://clinical-care.vercel.app)。应用代码托管于 GitHub，静态产物由 Vercel 发布；病人和待办数据只保存在当前浏览器的 IndexedDB 中。
+面向移动端查房、病人待办和换药提醒的 local-first PWA。当前版本为 `2.18.1`，生产站点为 [clinical-care.vercel.app](https://clinical-care.vercel.app)。应用代码托管于 GitHub，静态产物由 Vercel 发布；病人和待办数据只保存在当前浏览器的 IndexedDB 中。
 
 > 本项目不是医疗器械或医嘱系统，不能替代医院信息系统、正式病历、医嘱核对和专业判断。不要在公开仓库、Issue、PR、日志或测试附件中提交真实病人信息。
 

@@ -226,8 +226,8 @@
   }
   .badge-virtual {
     @apply badge;
-    color: rgb(var(--info));
-    background-color: rgb(var(--info) / 0.12);
+    color: #31587f;
+    background-color: #e8eef3;
   }
   .badge-special {
     @apply badge;
@@ -238,6 +238,11 @@
     @apply badge;
     color: rgb(var(--info));
     background-color: rgb(var(--info) / 0.12);
+  }
+
+  .dark .badge-virtual {
+    color: #a9c9e8;
+    background-color: #253343;
   }
 
   /* ============================ 导航栏 ============================== */
