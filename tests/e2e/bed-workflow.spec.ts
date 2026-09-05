@@ -20,8 +20,12 @@ test("床型独立于顺序，单床位置保存、刷新和窄屏显示", async
   await expect(unknown).toContainText("待确认");
   await unknown.getByLabel("临时-A 床位类型").selectOption("virtual");
   await expect(unknown.locator(".badge-virtual")).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  expect((await new AxeBuilder({ page }).include(".badge-virtual").withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
+  await page.evaluate(() => document.documentElement.classList.remove("dark"));
   await page.goto("/settings/rounding?bed=309WJ4");
   await expect(page.getByLabel("要调整的床位")).toHaveValue("309WJ4");
   await page.getByLabel("放置位置").selectOption("");
