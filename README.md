@@ -1,6 +1,6 @@
 # Clinical Care — 临床病人管理助手
 
-面向移动端查房、病人待办和换药提醒的 local-first PWA。当前版本为 `2.17.2`，生产站点为 [clinical-care.vercel.app](https://clinical-care.vercel.app)。应用代码托管于 GitHub，静态产物由 Vercel 发布；病人和待办数据只保存在当前浏览器的 IndexedDB 中。
+面向移动端查房、病人待办和换药提醒的 local-first PWA。当前版本为 `2.18.0`，生产站点为 [clinical-care.vercel.app](https://clinical-care.vercel.app)。应用代码托管于 GitHub，静态产物由 Vercel 发布；病人和待办数据只保存在当前浏览器的 IndexedDB 中。
 
 > 本项目不是医疗器械或医嘱系统，不能替代医院信息系统、正式病历、医嘱核对和专业判断。不要在公开仓库、Issue、PR、日志或测试附件中提交真实病人信息。
 
@@ -10,7 +10,7 @@
 - `output: "export"` 生成纯静态站点；无服务端 API、账户系统或云端数据库。
 - Dexie 管理 `patients`、`todos`、`settings` 三张 IndexedDB 表。
 - Service Worker 预缓存静态路由与资源，支持离线使用和用户确认后更新。
-- Vitest 覆盖 20 个测试文件、142 个测试；Playwright 覆盖流程、冒烟、可访问性和性能基线。
+- Vitest 覆盖 22 个测试文件、166 个测试；Playwright 覆盖流程、冒烟、可访问性和性能基线。
 
 ## 本地开发
 
@@ -29,9 +29,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`npm run check` 依次执行 ESLint、类型检查、142 个单元测试和生产构建。E2E 依赖已经生成的 `out/`。
+`npm run check` 依次执行 ESLint、类型检查、单元测试和生产构建。E2E 依赖已经生成的 `out/`。
 
 ## 文档入口
+
+- [2.18.0 床位识别、查房顺序与修复说明](./docs/RELEASE-2.18.0.md)
 
 - [产品需求（当前行为）](./PRD.md)
 - [系统架构](./docs/ARCHITECTURE.md)

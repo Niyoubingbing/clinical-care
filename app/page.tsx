@@ -3,23 +3,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { Plus, ClipboardList, ArrowUpDown } from "lucide-react";
+import { Plus, ClipboardList } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, getSettings, deletePatient, todayStr, updateSettings } from "@/lib/db";
+import { db, getSettings, deletePatient, todayStr } from "@/lib/db";
 import { resolveOrder } from "@/lib/rounding";
 import { computeReminders, patientStatus, pendingTodoCount, PatientStatus } from "@/lib/reminders";
 import { resolveSchedule } from "@/lib/dressing";
 import { buildDailySummary } from "@/lib/summary";
 import { Patient, BedType, Todo } from "@/types";
 import { parseBed } from "@/lib/bed-parser";
-import { computeBedType } from "@/lib/bed-type";
+import { recognizeBed } from "@/lib/bed-identity";
 import { filterHomeRows } from "@/lib/home-filter";
 
 import PatientCard from "@/components/PatientCard";
 import GroupedPatientCard, { GroupedItem } from "@/components/GroupedPatientCard";
 import ReminderBar from "@/components/ReminderBar";
 import DailySummaryCard from "@/components/DailySummary";
-import GroupFilter from "@/components/GroupFilter";
+import RoundingFilterBar from "@/components/RoundingFilterBar";
 import EmptyState from "@/components/EmptyState";
 import AddPatientSheet from "@/components/AddPatientSheet";
 import TodoFormSheet from "@/components/TodoFormSheet";
@@ -48,10 +48,6 @@ export default function HomePage() {
 
   // 首页病人列表的展示方向（正/反序），与查房顺序设置解耦，持久化到 settings。
   const listDirection = settings?.listDirection ?? "forward";
-  const setListDirection = useCallback(
-    (dir: "forward" | "reverse") => updateSettings({ listDirection: dir }),
-    []
-  );
 
   const [addOpen, setAddOpen] = useState(false);
   const [todoOpen, setTodoOpen] = useState(false);
@@ -73,7 +69,7 @@ export default function HomePage() {
 
   const ordered = useMemo(() => {
     if (!settings) return [];
-    const base = resolveOrder(settings.roundingOrder, patients);
+    const base = resolveOrder(settings.roundingOrder, patients.map(p => ({ ...p, ...parseBed(p.bedNumber, settings.bedTemplate, settings.specialMarks), bedNumber: p.bedNumber })));
     return listDirection === "reverse" ? [...base].reverse() : base;
   }, [patients, settings, listDirection]);
 
@@ -112,7 +108,7 @@ export default function HomePage() {
   }, [ordered, todos, today, settings]);
 
   // 虚拟床隐藏 + 分组筛选：抽离为纯函数（见 lib/home-filter），便于组件外单测。
-  // 虚拟床判定统一由 computeBedType 依据查房顺序（settings.roundingOrder）决定，
+  // 虚拟床判定统一由 recognizeBed 依据独立识别规则和单床修正决定，
   // 与首页卡片徽标共用同一来源（bedInfoMap），消除「筛选 vs 展示」数据源分裂。
   const filtered = useMemo(
     () => filterHomeRows(rows, group, settings?.showVirtualBeds ?? true, settings),
@@ -160,7 +156,7 @@ export default function HomePage() {
   );
 
   // 实时计算每个病人的床型与特殊标记，用于列表卡片标识特殊类型床（加床 / 虚拟）。
-  // bedType 走 computeBedType（查房顺序为准，与 filterHomeRows 同源）；
+  // bedType 走 recognizeBed（独立床型规则，与 filterHomeRows 同源）；
   // specialType 仍来自 parseBed（仅展示用的特殊标记字母，如 J / YZ）。
   const bedInfoMap = useMemo(() => {
     const m = new Map<string, { bedType: BedType; specialType: string }>();
@@ -168,11 +164,7 @@ export default function HomePage() {
     for (const p of patients) {
       const r = parseBed(p.bedNumber, settings.bedTemplate, settings.specialMarks);
       m.set(p.id, {
-        bedType: computeBedType(
-          p,
-          settings.roundingOrder,
-          settings.virtualOverrides
-        ),
+        bedType: recognizeBed(p, settings),
         specialType: r.specialType,
       });
     }
@@ -332,47 +324,7 @@ export default function HomePage() {
         }}
       />
 
-      <GroupFilter groups={groups} selected={group} onChange={setGroup} />
-
-      {/* 列表顺序：正序/反序（首页病人列表展示，不改动查房顺序设置） */}
-      <div className="flex items-center justify-between">
-        <span className="relative z-10 text-[12px] text-muted">列表顺序</span>
-        <div className="flex gap-1.5">
-          {(["forward", "reverse"] as const).map((d) => (
-            <button
-              key={d}
-              onClick={() => setListDirection(d)}
-              className={`sort-button flex h-9 items-center gap-1.5 px-3 text-[12px] font-medium transition ${
-                listDirection === d
-                  ? "sort-button-active"
-                  : "text-muted"
-              }`}
-            >
-              <ArrowUpDown size={13} />
-              {d === "forward" ? "正序" : "反序"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <span className="relative z-10 text-[12px] text-muted">虚拟床</span>
-        <div className="flex gap-1.5">
-          {([true, false] as const).map((v) => (
-            <button
-              key={String(v)}
-              onClick={() => updateSettings({ showVirtualBeds: v })}
-              className={`sort-button flex h-9 items-center gap-1.5 px-3 text-[12px] font-medium transition ${
-                (settings?.showVirtualBeds ?? true) === v
-                  ? "sort-button-active"
-                  : "text-muted"
-              }`}
-            >
-              {v ? "显示" : "隐藏"}
-            </button>
-          ))}
-        </div>
-      </div>
+      <RoundingFilterBar groups={groups} selected={group} onGroupChange={setGroup} direction={listDirection} showVirtual={settings?.showVirtualBeds ?? true} ready={!!settings} />
 
       {filtered.length === 0 ? (
         <EmptyState

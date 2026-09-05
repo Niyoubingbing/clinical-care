@@ -1,6 +1,7 @@
 import type { Patient, RoundingConfig } from "@/types";
 import type { PatientStatus } from "@/lib/reminders";
 import { computeBedType } from "@/lib/bed-type";
+import { recognizeBed, type RecognitionSettings } from "./bed-identity";
 
 /**
  * 首页列表行结构（与 app/page.tsx 中的 rows 一致）。
@@ -17,31 +18,13 @@ export type HomeRow =
   | { type: "group"; id: string; items: HomeGroupItem[] }
   | { type: "single"; patient: Patient; todoCount: number; status: PatientStatus };
 
-/**
- * 床型判定所需的 Settings 子集。
- * v2.17.2 起虚拟床判定只看查房顺序（roundingOrder）与强制虚拟名单（virtualOverrides），
- * 不再依赖床号解析模板（bedTemplate / specialMarks 仅用于展示解析）。
- */
-export interface BedFilterSettings {
+/** Full application settings use independent recognition. Minimal pre-2.18 caller settings retain the legacy route-only contract. */
+export interface BedFilterSettings extends RecognitionSettings {
   roundingOrder?: RoundingConfig;
   virtualOverrides?: string[];
 }
 
-/**
- * 首页列表过滤：虚拟床隐藏 + 分组筛选（纯函数，不依赖 React）。
- *
- * 虚拟床判定统一走 lib/bed-type 的 computeBedType（双口径，与 resolveOrder 一致）：
- * 床号不在 settings.roundingOrder 的任何 room/extra 块里（或命中 virtualOverrides）即为虚拟床。
- *
- * - 当 showVirtualBeds=false（关闭「显示虚拟床」）时：
- *     · 单卡：computeBedType === "virtual" 即剔除；
- *     · 整组：组内成员逐个过滤，仅当**全部**为虚拟才剔除整组；
- *             部分虚拟时仅保留真实成员（避免 virtualOverrides 把同房真实床一起藏掉）。
- * - 分组筛选：group 为 null 时不过滤；否则只保留含该分组病人的单卡 / 整组。
- * - 本函数**不重排**输入顺序，rows 已是查房顺序的有序序列，过滤后顺序不变。
- * - settings 缺失（首帧未加载）时按「无查房配置」处理：所有床视为虚拟床，
- *   与 computeBedType 的兜底语义保持一致。
- */
+/** Pure visibility/group filter; never changes route order. Unknown beds remain visible in 2.18. */
 export function filterHomeRows(
   rows: HomeRow[],
   group: string | null,
@@ -52,7 +35,9 @@ export function filterHomeRows(
   const virtualOverrides = settings?.virtualOverrides;
 
   const isVirtual = (p: Patient): boolean =>
-    computeBedType(p, roundingOrder, virtualOverrides) === "virtual";
+    (settings && ("bedTemplate" in settings || "bedTypeOverrides" in settings)
+      ? recognizeBed(p, settings)
+      : computeBedType(p, roundingOrder, virtualOverrides)) === "virtual";
 
   const result: HomeRow[] = [];
   for (const g of rows) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, getSettings } from "@/lib/db";
 import { useApp } from "./Providers";
@@ -24,6 +24,7 @@ export default function BatchImportSheet({
   const [preview, setPreview] = useState<RosterPreview | null>(null);
   const [removeAbsent, setRemoveAbsent] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const applyingRef = useRef(false);
   const [applying, setApplying] = useState(false);
 
   const patients = useLiveQuery(() => db.patients.toArray(), []) ?? [];
@@ -50,16 +51,10 @@ export default function BatchImportSheet({
     setPreview(analyzeRoster(text, patients, removeAbsent));
   };
 
-  const removeHasPending = useMemo(
-    () =>
-      preview
-        ? preview.toRemove.some((p) => (pendingTodoCounts.get(p.id) ?? 0) > 0)
-        : false,
-    [preview, pendingTodoCounts]
-  );
 
   const doApply = async () => {
-    if (!preview || !settings || applying) return;
+    if (!preview || !settings || applyingRef.current) return;
+    applyingRef.current = true;
     setApplying(true);
     try {
       const res = await applyRoster(
@@ -75,15 +70,16 @@ export default function BatchImportSheet({
       });
       setPreview(null);
       onClose();
-    } catch {
-      toast({ message: "批量导入失败，请检查内容后重试" });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "批量导入失败，请检查内容后重试" });
     } finally {
+      applyingRef.current = false;
       setApplying(false);
     }
   };
 
   const onConfirmClick = () => {
-    if (removeAbsent && removeHasPending) {
+    if (preview && preview.toRemove.length > 0) {
       setConfirmOpen(true);
     } else {
       doApply();
@@ -129,7 +125,7 @@ export default function BatchImportSheet({
         </button>
         <button
           className="btn-primary h-11 flex-1"
-          disabled={!preview || applying}
+          disabled={!preview || !preview.valid.length || (removeAbsent && preview.skipped.length > 0) || applying}
           onClick={onConfirmClick}
         >
           {applying ? "导入中…" : "确认导入"}
@@ -178,7 +174,7 @@ export default function BatchImportSheet({
         title="确认删除未出现病人？"
         message={
           <div>
-            <p>以下病人将被删除，并级联删除其未完成待办：</p>
+            <p>以下病人将被删除，并删除其全部关联待办（包括已完成记录）：</p>
             <p className="mt-1 text-danger">
               {preview?.toRemove
                 .map(

@@ -56,6 +56,7 @@ export function parseClinicalJSON(text: string): ParsedClinical {
   if (!obj || typeof obj !== "object") {
     throw new Error("文件格式不正确");
   }
+  if ((obj.patients !== undefined && !Array.isArray(obj.patients)) || (obj.todos !== undefined && !Array.isArray(obj.todos))) throw new Error("病人和待办字段必须是数组，导入已取消");
   const patients = Array.isArray(obj.patients) ? obj.patients : [];
   const todos = Array.isArray(obj.todos) ? obj.todos : [];
   if (patients.length === 0 && todos.length === 0) {
@@ -88,6 +89,16 @@ export async function importClinicalData(
     if (typeof t.createdAt !== "number") throw new Error(`第 ${i + 1} 条待办缺少 createdAt，导入已取消`);
   }
 
+  const patientIds = new Set(data.patients.map(p => p.id));
+  if (patientIds.size !== data.patients.length || new Set(data.todos.map(t => t.id)).size !== data.todos.length) throw new Error("存在重复记录 ID，导入已取消");
+  for (const p of data.patients) {
+    validateOptionalStrings(p, ["group", "groupColor", "surgeryDate", "bloodTestDay", "ward", "room", "specialType"]);
+    if (p.dressingSchedule && (![p.dressingSchedule.earlyInterval, p.dressingSchedule.laterInterval, p.dressingSchedule.maxDay].every(Number.isSafeInteger) || p.dressingSchedule.earlyInterval < 0 || p.dressingSchedule.laterInterval < 1 || p.dressingSchedule.maxDay > 3650)) throw new Error("换药规则非法，导入已取消");
+  }
+  for (const t of data.todos) {
+    validateOptionalStrings(t, ["type", "dueDate", "patientId"]);
+    if (t.patientId && !patientIds.has(t.patientId)) throw new Error("待办关联的病人不存在，导入已取消");
+  }
   await db.transaction("rw", db.patients, db.todos, async () => {
     await db.patients.clear();
     await db.todos.clear();
@@ -120,4 +131,11 @@ export async function previewImport(
     existingPatients,
     existingTodos,
   };
+}
+
+function validateOptionalStrings(record: object, fields: string[]) {
+  for (const field of fields) {
+    const value = (record as Record<string, unknown>)[field];
+    if (value != null && typeof value !== "string") throw new Error(`${field} 格式错误，导入已取消`);
+  }
 }

@@ -1,5 +1,6 @@
 import { RoundingBlock, RoundingConfig } from "@/types";
-import { parseBed } from "./bed-parser";
+import { bedKey, normalizeBedNumber } from "./bed-number";
+import { isRelativeBed } from "./rounding-match";
 import { uid } from "./db";
 
 function pad2(n: number): string {
@@ -19,7 +20,7 @@ export function normalizeBeds(beds: string[]): string[] {
 
 /** 床号是否带病区前缀的完整床号（如 309W01），区别于基础床号（如 01/J04）。 */
 export function isFullBed(bed: string): boolean {
-  return /^\d/.test(bed) && parseBed(bed).matched;
+  return !!bed && !isRelativeBed(bed);
 }
 
 /** 病房块 / 真实加床块的展示标签。 */
@@ -49,8 +50,8 @@ export function basicRuleFromCounts(
   regularBedCount: number,
   avgBedsPerRoom: number
 ): RoundingBlock[] {
-  const total = Math.max(0, Math.floor(regularBedCount) || 0);
-  const size = Math.max(1, Math.floor(avgBedsPerRoom) || 1);
+  const total = Number.isFinite(regularBedCount) ? Math.min(2000, Math.max(0, Math.floor(regularBedCount))) : 0;
+  const size = Number.isFinite(avgBedsPerRoom) ? Math.max(1, Math.floor(avgBedsPerRoom)) : 1;
   const blocks: RoundingBlock[] = [];
   let i = 1;
   while (i <= total) {
@@ -68,7 +69,7 @@ export function exportConfigText(config: RoundingConfig): string {
   return JSON.stringify(config, null, 2);
 }
 
-/** 解析可复制文本为查房配置；失败返回 null。导入时做基础校验（床号升序规整）。 */
+/** Validate imported configuration without changing the user's block/bed order. */
 export function importConfigText(text: string): RoundingConfig | null {
   let obj: unknown;
   try {
@@ -89,6 +90,7 @@ export function importConfigText(text: string): RoundingConfig | null {
       ? c.ruleType
       : "custom";
   const blocks: RoundingBlock[] = [];
+  const ids = new Set<string>();
   for (const rawBlock of c.blocks ?? []) {
     if (!rawBlock || typeof rawBlock !== "object") return null;
     const block = rawBlock as Partial<RoundingBlock>;
@@ -96,14 +98,18 @@ export function importConfigText(text: string): RoundingConfig | null {
       return null;
     }
     const id = typeof block.id === "string" && block.id ? block.id : uid();
+    if (ids.has(id) || block.beds.some(b => !b.trim())) return null;
+    ids.add(id);
+    const beds = block.beds.map(normalizeBedNumber);
+    if (new Set(beds.map(bedKey)).size !== beds.length) return null;
     if (block.kind === "extra") {
-      blocks.push({ id, kind: "extra", beds: normalizeBeds(block.beds) });
+      blocks.push({ id, kind: "extra", beds });
     } else if (block.kind === "room") {
       blocks.push({
         id,
         kind: "room",
         ward: typeof block.ward === "string" ? block.ward : undefined,
-        beds: normalizeBeds(block.beds),
+        beds,
       });
     } else {
       return null;
@@ -115,4 +121,16 @@ export function importConfigText(text: string): RoundingConfig | null {
     avgBedsPerRoom: c.avgBedsPerRoom,
     blocks,
   };
+}
+
+/** One-bed placement overrides matching templates, without deleting other wards' relative rules. */
+export function placeBedAfter(config: RoundingConfig, bedNumber: string, afterId: string, kind: RoundingBlock["kind"]): RoundingConfig {
+  const bed = normalizeBedNumber(bedNumber);
+  if (!bed) throw new Error("请输入完整床号");
+  if (afterId && !config.blocks.some(block => block.id === afterId)) throw new Error("目标位置已更改，请重新选择");
+  const blocks = config.blocks.map(block => ({ ...block, beds: block.beds.filter(value => bedKey(value) !== bedKey(bed)) }));
+  const at = afterId ? blocks.findIndex(block => block.id === afterId) + 1 : 0;
+  blocks.splice(at, 0, { id: uid(), kind, beds: [bed] });
+  const cleaned = blocks.filter(block => block.beds.length > 0 || !config.blocks.find(old => old.id === block.id)?.beds.length);
+  return { ...config, ruleType: "custom", blocks: cleaned };
 }

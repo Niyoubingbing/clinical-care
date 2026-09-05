@@ -34,9 +34,9 @@ describe("computeBedType - 以查房顺序为唯一判定来源", () => {
     expect(computeBedType({ bedNumber: "V09" }, CONFIG)).toBe("virtual");
   });
 
-  it("精确匹配：大小写不同不算命中 → virtual", () => {
-    expect(computeBedType({ bedNumber: "309w41" }, CONFIG)).toBe("virtual");
-    expect(computeBedType({ bedNumber: "309WJ04 " }, CONFIG)).toBe("virtual");
+  it("兼容匹配忽略大小写和首尾空格", () => {
+    expect(computeBedType({ bedNumber: "309w41" }, CONFIG)).toBe("real");
+    expect(computeBedType({ bedNumber: "309WJ04 " }, CONFIG)).toBe("extra-real");
   });
 
   it("精确匹配：子床号（309W41-1）不等同于 309W41 → virtual", () => {

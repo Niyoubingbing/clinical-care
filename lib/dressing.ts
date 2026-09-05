@@ -1,5 +1,5 @@
 import { Patient, Todo, Settings, DressingSchedule } from "@/types";
-import { addTodo, todayStr } from "@/lib/db";
+import { db, addTodo, todayStr } from "@/lib/db";
 
 /**
  * 解析 YYYY-MM-DD 为本地 0 点 Date；非法返回 null。
@@ -55,7 +55,7 @@ export function resolveSchedule(p: Patient, settings: Settings): DressingSchedul
  */
 export function dressingDays(s: DressingSchedule): number[] {
   const out: number[] = [];
-  if (s.earlyInterval < 0 || s.laterInterval <= 0) return out;
+  if (!s || ![s.earlyInterval, s.laterInterval, s.maxDay].every(Number.isSafeInteger) || s.earlyInterval < 0 || s.laterInterval <= 0 || s.maxDay > 3650) return out;
   let cur = s.earlyInterval;
   while (cur <= s.maxDay) {
     out.push(cur);
@@ -143,14 +143,17 @@ export async function ensureTodaysDressingTodos(
   todos: Todo[],
   today: string
 ): Promise<void> {
-  for (const p of patients) {
-    if (!p.surgeryDate) continue;
+  await db.transaction("rw", db.patients, db.todos, async () => {
+  const freshTodos = await db.todos.toArray();
+  for (const snapshot of patients) {
+    const p = await db.patients.get(snapshot.id);
+    if (!p?.surgeryDate) continue;
     const schedule = resolveSchedule(p, settings);
     const info = dressingInfo(p, schedule, todos, today);
     if (!info.isDressingDay) continue;
     const key = dressingTodoKey(p.id, today);
-    const exists = todos.some(
-      (t) => dressingTodoKey(t.patientId ?? "", t.dueDate ?? "") === key
+    const exists = [...todos, ...freshTodos].some(
+      (t) => t.type === "换药" && dressingTodoKey(t.patientId ?? "", t.dueDate ?? "") === key
     );
     if (exists) continue;
     await addTodo({
@@ -161,4 +164,5 @@ export async function ensureTodaysDressingTodos(
       status: "pending",
     });
   }
+  });
 }

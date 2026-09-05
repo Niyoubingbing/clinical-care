@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { importConfigText } from "@/lib/rounding-edit";
 
 describe("importConfigText", () => {
-  it("normalizes a valid imported config", () => {
+  it("preserves the custom bed order when importing", () => {
     const result = importConfigText(JSON.stringify({
       ruleType: "custom",
       blocks: [{ id: "room-1", kind: "room", ward: "309W", beds: ["309W03", "309W01"] }],
@@ -12,7 +12,7 @@ describe("importConfigText", () => {
       id: "room-1",
       kind: "room",
       ward: "309W",
-      beds: ["309W01", "309W03"],
+      beds: ["309W03", "309W01"],
     });
   });
 

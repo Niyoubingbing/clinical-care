@@ -1,6 +1,7 @@
 import { Patient, RoundingConfig } from "@/types";
 import { parseBed, DEFAULT_BED_TEMPLATE, DEFAULT_SPECIAL_MARKS } from "./bed-parser";
-import { computeBedType } from "./bed-type";
+import { recognizeBed } from "./bed-identity";
+import { normalizeBedNumber, bedKey } from "./bed-number";
 import {
   DEFAULT_GROUP_COLOR,
   addPatient,
@@ -67,7 +68,7 @@ export function analyzeRoster(
   // patients or performs multiple conflicting updates for the same name.
   const latestByName = new Map<string, RosterRow>();
   for (const row of parsedRows) latestByName.set(row.name, row);
-  const valid = Array.from(latestByName.values());
+  const valid = Array.from(latestByName.values()).map(row => ({ ...row, bedNumber: normalizeBedNumber(row.bedNumber) }));
 
   const nameSet = new Set(valid.map((r) => r.name));
   const existingByName = new Map(existing.map((p) => [p.name, p]));
@@ -82,7 +83,7 @@ export function analyzeRoster(
   }
 
   const toRemove = removeAbsent
-    ? existing.filter((p) => !nameSet.has(p.name))
+    && valid.length > 0 && skipped.length === 0 ? existing.filter((p) => !nameSet.has(p.name))
     : [];
 
   return { valid, toAdd, toUpdate, toRemove, skipped, removeAbsent };
@@ -92,7 +93,7 @@ export function analyzeRoster(
  * 落库批量导入结果。
  *
  * - ward / bedBase / specialType 仍由 parseBed（展示解析）得到；
- * - bedType 统一由 computeBedType 依据查房顺序判定（v2.17.2 起不再来自解析模板）。
+ * - bedType 统一由 recognizeBed 依据独立识别规则和单床修正判定（v2.18 起）。
  *   未显式传入 roundingOrder / virtualOverrides 时，自动从 settings 读取，
  *   保证任何调用点写入的 bedType 与首页筛选口径一致。
  */
@@ -103,6 +104,9 @@ export async function applyRoster(
   roundingOrder?: RoundingConfig,
   virtualOverrides?: string[]
 ): Promise<{ added: number; updated: number; removed: number }> {
+  if (!preview.valid.length) throw new Error("没有可导入的有效病人，现有数据未改动");
+  if (preview.removeAbsent && preview.skipped.length) throw new Error("存在未识别行，请先修正或关闭「移除未出现的病人」");
+  if (new Set(preview.valid.map(row => bedKey(row.bedNumber))).size !== preview.valid.length) throw new Error("名单中有重复床号，请确认后再导入");
   let added = 0;
   let updated = 0;
   let removed = 0;
@@ -119,6 +123,21 @@ export async function applyRoster(
   const defaultGroup = settings.customGroups?.[0];
 
   await db.transaction("rw", db.patients, db.todos, async () => {
+    const current = await db.patients.toArray();
+    const names = new Set<string>();
+    for (const p of current) {
+      if (names.has(p.name) && preview.valid.some(row => row.name === p.name)) throw new Error("存在同名病人，请先分别编辑，避免更新错人");
+      names.add(p.name);
+    }
+    for (const { existing } of preview.toUpdate) {
+      const fresh = current.find(p => p.id === existing.id);
+      if (!fresh || fresh.updatedAt !== existing.updatedAt) throw new Error("病人信息已更改，请重新预览");
+    }
+    for (const p of preview.toRemove) {
+      const fresh = current.find(item => item.id === p.id);
+      if (fresh && fresh.updatedAt !== p.updatedAt) throw new Error("病人信息已更改，请重新预览");
+    }
+    if (preview.toAdd.some(row => names.has(row.name))) throw new Error("名单已更改或已导入，请重新预览");
     for (const row of preview.toAdd) {
       const parsed = parseBed(row.bedNumber, template, specialMarks);
       await addPatient({
@@ -129,11 +148,7 @@ export async function applyRoster(
         groupColor: defaultGroup?.color ?? DEFAULT_GROUP_COLOR,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
-        bedType: computeBedType(
-          { bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase },
-          order,
-          overrides
-        ),
+        bedType: recognizeBed({ bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase }, { ...settings, bedTemplate: template, specialMarks, roundingOrder: order, virtualOverrides: overrides }),
         specialType: parsed.specialType,
       });
       added++;
@@ -146,11 +161,7 @@ export async function applyRoster(
         diagnosis: row.diagnosis,
         ward: parsed.ward,
         bedBase: parsed.bedBase,
-        bedType: computeBedType(
-          { bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase },
-          order,
-          overrides
-        ),
+        bedType: recognizeBed({ bedNumber: row.bedNumber, ward: parsed.ward, bedBase: parsed.bedBase }, { ...settings, bedTemplate: template, specialMarks, roundingOrder: order, virtualOverrides: overrides }),
         specialType: parsed.specialType,
       });
       updated++;

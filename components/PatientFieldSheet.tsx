@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import BottomSheet from "./BottomSheet";
 import { db, getSettings, updatePatient } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
-import { computeBedType } from "@/lib/bed-type";
+import { recognizeBed } from "@/lib/bed-identity";
 import { useApp } from "./Providers";
 import { Patient } from "@/types";
 
@@ -52,11 +52,7 @@ export default function PatientFieldSheet({ patient, field, onClose }: {
       patch.ward = parsed.ward;
       patch.bedBase = parsed.bedBase;
       patch.specialType = parsed.specialType;
-      patch.bedType = computeBedType(
-        { bedNumber: next, ward: parsed.ward, bedBase: parsed.bedBase },
-        settings.roundingOrder,
-        settings.virtualOverrides
-      );
+      patch.bedType = recognizeBed({ bedNumber: next, ward: parsed.ward, bedBase: parsed.bedBase }, settings);
     }
     await updatePatient(patient.id, patch);
     toast({ message: `${meta?.label}已更新` });

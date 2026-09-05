@@ -44,7 +44,7 @@ describe("parseBed", () => {
   });
 
   it("returns a safe fallback (no throw) for beds that do not match the template", () => {
-    for (const b of ["J04", "V09", "random", "30901", "ABC", "120"]) {
+    for (const b of ["V09", "random", "30901", "ABC"]) {
       const r = parseBed(b);
       expect(r.matched).toBe(false);
       expect(typeof r.bedBase).toBe("number");
@@ -82,11 +82,10 @@ describe("parseBed", () => {
     expect(r.matched).toBe(false);
   });
 
-  it("infers ward from leading digits+letter when the base template fails", () => {
-    // lowercase ward direction is not matched by the [A-Z] template group,
-    // but the fallback still infers the ward prefix.
+  it("accepts lowercase ward direction", () => {
+    // Matching normalizes case without changing the patient record.
     const r = parseBed("309w01");
-    expect(r.matched).toBe(false);
+    expect(r.matched).toBe(true);
     expect(r.ward).toBe("309W");
   });
 
@@ -98,7 +97,7 @@ describe("parseBed", () => {
     expect(r.bedType).toBe("real");
     // 组数无关提取：ward 由 m[1]+m[2] 拼出（W + 309 → "W309"），不依赖固定 4 组结构。
     expect(r.ward).toBe("W309");
-    // 该 3 组模板没有第 4 个「床基」捕获组，bedBase 由 trailingDigits 兜底推断为 30901（不会是 NaN）。
-    expect(r.bedBase).toBe(30901);
+    // 三组模板最后一组是床号，不应把病区数字一起当作床号。
+    expect(r.bedBase).toBe(1);
   });
 });

@@ -1,6 +1,6 @@
 export type Theme = "light" | "dark" | "system";
 
-export type BedType = "real" | "extra-real" | "virtual";
+export type BedType = "real" | "extra-real" | "virtual" | "unrecognized";
 
 export type TodoType =
   | "换药"
@@ -92,4 +92,7 @@ export interface Settings {
   // 强制虚拟床名单（完整床号，精确匹配）：极少数场景下把已在查房块内的床强制判为虚拟床。
   // 优先级高于 roundingOrder 块匹配，见 lib/bed-type.ts computeBedType。
   virtualOverrides?: string[];
+  // 单床类型修正按床号保存，不随病人出院丢失。undefined 表示自动识别。
+  bedRecognitionVersion?: 1;
+  bedTypeOverrides?: { bedNumber: string; type: Exclude<BedType, "unrecognized"> }[];
 }
