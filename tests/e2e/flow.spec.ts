@@ -78,13 +78,12 @@ test('核心流程4: 首页列表正序/反序切换并持久化到 settings', a
   await page.getByRole('button', { name: '预览' }).click();
   await page.getByRole('button', { name: '确认导入' }).click();
 
-  const reverseBtn = page.getByRole('button', { name: '反序' });
-  await reverseBtn.click();
-  await expect(reverseBtn).toHaveClass(/sort-button-active/);
+  await page.getByRole('button', { name: '查房排序：正序，点击切换为反序' }).click();
+  await expect(page.getByRole('button', { name: '查房排序：反序，点击切换为正序' })).toBeVisible();
 
   // 刷新后应保持反序
   await page.reload();
-  await expect(page.getByRole('button', { name: '反序' })).toHaveClass(/sort-button-active/);
+  await expect(page.getByRole('button', { name: '查房排序：反序，点击切换为正序' })).toBeVisible();
 });
 
 test('视觉回归: 病房单层卡片与紧凑底部导航', async ({ page }, testInfo) => {

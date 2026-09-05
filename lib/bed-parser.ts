@@ -1,3 +1,4 @@
+import { normalizeBedNumber } from "./bed-number";
 import { BedType } from "@/types";
 
 export const DEFAULT_BED_TEMPLATE = "^(\\d{3})([A-Z])([A-Z]{0,2})?(\\d{2})$";
@@ -41,6 +42,7 @@ export function parseBed(
   template: string = DEFAULT_BED_TEMPLATE,
   specialMarks: string[] = DEFAULT_SPECIAL_MARKS
 ): BedParseResult {
+  bedNumber = normalizeBedNumber(bedNumber || "");
   if (!bedNumber) {
     return {
       bedNumber: bedNumber ?? "",
@@ -70,8 +72,13 @@ export function parseBed(
     return fallback;
   }
 
-  const m = bedNumber.match(re);
-  if (!m) {
+  // Default format accepts J4/J04, a 1–3 digit base, and child beds such as 01-2.
+  // Custom templates remain fully authoritative.
+  const builtin = template === DEFAULT_BED_TEMPLATE;
+  const m = builtin
+    ? bedNumber.match(/^(\d{3})([A-Z])([A-Z]{0,2})(\d{1,3})(?:-\d+)?$/) || bedNumber.match(/^()()([A-Z]{0,2})(\d{1,3})(?:-\d+)?$/)
+    : bedNumber.match(re);
+  if (!m || (builtin && !m[1] && m[3] && !specialMarks.map(mark => mark.toUpperCase()).includes(m[3]))) {
     // try to infer ward from leading digits + letter
     const wm = bedNumber.match(/^(\d+)([A-Za-z])/);
     if (wm) {
@@ -88,15 +95,15 @@ export function parseBed(
   // 不再用 m.length < 5 这种隐含「恰有 4 个捕获组」的过严假设——
   // 自定义模板捕获组数≠4（如 3 组 ^([A-Z])(\d{3})(\d{2})$）时，合法匹配本应判为 real，
   // 旧逻辑却因 m.length=4 < 5 误入兜底分支、推断不出病区而返回 virtual，导致该床被隐藏。
-  const special = (m[3] || "").toUpperCase();
-  const isSpecial = specialMarks.includes(special);
+  const special = (m.groups?.mark ?? (m.length >= 5 ? m[3] : "") ?? "").toUpperCase();
+  const isSpecial = specialMarks.map(mark => mark.toUpperCase()).includes(special);
   const bedType: BedType = isSpecial ? "extra-real" : "real";
 
   const wardBase = m[1] || "";
   const wardDir = m[2] || "";
-  const ward = (wardBase + wardDir).toUpperCase();
+  const ward = (m.groups?.ward ?? (wardBase + wardDir)).toUpperCase();
 
-  const bedBaseRaw = m[4];
+  const bedBaseRaw = m.groups?.bed ?? m[4] ?? (m.length === 4 ? m[3] : undefined);
   const bedBase =
     bedBaseRaw != null ? parseInt(bedBaseRaw, 10) : trailingDigits(bedNumber) ?? 0;
 

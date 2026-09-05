@@ -14,6 +14,7 @@ import { MotionConfig } from "framer-motion";
 import { getSettings, ensureSettingsMigrated, db, todayStr } from "@/lib/db";
 import { ensureTodaysDressingTodos } from "@/lib/dressing";
 import ToastContainer, { type ToastItem } from "@/components/Toast";
+import packageInfo from "../package.json";
 import UpdateBanner from "@/components/UpdateBanner";
 
 type Theme = "light" | "dark" | "system";
@@ -115,7 +116,7 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   // 应用更新状态（PWA Service Worker 更新管理）
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
-  const [localVersion, setLocalVersion] = useState<string | null>(null);
+  const localVersion = packageInfo.version;
   const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const waitingRef = useRef<ServiceWorker | null>(null);
@@ -139,7 +140,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (settings.theme === "system") {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
       const handler = (e: MediaQueryListEvent) =>
-        document.documentElement.classList.toggle("dark", e.matches);
+        applyThemeClass(e.matches ? "dark" : "light");
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     }
@@ -148,12 +149,6 @@ export default function Providers({ children }: { children: ReactNode }) {
   // Register service worker + 管理更新生命周期
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    // 版本号与 Service Worker 解耦：开发环境不注册 SW，但设置页仍应显示当前版本。
-    fetch("/version.json", { cache: "no-cache" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => j && j.version && setLocalVersion(j.version))
-      .catch(() => {});
 
     if (!("serviceWorker" in navigator)) return;
 
@@ -242,7 +237,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     setUpdateState("checking");
     const reg = registrationRef.current;
     let fetchedRemote: string | null = null;
-    fetch("/version.json", { cache: "no-cache" })
+    fetch(`/version.json?check=${Date.now()}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         if (j && j.version) {
@@ -259,7 +254,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           if (hasWaiting) return "available";
           if (fetchedRemote && localVersion && fetchedRemote !== localVersion)
             return "available";
-          return prev === "checking" ? "latest" : prev;
+          return prev === "checking" ? (fetchedRemote ? "latest" : "error") : prev;
         });
         // 终态（已是最新 / 失败）延时回弹，恢复按钮可点状态
         scheduleReset();

@@ -9,19 +9,24 @@ import {
   RotateCcw,
   Copy,
   ChevronDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getSettings, updateSettings, defaultRoundingConfig } from "@/lib/db";
+import { getSettings, defaultRoundingConfig, db } from "@/lib/db";
+import { saveRoundingConfig } from "@/lib/rounding-settings";
 import {
   basicRuleFromCounts,
   exportConfigText,
   importConfigText,
-  normalizeBeds,
   isFullBed,
 } from "@/lib/rounding-edit";
 import { RoundingConfig, RoundingBlock } from "@/types";
 import { useApp } from "@/components/Providers";
 import SubpageHeader from "@/components/SubpageHeader";
+import BedPlacementPanel from "@/components/BedPlacementPanel";
+import { bedKey, normalizeBedNumber } from "@/lib/bed-number";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -29,20 +34,28 @@ function pad2(n: number): string {
 
 export default function RoundingPage() {
   const { toast } = useApp();
+  const patients = useLiveQuery(() => db.patients.toArray(), []);
   const settings = useLiveQuery(() => getSettings(), []);
   const [config, setConfig] = useState<RoundingConfig | null>(null);
   const [basicCount, setBasicCount] = useState(40);
   const [basicAvg, setBasicAvg] = useState(3);
   const [showIO, setShowIO] = useState(false);
   const [ioText, setIoText] = useState("");
-  const inited = useRef(false);
+  const currentConfig = useRef<RoundingConfig | null>(null);
+  const persisted = useRef<RoundingConfig | null>(null);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const pending = useRef(0);
+  const failed = useRef(false);
+  const [saveState, setSaveState] = useState("已保存");
+  const [replacement, setReplacement] = useState<RoundingConfig | null>(null);
 
   // 仅初始化一次：从 DB 读取（已迁移），缺失则回填。
   useEffect(() => {
-    if (!settings || inited.current) return;
-    inited.current = true;
+    if (!settings || pending.current || failed.current) return;
     const c = settings.roundingOrder;
     setConfig(c);
+    currentConfig.current = c;
+    persisted.current = c;
     if (c.regularBedCount) setBasicCount(c.regularBedCount);
     if (c.avgBedsPerRoom) setBasicAvg(c.avgBedsPerRoom);
   }, [settings]);
@@ -50,46 +63,59 @@ export default function RoundingPage() {
   if (!config) return <div className="py-10 text-center text-muted">加载中…</div>;
 
   const save = (next: RoundingConfig) => {
+    if (failed.current) { toast({ message: "请先重新载入已保存的路线，再继续调整" }); return; }
+    if (JSON.stringify(next) === JSON.stringify(currentConfig.current)) return;
+    currentConfig.current = next;
     setConfig(next);
-    updateSettings({ roundingOrder: next });
+    pending.current++;
+    setSaveState("保存中…");
+    queue.current = queue.current.then(async () => {
+      if (failed.current || !persisted.current) return;
+      await saveRoundingConfig(persisted.current, next);
+      persisted.current = next;
+    }).catch(error => {
+      failed.current = true;
+      toast({ message: error instanceof Error ? error.message : "保存失败，请重新载入后重试" });
+    }).finally(() => {
+      pending.current--;
+      if (!pending.current) setSaveState(failed.current ? "未保存，请重新载入" : "已保存");
+    });
   };
 
   // 任意病房块/床号/加床的编辑都视为自定义。
   const updateBlock = (id: string, patch: Partial<RoundingBlock>) => {
     save({
-      ...config,
+      ...currentConfig.current!,
       ruleType: "custom",
-      blocks: config.blocks.map((b) =>
+      blocks: currentConfig.current!.blocks.map((b) =>
         b.id === id ? ({ ...b, ...patch } as RoundingBlock) : b
       ),
     });
   };
   const removeBlock = (id: string) =>
-    save({ ...config, blocks: config.blocks.filter((b) => b.id !== id) });
+    save({ ...currentConfig.current!, ruleType: "custom", blocks: currentConfig.current!.blocks.filter((b) => b.id !== id) });
 
   const onReorder = (ids: string[]) => {
-    const byId = new Map(config.blocks.map((b) => [b.id, b]));
+    const byId = new Map(currentConfig.current!.blocks.map((b) => [b.id, b]));
     const next = ids
       .map((id) => byId.get(id))
       .filter((b): b is RoundingBlock => Boolean(b));
-    save({ ...config, blocks: next });
+    save({ ...currentConfig.current!, ruleType: "custom", blocks: next });
   };
 
   // 规则态切换
   const switchRule = (rule: RoundingConfig["ruleType"]) => {
     if (rule === "default") {
-      save(defaultRoundingConfig());
+      setReplacement(defaultRoundingConfig());
       return;
     }
     if (rule === "basic") {
-      const hasFull = config.blocks.some((b) => b.beds.some(isFullBed));
-      // 从默认（带前缀）切换或当前无块时，清空以便走向导；否则保留已编辑块。
-      const fresh = config.ruleType === "default" || hasFull || config.blocks.length === 0;
+      // Opening the generator must not erase the saved route.
       save({
         ruleType: "basic",
         regularBedCount: basicCount,
         avgBedsPerRoom: basicAvg,
-        blocks: fresh ? [] : config.blocks,
+        blocks: config.blocks,
       });
       return;
     }
@@ -99,26 +125,25 @@ export default function RoundingPage() {
   const generateBasic = () => {
     const count = Math.min(2000, Math.max(1, Math.floor(basicCount) || 1));
     const avg = Math.min(200, Math.max(1, Math.floor(basicAvg) || 1));
-    save({
+    setReplacement({
       ruleType: "basic",
       regularBedCount: count,
       avgBedsPerRoom: avg,
       blocks: basicRuleFromCounts(count, avg),
     });
-    toast({ message: `已按 ${count} 床 / 每房 ${avg} 床 生成病房块` });
   };
 
   const addRoom = () =>
     save({
       ...config,
       ruleType: "custom",
-      blocks: [...config.blocks, { id: crypto.randomUUID(), kind: "room", beds: ["01"] }],
+      blocks: [...currentConfig.current!.blocks, { id: crypto.randomUUID(), kind: "room", beds: [] }],
     });
   const addExtra = () =>
     save({
       ...config,
       ruleType: "custom",
-      blocks: [...config.blocks, { id: crypto.randomUUID(), kind: "extra", beds: [] }],
+      blocks: [...currentConfig.current!.blocks, { id: crypto.randomUUID(), kind: "extra", beds: [] }],
     });
 
   const copyExport = async () => {
@@ -139,7 +164,7 @@ export default function RoundingPage() {
       return;
     }
     save(parsed);
-    toast({ message: "已导入查房顺序" });
+    toast({ message: "配置已载入，请确认下方保存状态" });
   };
 
   const ruleType = config.ruleType;
@@ -152,8 +177,7 @@ export default function RoundingPage() {
         action={
           <button
             onClick={() => {
-              save(defaultRoundingConfig());
-              toast({ message: "已恢复默认规则" });
+              setReplacement(defaultRoundingConfig());
             }}
             className="flex h-10 items-center gap-1 rounded-[10px] border border-border/10 bg-card px-2.5 text-[12px] text-muted"
           >
@@ -161,6 +185,9 @@ export default function RoundingPage() {
           </button>
         }
       />
+
+      <div className="flex items-center justify-between text-[12px] text-muted"><span role="status">{saveState}</span>{failed.current && <button className="btn-secondary h-10" onClick={() => { if (settings && !pending.current) { failed.current = false; currentConfig.current = settings.roundingOrder; persisted.current = settings.roundingOrder; setConfig(settings.roundingOrder); setSaveState("已保存"); } }}>重新载入</button>}</div>
+      <ConfirmDialog open={!!replacement} title="替换当前查房路线？" message="当前病房块、加床块和手动顺序将被替换。病人和待办不会删除。" confirmText="确认替换" onCancel={() => setReplacement(null)} onConfirm={() => { if (replacement) save(replacement); setReplacement(null); }} />
 
       {/* 规则态三态 */}
       <div className="grid grid-cols-3 gap-2">
@@ -221,6 +248,8 @@ export default function RoundingPage() {
         </div>
       )}
 
+      {settings && <BedPlacementPanel config={config} settings={settings} patients={patients || []} onChange={save} onError={message => toast({ message })} />}
+
       {/* 块列表 */}
       <div className="subpage-section-heading">
         <div>
@@ -242,22 +271,25 @@ export default function RoundingPage() {
           onReorder={onReorder}
           className="space-y-2"
         >
-          {config.blocks.map((b) => (
+          {config.blocks.map((b, index) => (
             <BlockCard
               key={b.id}
               block={b}
               onUpdate={(patch) => updateBlock(b.id, patch)}
               onRemove={() => removeBlock(b.id)}
+              index={index}
+              total={config.blocks.length}
+              onMove={delta => { const ids = currentConfig.current!.blocks.map(block => block.id); const next = index + delta; if (next >= 0 && next < ids.length) { [ids[index], ids[next]] = [ids[next], ids[index]]; onReorder(ids); } }}
             />
           ))}
         </Reorder.Group>
       )}
 
       <div className="flex gap-2 pt-1">
-        <button className="btn-secondary h-11 flex-1 whitespace-nowrap" onClick={addRoom}>
+        <button className="btn-secondary h-11 min-w-0 flex-1 whitespace-nowrap px-2 text-[12px] sm:text-[14px]" onClick={addRoom}>
           <Plus size={16} /> 添加病房块
         </button>
-        <button className="btn-secondary h-11 flex-1 whitespace-nowrap" onClick={addExtra}>
+        <button className="btn-secondary h-11 min-w-0 flex-1 whitespace-nowrap px-2 text-[12px] sm:text-[14px]" onClick={addExtra}>
           <Plus size={16} /> 添加真实加床块
         </button>
       </div>
@@ -314,29 +346,37 @@ function BlockCard({
   block,
   onUpdate,
   onRemove,
+  index,
+  total,
+  onMove,
 }: {
   block: RoundingBlock;
   onUpdate: (patch: Partial<RoundingBlock>) => void;
   onRemove: () => void;
+  index: number;
+  total: number;
+  onMove: (delta: number) => void;
 }) {
   const controls = useDragControls();
+  const { toast } = useApp();
   const [draft, setDraft] = useState("");
 
   const isRoom = block.kind === "room";
   const ward = block.kind === "room" ? block.ward : undefined;
 
   const addBed = () => {
-    const raw = draft.trim();
+    const raw = normalizeBedNumber(draft);
     if (!raw) return;
     let bed: string;
     if (isRoom) {
-      const n = parseInt(raw, 10);
-      if (isNaN(n)) return;
-      bed = ward ? `${ward}${pad2(n)}` : pad2(n);
+      if (/^\d+$/.test(raw)) bed = ward ? `${ward}${pad2(Number(raw))}` : pad2(Number(raw));
+      else if (isFullBed(raw)) bed = raw;
+      else { toast({ message: "普通床请填写数字或完整床号；J04 请加入加床块" }); return; }
     } else {
       bed = raw;
     }
-    onUpdate({ beds: normalizeBeds([...block.beds, bed]) });
+    if (block.beds.some(value => bedKey(value) === bedKey(bed))) { toast({ message: "此块已有相同床号" }); return; }
+    onUpdate({ beds: [...block.beds, bed] });
     setDraft("");
   };
 
@@ -349,8 +389,9 @@ function BlockCard({
       dragListener={false}
       dragControls={controls}
       className="card flex items-start gap-2 p-3"
+      data-testid="rounding-block"
     >
-      <DragHandle controls={controls} />
+      <div className="flex flex-col items-center"><DragHandle controls={controls} /><button aria-label={`上移第 ${index + 1} 块`} disabled={index === 0} onClick={() => onMove(-1)} className="flex h-10 w-8 items-center justify-center text-muted disabled:opacity-30"><ArrowUp size={15} /></button><button aria-label={`下移第 ${index + 1} 块`} disabled={index === total - 1} onClick={() => onMove(1)} className="flex h-10 w-8 items-center justify-center text-muted disabled:opacity-30"><ArrowDown size={15} /></button></div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
@@ -370,12 +411,14 @@ function BlockCard({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {block.beds.map((bed) => (
+          {block.beds.map((bed, bedIndex) => (
             <span
               key={bed}
               className="flex items-center gap-1 rounded-md bg-surface-alt px-2 py-1 text-[12px] text-main"
             >
               {bed}
+              <button aria-label={`前移 ${bed}`} disabled={bedIndex === 0} className="flex h-8 w-6 items-center justify-center disabled:opacity-30" onClick={() => { const beds = [...block.beds]; [beds[bedIndex - 1], beds[bedIndex]] = [beds[bedIndex], beds[bedIndex - 1]]; onUpdate({ beds }); }}><ArrowUp size={12} /></button>
+              <button aria-label={`后移 ${bed}`} disabled={bedIndex === block.beds.length - 1} className="flex h-8 w-6 items-center justify-center disabled:opacity-30" onClick={() => { const beds = [...block.beds]; [beds[bedIndex + 1], beds[bedIndex]] = [beds[bedIndex], beds[bedIndex + 1]]; onUpdate({ beds }); }}><ArrowDown size={12} /></button>
               <button
                 aria-label={`删除 ${bed}`}
                 onClick={() => removeBed(bed)}
@@ -407,7 +450,7 @@ function BlockCard({
 
         {isRoom && (
           <p className="mt-1.5 text-[11px] text-muted">
-            基础床号，升序；病房块内可单独增删（如某房仅 2 床，去掉 03）。
+            按显示顺序查房，可前移、后移床位；添加完整床号不会改变其他基础床位。
           </p>
         )}
       </div>

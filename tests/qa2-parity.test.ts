@@ -89,9 +89,9 @@ describe("QA2 parity: computeBedType(非virtual) ≡ resolveOrder(已入列)", (
     const d = diff(cfg, pts);
     // eslint-disable-next-line no-console
     console.log("QA2 parity duplicate-bedBase diff =", JSON.stringify(d));
-    // 仅记录实际行为，不强行断言等价（resolveOrder 每个 (ward,bedBase) 只放一人）
+    // 回归保护：同病区同基础床号的子床也必须全部入列。
     // eslint-disable-next-line no-console
     console.log("QA2 duplicate-bedBase types =", JSON.stringify(pts.map((x) => ({ id: x.id, t: computeBedType(x, cfg) }))));
-    expect(Array.isArray(d)).toBe(true);
+    expect(d).toEqual([]);
   });
 });

@@ -31,14 +31,12 @@ test("vercel.json: valid JSON, rewrites array, build/output fields intact", () =
   expect(cfg.outputDirectory, "outputDirectory should remain 'out'").toBe("out");
 
   const expected = [
-    { source: "/todos", destination: "/todos.html" },
-    { source: "/settings", destination: "/settings.html" },
-    { source: "/settings/:path*", destination: "/settings/:path*.html" },
-    { source: "/patient/:path*", destination: "/patient.html" },
+    { source: "/patient/:path*", destination: "/patient" },
   ];
 
-  // Must be exactly these four (the fix adds a controlled set of clean-URL rewrites).
-  expect(cfg.rewrites.length, "there must be exactly 4 rewrite rules").toBe(expected.length);
+  expect(cfg.cleanUrls).toBe(true);
+  // RSC .txt files must remain static, never be rewritten to .txt.html.
+  expect(cfg.rewrites.length, "only the legacy patient route needs a rewrite").toBe(expected.length);
   for (const rule of expected) {
     const found = cfg.rewrites.some(
       (r) => r.source === rule.source && r.destination === rule.destination

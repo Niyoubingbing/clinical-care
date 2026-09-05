@@ -1,3 +1,6 @@
+import { parseBed, DEFAULT_BED_TEMPLATE, DEFAULT_SPECIAL_MARKS } from "./bed-parser";
+import { isRelativeBed } from "./rounding-match";
+import { bedKey } from "./bed-number";
 import Dexie, { Table } from "dexie";
 import {
   Patient,
@@ -162,6 +165,8 @@ export function defaultSettings(): Settings {
     showVirtualBeds: true,
     // 强制虚拟床名单，默认空；见 lib/bed-type.ts computeBedType。
     virtualOverrides: [],
+    bedRecognitionVersion: 1,
+    bedTypeOverrides: [],
   };
 }
 
@@ -177,69 +182,37 @@ export async function getSettings(): Promise<Settings> {
   // 纯读：仅返回旧格式迁移后的视图，不在 querier 内写回，
   // 消除「读里写」订阅回环（迁移写回由 ensureSettingsMigrated 一次性完成）。
   const migrated = migrateRoundingOrder(s.roundingOrder);
-  return { ...s, roundingOrder: migrated };
+  const current = { ...defaultSettings(), ...s, roundingOrder: migrated };
+  current.quickTodos = (s.quickTodos ?? defaultQuickTodos()).map((q, i) => q.id ? q : { ...q, id: `qt-${i}-${q.label}` });
+  if (s.bedRecognitionVersion !== 1) {
+    // Preserve previously explicit custom-name bed types once; future routing never defines type.
+    const corrections = [...(s.bedTypeOverrides || [])];
+    for (const block of migrated.blocks) for (const bedNumber of block.beds) {
+      if (isRelativeBed(bedNumber) || parseBed(bedNumber, s.bedTemplate ?? DEFAULT_BED_TEMPLATE, s.specialMarks ?? DEFAULT_SPECIAL_MARKS).matched) continue;
+      if (!corrections.some(item => bedKey(item.bedNumber) === bedKey(bedNumber)) && !s.virtualOverrides?.some(b => bedKey(b) === bedKey(bedNumber))) {
+        corrections.push({ bedNumber, type: block.kind === "extra" ? "extra-real" : "real" });
+      }
+    }
+    current.bedTypeOverrides = corrections;
+    current.bedRecognitionVersion = 1;
+  }
+  return current;
 }
 
-// 一次性迁移：将旧格式 roundingOrder 与缺失 id 的 quickTodos 写回数据库。
-// 由模块级 flag 保证全应用仅执行一次（在 Providers 挂载时调用），
-// 避免每次 getSettings 读取都触发写回与订阅回环。
-let migrationDone = false;
+// Idempotent and atomic. Failed writes can be retried; explicit system-theme choice is preserved.
 export async function ensureSettingsMigrated(): Promise<void> {
-  if (migrationDone) return;
-  migrationDone = true;
-  const s = await db.settings.get(1);
-  if (!s) return;
-  const raw = s.roundingOrder as unknown;
-  const isNewConfig =
-    raw &&
-    typeof raw === "object" &&
-    !Array.isArray(raw) &&
-    "blocks" in (raw as Record<string, unknown>);
-  const quickTodos = (s.quickTodos ?? []).map((q, i) =>
-    q.id ? q : { ...q, id: `qt-${i}-${q.label}` }
-  );
-  const needsQuickMigration = (s.quickTodos ?? []).some((q) => !q.id);
-  // 一次性迁移：旧版默认/未显式选择的 theme==="system" 翻为 "light"，
-  // 消除暗色设备被迫进暗色 UI 的体感崩坏。已显式选过 dark/light 的用户不受影响。
-  const needsThemeMigration = s.theme === "system";
-  // 旧数据可能缺失 v2.17 新增的 dressingSchedule / showVirtualBeds 字段，需回补默认值。
-  const needsDressingBackfill =
-    !s.dressingSchedule ||
-    typeof s.dressingSchedule.earlyInterval !== "number" ||
-    typeof s.dressingSchedule.laterInterval !== "number" ||
-    typeof s.dressingSchedule.maxDay !== "number" ||
-    s.showVirtualBeds === undefined;
-  if (
-    !isNewConfig ||
-    needsQuickMigration ||
-    needsThemeMigration ||
-    needsDressingBackfill
-  ) {
-    const migrated = migrateRoundingOrder(s.roundingOrder);
-    await db.settings.put({
-      ...s,
-      roundingOrder: migrated,
-      quickTodos,
-      theme: needsThemeMigration ? "light" : s.theme,
-      dressingSchedule: s.dressingSchedule ?? {
-        earlyInterval: 2,
-        laterInterval: 3,
-        maxDay: 14,
-      },
-      showVirtualBeds: s.showVirtualBeds ?? true,
-      id: 1,
-    });
-  }
+  await db.transaction("rw", db.settings, async () => {
+    const stored = await db.settings.get(1);
+    const next = await getSettings();
+    if (JSON.stringify(stored) !== JSON.stringify(next)) await db.settings.put(next);
+  });
 }
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   // Serialize read-modify-write updates so two settings screens saving at the
   // same time cannot silently overwrite one another's fields.
   await db.transaction("rw", db.settings, async () => {
-    const stored = await db.settings.get(1);
-    const current = stored
-      ? { ...stored, roundingOrder: migrateRoundingOrder(stored.roundingOrder) }
-      : defaultSettings();
+    const current = await getSettings();
     await db.settings.put({ ...current, ...patch, id: 1 });
   });
 }
@@ -341,6 +314,8 @@ export async function clearAllData(): Promise<void> {
       showVirtualBeds: s?.showVirtualBeds ?? true,
       // 强制虚拟床名单属于「设置」而非业务数据，与 bedTemplate 一样在清空数据后保留。
       virtualOverrides: s?.virtualOverrides ?? [],
+      bedTypeOverrides: s?.bedTypeOverrides ?? [],
+      bedRecognitionVersion: s?.bedRecognitionVersion,
     });
   });
 }

@@ -1,83 +1,45 @@
-import { Patient, RoundingConfig, RoundingBlock } from "@/types";
+import type { Patient, RoundingConfig, RoundingBlock } from "@/types";
 import { isFullBed, blockLabel } from "./rounding-edit";
+import { findRouteBlock, isRelativeBed, routeMatchScore, routeWard } from "./rounding-match";
 
 export interface OrderedPatient {
   patient: Patient;
-  groupId: string | null; // 所属病房块 id（含病区隔离后缀）；未进入序列为 null
+  groupId: string | null;
   groupLabel: string | null;
 }
+export function isFullBedNumber(bed: string): boolean { return isFullBed(bed); }
 
-/** 床号是否为带前缀完整床号（如 309W01），区别于基础床号（如 01）。 */
-export function isFullBedNumber(bed: string): boolean {
-  return isFullBed(bed);
-}
-
-/**
- * 将查房配置解析为有序病人序列（PRD 4.9.3 / 4.9.4）。
- * - 默认规则（块内为完整床号）：按 bedNumber 精确匹配。
- * - 基础规则（块内为基础床号）：按病区隔离套用块模板——各病区依次按 bedBase 匹配。
- * - 未进入任何块的病人在末尾按「病区 + 基础床号」升序追加。
- * 返回结果中相邻同 groupId 的病人即为同一病房块，供首页组合卡片展示。
- * 注：序列的整体正/反序是首页病人列表的展示偏好（settings.listDirection），不在此处理。
- */
-export function resolveOrder(
-  config: RoundingConfig,
-  patients: Patient[]
-): OrderedPatient[] {
-  const blocks: RoundingBlock[] = config.blocks ?? [];
-
-  const byBed = new Map(patients.map((p) => [p.bedNumber, p]));
+/** Relative entries are applied ward by ward; exact-only routes retain their
+ * explicit cross-ward block order. Unmatched patients remain at the end. */
+export function resolveOrder(config: RoundingConfig, patients: Patient[]): OrderedPatient[] {
+  const blocks = config.blocks ?? [];
+  const owners = new Map(patients.map(p => [p.id, findRouteBlock(p, blocks)]));
+  const relative = blocks.some(block => block.beds.some(isRelativeBed));
   const placed = new Set<string>();
   const result: OrderedPatient[] = [];
-
-  const blocksUseFull = blocks.some((b) => b.beds.some(isFullBed));
-
-  const pushGroup = (block: RoundingBlock, ward?: string) => {
-    const group: Patient[] = [];
+  const appendBlock = (block: RoundingBlock, ward?: string) => {
     for (const bed of block.beds) {
-      let p: Patient | undefined;
-      if (blocksUseFull) {
-        p = byBed.get(bed);
-      } else {
-        const n = parseInt(bed, 10);
-        p = patients.find(
-          (x) => (x.ward ?? "") === (ward ?? "") && x.bedBase === n
-        );
+      const matches = patients.filter(p => owners.get(p.id) === block && !placed.has(p.id) &&
+        (ward === undefined || routeWard(p) === ward) && routeMatchScore(p, block, bed) > 0 &&
+        !block.beds.some(other => routeMatchScore(p, block, other) > routeMatchScore(p, block, bed)))
+        .sort((a, b) => a.bedNumber.localeCompare(b.bedNumber, "zh", { numeric: true }) || a.id.localeCompare(b.id));
+      for (const patient of matches) {
+        placed.add(patient.id);
+        result.push({ patient, groupId: ward ? `${block.id}#${ward}` : block.id, groupLabel: blockLabel(block) });
       }
-      if (p && !placed.has(p.id)) {
-        group.push(p);
-        placed.add(p.id);
-      }
-    }
-    if (group.length) {
-      const gid = ward ? `${block.id}#${ward}` : block.id;
-      for (const p of group)
-        result.push({ patient: p, groupId: gid, groupLabel: blockLabel(block) });
     }
   };
-
-  if (blocksUseFull) {
-    for (const block of blocks) pushGroup(block);
+  if (relative) {
+    const wards = [...new Set(patients.map(routeWard))].sort((a, b) => a.localeCompare(b, "zh", { numeric: true }));
+    for (const ward of wards) for (const block of blocks) appendBlock(block, ward);
   } else {
-    const wards = [
-      ...new Set(patients.map((p) => p.ward).filter(Boolean)),
-    ].sort((a, b) => a!.localeCompare(b!, "zh")) as string[];
-    const wardList = wards.length ? wards : [""];
-    for (const w of wardList) {
-      for (const block of blocks) pushGroup(block, w);
-    }
+    for (const block of blocks) appendBlock(block);
   }
-
-  // 未进入序列的病人：末尾按病区 + 基础床号升序
-  const unmatched = patients
-    .filter((p) => !placed.has(p.id))
-    .sort(
-      (a, b) =>
-        (a.ward ?? "").localeCompare(b.ward ?? "", "zh") ||
-        (a.bedBase ?? 0) - (b.bedBase ?? 0)
-    );
-  for (const p of unmatched)
-    result.push({ patient: p, groupId: null, groupLabel: null });
-
+  for (const patient of patients.filter(p => !placed.has(p.id)).sort((a, b) =>
+    routeWard(a).localeCompare(routeWard(b), "zh", { numeric: true }) ||
+    (a.bedBase ?? 0) - (b.bedBase ?? 0) ||
+    a.bedNumber.localeCompare(b.bedNumber, "zh", { numeric: true }) || a.id.localeCompare(b.id))) {
+    result.push({ patient, groupId: null, groupLabel: null });
+  }
   return result;
 }

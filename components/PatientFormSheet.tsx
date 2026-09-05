@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import BottomSheet from "./BottomSheet";
 import DatePicker from "./DatePicker";
+import DressingRuleEntry from "./DressingRuleEntry";
+import DressingRuleDialog from "./DressingRuleDialog";
 import { useApp } from "./Providers";
 import {
   addPatient,
@@ -13,7 +15,7 @@ import {
   DEFAULT_GROUP_COLOR,
 } from "@/lib/db";
 import { parseBed } from "@/lib/bed-parser";
-import { computeBedType } from "@/lib/bed-type";
+import { recognizeBed } from "@/lib/bed-identity";
 import { Patient, DressingSchedule } from "@/types";
 
 /** 编辑模式下自动保存的字段校验错误（仅作内联展示，不影响其它字段落库）。 */
@@ -63,6 +65,7 @@ export function PatientForm({
   const [earlyInterval, setEarlyInterval] = useState("");
   const [laterInterval, setLaterInterval] = useState("");
   const [maxDay, setMaxDay] = useState("");
+  const [ruleOpen, setRuleOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   // 编辑模式下的轻量状态指示：自动保存成功 / 校验错误。
@@ -140,7 +143,7 @@ export function PatientForm({
    * - 重复床号：跳过本次落库并内联提示。
    * - 换药计划：仅当整数≥1 且截止>前期间隔时写 dressingSchedule，否则内联提示。
    * - 床号变更时：ward/bedBase/specialType 由 parseBed（展示解析）重算，
-   *   bedType 由 computeBedType（查房顺序）判定——不再无条件用解析结果覆盖，
+   *   bedType 由 recognizeBed（独立识别规则）判定——不再无条件用解析结果覆盖，
    *   避免编辑病人时把「已在查房块内的床」误写成 virtual（v2.17.2 Bug B）。
    */
   const autoSave = useCallback(async () => {
@@ -169,11 +172,7 @@ export function PatientForm({
           patch.bedNumber = normBed;
           patch.ward = parsed.ward;
           patch.bedBase = parsed.bedBase;
-          patch.bedType = computeBedType(
-            { bedNumber: normBed, ward: parsed.ward, bedBase: parsed.bedBase },
-            s.roundingOrder,
-            s.virtualOverrides
-          );
+          patch.bedType = recognizeBed({ bedNumber: normBed, ward: parsed.ward, bedBase: parsed.bedBase }, s);
           patch.specialType = parsed.specialType;
         }
       }
@@ -200,29 +199,7 @@ export function PatientForm({
     if (bloodTestDay !== b.bloodTestDay)
       patch.bloodTestDay = bloodTestDay || undefined;
 
-    // —— 换药计划（可选）——
-    if (customScheduleOn) {
-      const e = Number(earlyInterval);
-      const l = Number(laterInterval);
-      const m = Number(maxDay);
-      const valid =
-        Number.isInteger(e) &&
-        e >= 1 &&
-        Number.isInteger(l) &&
-        l >= 1 &&
-        Number.isInteger(m) &&
-        m >= 1 &&
-        m > e;
-      if (valid) {
-        patch.dressingSchedule = {
-          earlyInterval: e,
-          laterInterval: l,
-          maxDay: m,
-        } satisfies DressingSchedule;
-      } else {
-        nextErrors.schedule = "换药间隔需为整数≥1，且截止>前期间隔，本次未保存";
-      }
-    }
+    // 换药规则由独立面板确认保存，不随其他字段自动保存。
 
     // 无明显改动且无错误：视为载入/重置后的首次触发，静默跳过（不写库、不提示）。
     if (
@@ -249,10 +226,6 @@ export function PatientForm({
     groupColor,
     surgeryDate,
     bloodTestDay,
-    customScheduleOn,
-    earlyInterval,
-    laterInterval,
-    maxDay,
   ]);
 
   // 编辑模式：字段变更后防抖（400ms）自动保存。
@@ -316,11 +289,7 @@ export function PatientForm({
         ward: parsed.ward,
         bedBase: parsed.bedBase,
         // 新增病人同样以查房顺序判定床型（床号不在查房列表里 → 虚拟床）。
-        bedType: computeBedType(
-          { bedNumber: normalizedBed, ward: parsed.ward, bedBase: parsed.bedBase },
-          s.roundingOrder,
-          s.virtualOverrides
-        ),
+        bedType: recognizeBed({ bedNumber: normalizedBed, ward: parsed.ward, bedBase: parsed.bedBase }, s),
         specialType: parsed.specialType,
       };
       // 仅在开启自定义间隔且参数合法时写入每病人换药计划；否则不写（继承全局默认）。
@@ -444,70 +413,18 @@ export function PatientForm({
         </Field>
       </div>
 
-      {/* 换药计划（可选）：开启后覆盖全局默认换药间隔 */}
-      <div className="rounded-2xl border border-border/40 p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-medium text-main">换药计划</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={customScheduleOn}
-            onClick={() => setCustomScheduleOn((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition ${
-              customScheduleOn ? "bg-primary" : "bg-surface-alt"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                customScheduleOn ? "left-[22px]" : "left-0.5"
-              }`}
-            />
-          </button>
-        </div>
-        <p className="mt-1 text-[12px] text-muted">
-          {customScheduleOn
-            ? "自定义间隔，覆盖全局默认换药规则"
-            : "继承默认规则（术后第 2 天起，每 3 天一次，至第 14 天）"}
-        </p>
-        {customScheduleOn && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <Field label="前期间隔(天)">
-              <input
-                type="number"
-                min={1}
-                className="input"
-                value={earlyInterval}
-                onChange={(e) => setEarlyInterval(e.target.value)}
-                onBlur={() => void autoSave()}
-                placeholder="2"
-              />
-            </Field>
-            <Field label="后期间隔(天)">
-              <input
-                type="number"
-                min={1}
-                className="input"
-                value={laterInterval}
-                onChange={(e) => setLaterInterval(e.target.value)}
-                onBlur={() => void autoSave()}
-                placeholder="3"
-              />
-            </Field>
-            <Field label="截止(术后天数)">
-              <input
-                type="number"
-                min={1}
-                className="input"
-                value={maxDay}
-                onChange={(e) => setMaxDay(e.target.value)}
-                onBlur={() => void autoSave()}
-                placeholder="14"
-              />
-            </Field>
-          </div>
-        )}
-        {errors.schedule && <ErrorHint text={errors.schedule} />}
-      </div>
+      <DressingRuleEntry disabled={!settings} description={customScheduleOn ? "使用单独规则" : "使用默认规则"} onClick={() => setRuleOpen(true)} />
+      {ruleOpen && settings && <DressingRuleDialog allowDefault defaults={settings.dressingSchedule}
+        value={customScheduleOn ? { earlyInterval: Number(earlyInterval), laterInterval: Number(laterInterval), maxDay: Number(maxDay) } : undefined}
+        onClose={() => setRuleOpen(false)}
+        onSave={async value => {
+          if (patient) await updatePatient(patient.id, { dressingSchedule: value });
+          setCustomScheduleOn(!!value);
+          setEarlyInterval(value ? String(value.earlyInterval) : "");
+          setLaterInterval(value ? String(value.laterInterval) : "");
+          setMaxDay(value ? String(value.maxDay) : "");
+          if (patient) toast({ message: "换药规则已保存" });
+        }} />}
 
       {/* 编辑模式：无保存按钮，字段变更即自动落库；仅展示轻量指示 / 内联错误。
           新增模式：保留「添加病人」创建按钮。 */}

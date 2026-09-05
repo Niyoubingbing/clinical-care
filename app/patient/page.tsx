@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil, Trash2, ClipboardCheck } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { db, getSettings, deletePatient, updatePatient, toggleTodo, deleteTodo, todayStr, DEFAULT_GROUP_COLOR } from "@/lib/db";
 import { Todo } from "@/types";
 import { patientStatus } from "@/lib/reminders";
 import { resolveSchedule, dressingInfo } from "@/lib/dressing";
 import { contrastTextColor, bedBlockLabel } from "@/lib/contrast";
 import { parseBed } from "@/lib/bed-parser";
-import { computeBedType } from "@/lib/bed-type";
+import { recognizeBed } from "@/lib/bed-identity";
 
 import TodoActionPanel from "@/components/TodoActionPanel";
 import { TodoListView } from "@/components/TodoListView";
@@ -20,6 +20,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import { useApp } from "@/components/Providers";
 import SubpageHeader from "@/components/SubpageHeader";
+import DressingRuleEntry from "@/components/DressingRuleEntry";
+import DressingRuleDialog from "@/components/DressingRuleDialog";
 
 function sortTodos(todos: Todo[]): Todo[] {
   return [...todos].sort((a, b) => {
@@ -59,6 +61,7 @@ export default function PatientDetailPage() {
   );
   const settings = useLiveQuery(() => getSettings(), []);
 
+  const [ruleOpen, setRuleOpen] = useState(false);
   const [todoOpen, setTodoOpen] = useState(false);
   const [fieldOpen, setFieldOpen] = useState<PatientField | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -85,16 +88,12 @@ export default function PatientDetailPage() {
     [settings, patient]
   );
 
-  // 床型徽标（虚拟床 / 加床）统一走 computeBedType：以查房顺序为准，
+  // 床型徽标（虚拟床 / 加床）统一走 recognizeBed：以独立识别规则和单床修正为准，
   // 与首页筛选、卡片徽标同源，避免详情页与列表判定分裂。
   const bedType = useMemo(
     () =>
       settings && patient
-        ? computeBedType(
-            patient,
-            settings.roundingOrder,
-            settings.virtualOverrides
-          )
+        ? recognizeBed(patient, settings)
         : null,
     [settings, patient]
   );
@@ -224,6 +223,7 @@ export default function PatientDetailPage() {
               <button className="patient-editable truncate text-left" onClick={() => setFieldOpen("diagnosis")}>{patient.diagnosis}</button>
             </div>
             <div className="mt-1 flex flex-wrap gap-1">
+              {bedType === "unrecognized" && <span className="badge-muted">床号待确认</span>}
               {bedType === "virtual" && (
                 <span className="badge-virtual">虚拟床</span>
               )}
@@ -257,28 +257,11 @@ export default function PatientDetailPage() {
         </dl>
       </div>
 
-      {dressInfo && hasSurgery && (
-        <section className={`care-plan-card ${dressInfo.isDressingDay && !dressInfo.doneToday ? "care-plan-card-today" : ""}`}>
-          <div className="flex items-start gap-3">
-            <div className="care-plan-icon"><ClipboardCheck size={18} /></div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-[14px] font-semibold text-main">换药计划</h2>
-                <span className={`care-plan-status ${dressInfo.doneToday ? "is-done" : dressInfo.isDressingDay ? "is-today" : ""}`}>
-                  {dressInfo.doneToday ? "今日已完成" : dressInfo.isDressingDay ? "今日需要" : "按计划进行"}
-                </span>
-              </div>
-              <p className="mt-1 text-[12px] text-muted">
-                {dressInfo.nextInDays === 0
-                  ? "今天是换药日，快捷添加一条换药待办即可记录。"
-                  : dressInfo.nextInDays !== null
-                    ? `下次换药还有 ${dressInfo.nextInDays} 天。`
-                    : "当前计划周期已完成。"}
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
+      <DressingRuleEntry disabled={!settings} description={patient.dressingSchedule ? "此病人使用单独规则" : "此病人使用默认规则"} onClick={() => setRuleOpen(true)} />
+      {ruleOpen && settings && <DressingRuleDialog allowDefault value={patient.dressingSchedule} defaults={settings.dressingSchedule} onClose={() => setRuleOpen(false)} onSave={async value => {
+        await updatePatient(patient.id, { dressingSchedule: value });
+        toast({ message: value ? "已保存此病人的换药规则" : "已恢复使用默认规则" });
+      }} />}
 
       {/* 详情页一键切换分组（设置页自定义的分组列表） */}
       {customGroups.length > 0 && (
